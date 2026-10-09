@@ -14,7 +14,7 @@ The backend running locally (`backend/docs/10-local-development.md`), with `META
 
 | Command | Does |
 |---|---|
-| `npm run dev` | Next.js dev server on port 3000 |
+| `npm run dev` | Next.js dev server on port 3200 |
 | `npm run api:types` | Regenerate `src/lib/api/schema.d.ts` from the running backend |
 | `npm run lint` | ESLint, zero warnings |
 | `npm run typecheck` | TypeScript |

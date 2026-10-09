@@ -27,7 +27,7 @@ Copy `.env.example` to `.env` and fill it in. Real environment variables always 
 | `JWT_ACCESS_SECRET` | 64 random characters | `openssl rand -base64 48` |
 | `TOKEN_ENCRYPTION_KEY` | 32 bytes, base64 | `openssl rand -base64 32` |
 | `OTP_TEST_NUMBERS` | `8434230999:963101` | comma-separated `phone:code` pairs |
-| `WEB_ORIGINS` | `http://localhost:3000` | comma-separated allowed origins |
+| `WEB_ORIGINS` | `http://localhost:3200` | comma-separated allowed origins |
 | `META_GRAPH_VERSION` | `v23.0` | |
 | `META_MOCK` | `false` | `true` uses mock Meta data |
 | `ANTHROPIC_API_KEY` | | needed from the AI phase onward |
@@ -51,7 +51,7 @@ Copy `.env.example` to `.env` and fill it in. Real environment variables always 
 
 ## 4. Working with the web app
 
-The web app runs on `http://localhost:3000` and proxies `/api/*` to `http://localhost:4000`, so cookies are first-party and no CORS setup is needed for local work.
+The web app runs on `http://localhost:3200` and proxies `/api/*` to `http://localhost:4000`, so cookies are first-party and no CORS setup is needed for local work.
 
 ## 5. Test login
 

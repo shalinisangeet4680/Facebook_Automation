@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Test login: phone `8434230999`, code `963101`.
+Open `http://localhost:3200`. Test login: phone `8434230999`, code `963101`.
 
 ## Documentation
 
