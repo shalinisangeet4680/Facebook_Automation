@@ -14,7 +14,7 @@ export function PermissionsCard({ permissions }: { permissions: Permission[] }) 
         </div>
         <CopyButton value={needed.map((p) => p.name).join(", ")} label="Copy all" />
       </div>
-      <ul className="divide-border max-h-64 divide-y overflow-y-auto">
+      <ul className="divide-border divide-y">
         {needed.map((p) => (
           <li key={p.name} className="flex items-start gap-3 px-5 py-2.5">
             <div className="min-w-0 flex-1">
