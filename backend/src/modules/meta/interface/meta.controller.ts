@@ -11,6 +11,10 @@ import {
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 
+import { JobsService } from "@modules/jobs/application/jobs.service";
+import { JobAccepted } from "@modules/jobs/domain/job.types";
+import { JOBS } from "@shared/queue/job-names";
+import { QUEUES } from "@shared/queue/queue.constants";
 import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
@@ -21,7 +25,10 @@ import { SelectAssetsDto } from "./dto/select-assets.dto";
 @ApiTags("Meta")
 @Controller("meta")
 export class MetaController {
-  constructor(private readonly meta: MetaConnectionService) {}
+  constructor(
+    private readonly meta: MetaConnectionService,
+    private readonly jobs: JobsService,
+  ) {}
 
   @Get("requirements")
   requirements() {
@@ -49,6 +56,19 @@ export class MetaController {
   @Get("assets")
   assets(@CurrentUser() ctx: TenantContext) {
     return this.meta.listAssets(ctx.workspaceId);
+  }
+
+  @Throttle({ default: { limit: 12, ttl: 3_600_000 } })
+  @Post("assets/refresh")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async refreshAssets(@CurrentUser() ctx: TenantContext): Promise<JobAccepted> {
+    await this.meta.accessToken(ctx.workspaceId);
+    return this.jobs.enqueue(
+      QUEUES.META_SYNC,
+      JOBS.REFRESH_ASSETS,
+      { workspaceId: ctx.workspaceId, requestedBy: ctx.userId },
+      Math.floor(Date.now() / 60_000).toString(),
+    );
   }
 
   @Put("assets/selection")

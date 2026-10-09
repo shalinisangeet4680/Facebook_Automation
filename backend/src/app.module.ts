@@ -7,6 +7,7 @@ import { AuditModule } from "@modules/audit/audit.module";
 import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
+import { JobsModule } from "@modules/jobs/jobs.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -40,6 +41,7 @@ import { SecurityModule } from "@shared/security/security.module";
     }),
     IdempotencyModule,
     AuditModule,
+    JobsModule,
     HealthModule,
     IamModule,
     AuthModule,
