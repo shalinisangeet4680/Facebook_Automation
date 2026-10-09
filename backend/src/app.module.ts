@@ -2,6 +2,7 @@ import { Module, ValidationPipe } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 
+import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -33,6 +34,7 @@ import { SecurityModule } from "@shared/security/security.module";
     }),
     HealthModule,
     IamModule,
+    AuthModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

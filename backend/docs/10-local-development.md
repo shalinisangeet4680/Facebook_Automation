@@ -16,7 +16,7 @@ Create the database once:
 
 ## 2. Environment
 
-Copy `.env.example` to `.env` and fill it in.
+Copy `.env.example` to `.env` and fill it in. Real environment variables always override values from `.env`.
 
 | Variable | Example | Notes |
 |---|---|---|

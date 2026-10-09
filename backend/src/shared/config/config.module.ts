@@ -9,7 +9,7 @@ import { validateEnv } from "./env.validation";
       isGlobal: true,
       cache: true,
       envFilePath: [".env"],
-      validate: validateEnv,
+      validate: (fileConfig) => validateEnv({ ...fileConfig, ...process.env }),
     }),
   ],
 })

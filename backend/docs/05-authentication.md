@@ -50,6 +50,7 @@ Signed with `JWT_ACCESS_SECRET` (HS256). Verified on every request without a dat
 - Belongs to a **family** (one family per login on one device).
 - Valid for 30 days from its issue; each refresh issues a new token and marks the old one `replaced`.
 - **Reuse detection:** presenting a token that was already replaced revokes the whole family and forces sign-in again on that device.
+- **Concurrent refresh grace:** if a replaced token is presented within 15 seconds of being replaced (two tabs refreshing at once), the API returns `409 SESSION_REFRESHED` without revoking anything; the client simply retries its original request with the cookies the other tab already received.
 - Logout revokes the family; logout-all revokes every family of the user.
 
 ## 4. Web cookies
@@ -67,7 +68,7 @@ Signed with `JWT_ACCESS_SECRET` (HS256). Verified on every request without a dat
 
 1. A request returns `401 UNAUTHORIZED`.
 2. The client calls `POST /api/v1/auth/refresh` once (concurrent 401s share one refresh call).
-3. On success the original request is retried. On failure the user is sent to the login screen.
+3. On success the original request is retried. On `409 SESSION_REFRESHED` the original request is retried without refreshing again. On any other failure the user is sent to the login screen.
 
 ## 6. Data
 

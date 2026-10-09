@@ -1,0 +1,2 @@
+process.env.OTP_TEST_NUMBERS = "8434230999:963101,9000000001:123456";
+process.env.LOG_LEVEL = "error";
