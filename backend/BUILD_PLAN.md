@@ -17,3 +17,17 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 - [x] 11. Jobs: `maintenance` queue with token health check and cleanup schedules, `meta-sync` asset refresh job, `GET /api/v1/jobs/:jobId`
 - [x] 12. Quality: unit tests for crypto, phone, OTP, token rotation; e2e tests for auth and Meta flows; oxlint, Prettier, typecheck scripts; GitHub Actions CI; Dockerfile
 - [x] 13. Verification: run API and worker locally, exercise every MVP endpoint end to end, update docs where reality differs
+
+## Phase 1A — Claude connector (MCP)
+
+Design in `docs/12-mcp-connector.md`.
+
+- [ ] 1. Config and plumbing: `APP_URL`, `ADS_MAX_DAILY_BUDGET`, form body parser, routes outside the `/api` prefix, client guard exemptions
+- [ ] 2. OAuth tables and migration: `oauth_clients`, `oauth_grants`, `oauth_refresh_tokens`
+- [ ] 3. Authorization server: metadata, DCR, CIMD, consent context and decision, code exchange with PKCE, refresh rotation, revocation, connected apps
+- [ ] 4. Meta ads port: shared Graph transport with POST, real client for insights, campaigns, targeting search, pixel stats, drafts, status and budget; in-memory mock
+- [ ] 5. Ads application: overview, performance, campaigns, tracking, drafts, pause, confirmation tokens, guardrails, audit
+- [ ] 6. MCP endpoint: bearer challenge, per-request stateless server, tools by scope, rate limit
+- [ ] 7. Tests: unit and e2e for OAuth, MCP and tools
+- [ ] 8. Web: consent screen, Claude settings page, proxy and rewrites, typed client
+- [ ] 9. Verification: tunnel, end-to-end with a real MCP client, docs
