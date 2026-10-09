@@ -1,3 +1,5 @@
+import "./instrument";
+
 import { ConfigService } from "@nestjs/config";
 import { Logger } from "nestjs-pino";
 

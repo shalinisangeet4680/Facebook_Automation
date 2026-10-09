@@ -4,6 +4,7 @@
 
 - Secrets live only in environment variables locally and in the platform's secret manager in production. `.env` is git-ignored; `.env.example` lists keys without values.
 - Required secrets: `JWT_ACCESS_SECRET`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL`, `REDIS_URL`, provider keys.
+- Real environment variables always override values in `.env`.
 - Configuration is validated at startup; missing or weak secrets stop the process.
 
 ## 2. Data protection

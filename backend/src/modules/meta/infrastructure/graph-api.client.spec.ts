@@ -40,8 +40,8 @@ describe("GraphApiClient", () => {
     fetchMock.mockResolvedValueOnce(json({ id: "1", name: "Bot" }));
     await client.identity("EAAsecret");
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(String(url)).not.toContain("EAAsecret");
-    expect((init?.headers as Record<string, string>).Authorization).toBe(
+    expect(url as string).not.toContain("EAAsecret");
+    expect((init!.headers as Record<string, string>).Authorization).toBe(
       "Bearer EAAsecret",
     );
   });

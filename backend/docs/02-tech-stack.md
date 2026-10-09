@@ -53,7 +53,7 @@
 | Library | Purpose |
 |---|---|
 | `nestjs-pino`, `pino` | Structured JSON logs with request IDs; `pino-pretty` in development |
-| `@sentry/nestjs` | Error tracking and alerting |
+| `@sentry/nestjs` | Error tracking and alerting; enabled only when `SENTRY_DSN` is set |
 | `@nestjs/terminus` | Health checks for Postgres and Redis |
 | `@nestjs/event-emitter` | In-process domain events between modules |
 
@@ -70,10 +70,9 @@
 | Tool | Purpose |
 |---|---|
 | Vitest | Unit tests |
-| Supertest | API tests against the running Nest app |
-| Testcontainers | Real Postgres and Redis in integration tests |
+| Fastify `inject` | In-process HTTP tests against the real Nest app, no network port needed |
+| Postgres and Redis services | Integration tests run against real Postgres and Redis: local Homebrew services in development, service containers in CI |
 | oxlint | Linting (type-aware) |
 | Prettier | Formatting (double quotes, trailing commas, 80 columns) |
-| Husky, lint-staged | Pre-commit lint and format |
 | GitHub Actions | CI: install, lint, typecheck, test, build |
 | Docker | One image for API and worker roles |

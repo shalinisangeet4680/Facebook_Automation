@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { ThrottlerException } from "@nestjs/throttler";
+import * as Sentry from "@sentry/nestjs";
 import { FastifyReply, FastifyRequest } from "fastify";
 
 import { DomainError } from "./domain-error";
@@ -41,6 +42,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status, body } = this.toError(exception, traceId);
 
     if (status >= 500) {
+      Sentry.captureException(exception, { tags: { traceId } });
       this.logger.error(
         `${traceId} ${request.method} ${request.url}`,
         exception instanceof Error ? exception.stack : String(exception),
@@ -80,14 +82,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const res = exception.getResponse();
-      const message =
-        typeof res === "string"
-          ? res
-          : Array.isArray((res as { message?: unknown }).message)
-            ? String((res as { message: string[] }).message[0])
-            : String(
-                (res as { message?: unknown }).message ?? exception.message,
-              );
+      const message = extractMessage(res, exception.message);
       if (status === HttpStatus.SERVICE_UNAVAILABLE) {
         return {
           status,
@@ -118,4 +113,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       },
     };
   }
+}
+
+function extractMessage(res: string | object, fallback: string): string {
+  if (typeof res === "string") return res;
+  const message = (res as { message?: unknown }).message;
+  if (Array.isArray(message) && typeof message[0] === "string") {
+    return message[0];
+  }
+  return typeof message === "string" ? message : fallback;
 }

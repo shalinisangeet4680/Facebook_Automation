@@ -92,7 +92,7 @@ backend/
 | Kind | Location | Tooling | Covers |
 |---|---|---|---|
 | Unit | next to the file, `*.spec.ts` | Vitest | domain rules, services with mocked ports |
-| API / integration | `test/*.e2e-spec.ts` | Vitest + Supertest + Testcontainers | full HTTP flows against real Postgres and Redis |
+| API / integration | `test/*.e2e-spec.ts` | Vitest + Fastify `inject` | full HTTP flows and worker jobs against real Postgres and Redis |
 
 Every new endpoint gets at least one e2e test for the success path and one for its most likely failure.
 

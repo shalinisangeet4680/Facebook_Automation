@@ -42,10 +42,11 @@ Copy `.env.example` to `.env` and fill it in. Real environment variables always 
 | `npm run db:generate -- --name <name>` | Generate a migration from table changes |
 | `npm run db:migrate` | Apply migrations |
 | `npm run db:studio` | Browse the database |
-| `npm run lint` / `npm run format` | Lint and format |
+| `npm run lint` | Lint with zero warnings allowed |
+| `npm run format` / `npm run format:check` | Format, or check formatting |
 | `npm run typecheck` | TypeScript check |
 | `npm test` | Unit tests |
-| `npm run test:e2e` | API tests with Testcontainers (Docker must be running) |
+| `npm run test:e2e` | Integration tests against the local Postgres and Redis |
 | `npm run build` | Production build |
 
 ## 4. Working with the web app
@@ -55,3 +56,18 @@ The web app runs on `http://localhost:3000` and proxies `/api/*` to `http://loca
 ## 5. Test login
 
 Phone `8434230999`, code `963101`.
+
+## 6. Docker
+
+```bash
+docker build -t ads-autopilot-backend .
+docker run --env-file .env -p 4000:4000 ads-autopilot-backend
+docker run --env-file .env ads-autopilot-backend node dist/worker.js
+docker run --env-file .env ads-autopilot-backend node dist/shared/database/migrate.js
+```
+
+One image runs the API (default), the worker, or the migration step.
+
+## 7. Continuous integration
+
+`.github/workflows/backend.yml` runs on every push and pull request touching `backend/`: install, lint, format check, typecheck, migrate a fresh Postgres, unit tests, integration tests with Postgres and Redis service containers, and build.

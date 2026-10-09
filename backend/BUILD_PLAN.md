@@ -15,5 +15,5 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 - [x] 9. Meta: requirements endpoint, `MetaGraph` port, Graph client with retry, backoff and usage headers, mock client, connection service (validate, encrypt, discover assets), connection and asset endpoints, primary asset selection, `meta.connected` event
 - [x] 10. Onboarding: step catalogue, `onboarding_progress`, state machine, `GET /api/v1/onboarding`, event listeners
 - [x] 11. Jobs: `maintenance` queue with token health check and cleanup schedules, `meta-sync` asset refresh job, `GET /api/v1/jobs/:jobId`
-- [ ] 12. Quality: unit tests for crypto, phone, OTP, token rotation; e2e tests for auth and Meta flows; oxlint, Prettier, typecheck scripts; GitHub Actions CI; Dockerfile
+- [x] 12. Quality: unit tests for crypto, phone, OTP, token rotation; e2e tests for auth and Meta flows; oxlint, Prettier, typecheck scripts; GitHub Actions CI; Dockerfile
 - [ ] 13. Verification: run API and worker locally, exercise every MVP endpoint end to end, update docs where reality differs
