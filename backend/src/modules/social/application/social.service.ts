@@ -242,6 +242,37 @@ export class SocialService {
     return this.view(row);
   }
 
+  async retry(actor: SocialActor, id: string) {
+    const [row] = await this.db
+      .update(socialPosts)
+      .set({ status: "scheduled", scheduledAt: new Date() })
+      .where(
+        and(
+          eq(socialPosts.id, id),
+          eq(socialPosts.workspaceId, actor.workspaceId),
+          inArray(socialPosts.status, ["failed", "partially_published"]),
+        ),
+      )
+      .returning();
+    if (!row) {
+      const existing = await this.find(actor.workspaceId, id);
+      if (!existing) throw new NotFoundError("This post doesn't exist.");
+      throw new CodedError(
+        ErrorCode.CONFLICT,
+        409,
+        "Only failed posts can be retried.",
+      );
+    }
+    await this.queue.remove(id).catch(() => undefined);
+    await this.queue.add(
+      JOBS.PUBLISH_POST,
+      { workspaceId: actor.workspaceId, postId: id },
+      { jobId: `${id}-retry-${Date.now()}`, attempts: 4 },
+    );
+    await this.record(actor, "social.retried", id, {});
+    return this.view(row);
+  }
+
   async list(workspaceId: string) {
     const rows = await this.db
       .select()

@@ -27,15 +27,7 @@ export class GraphPublishingClient
     caption: string,
   ): Promise<PublishedPost> {
     const pageToken = await this.pageToken(token, pageId);
-    const photo = await this.post<{ id: string; post_id?: string }>(
-      pageToken,
-      `/${pageId}/photos`,
-      {
-        url: imageUrl,
-        caption,
-        published: true,
-      },
-    );
+    const photo = await this.uploadPhoto(pageToken, pageId, imageUrl, caption);
     const postId = photo.post_id ?? `${pageId}_${photo.id}`;
     const details = await this.get<{ permalink_url?: string }>(
       pageToken,
@@ -106,10 +98,24 @@ export class GraphPublishingClient
     const uploadUrl =
       start.upload_url ??
       `https://rupload.facebook.com/video-upload/${this.base.split("/").pop()}/${start.video_id}`;
+    const source = await fetch(videoUrl, {
+      signal: AbortSignal.timeout(300_000),
+    });
+    if (!source.ok)
+      throw metaRejected(
+        `Couldn't read the video to upload (HTTP ${source.status}).`,
+      );
+    const bytes = Buffer.from(await source.arrayBuffer());
     const upload = await fetch(uploadUrl, {
       method: "POST",
-      headers: { Authorization: `OAuth ${pageToken}`, file_url: videoUrl },
-      signal: AbortSignal.timeout(120_000),
+      headers: {
+        Authorization: `OAuth ${pageToken}`,
+        offset: "0",
+        file_size: String(bytes.length),
+        "Content-Type": "application/octet-stream",
+      },
+      body: bytes,
+      signal: AbortSignal.timeout(300_000),
     });
     const uploaded = (await upload.json().catch(() => ({}))) as {
       success?: boolean;
@@ -117,7 +123,7 @@ export class GraphPublishingClient
     };
     if (!upload.ok || uploaded.success === false) {
       throw metaRejected(
-        `Facebook couldn't fetch the video: ${uploaded.debug_info?.message ?? `HTTP ${upload.status}`}`,
+        `Facebook didn't accept the video upload: ${uploaded.debug_info?.message ?? `HTTP ${upload.status}`}`,
       );
     }
     await this.post(pageToken, `/${pageId}/video_reels`, {
@@ -266,6 +272,49 @@ export class GraphPublishingClient
       comments: count(r.comments_count),
       mediaType: typeof r.media_type === "string" ? r.media_type : null,
     }));
+  }
+
+  private async uploadPhoto(
+    pageToken: string,
+    pageId: string,
+    imageUrl: string,
+    caption: string,
+  ): Promise<{ id: string; post_id?: string }> {
+    const source = await fetch(imageUrl, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!source.ok)
+      throw metaRejected(
+        `Couldn't read the image to upload (HTTP ${source.status}).`,
+      );
+    const type = source.headers.get("content-type") ?? "image/png";
+    const form = new FormData();
+    form.append(
+      "source",
+      new Blob([await source.arrayBuffer()], { type }),
+      "image",
+    );
+    form.append("caption", caption);
+    form.append("published", "true");
+    const res = await fetch(`${this.base}/${pageId}/photos`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${pageToken}` },
+      body: form,
+      signal: AbortSignal.timeout(120_000),
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      id?: string;
+      post_id?: string;
+      error?: { message?: string; error_user_msg?: string };
+    };
+    if (!res.ok || body.error || !body.id) {
+      throw metaRejected(
+        body.error?.error_user_msg ??
+          body.error?.message ??
+          `Facebook rejected the photo (HTTP ${res.status}).`,
+      );
+    }
+    return { id: body.id, post_id: body.post_id };
   }
 
   private async pageToken(token: string, pageId: string): Promise<string> {

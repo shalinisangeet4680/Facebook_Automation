@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Heart, MessageCircle, X } from "lucide-react";
+import { ExternalLink, Heart, MessageCircle, RotateCcw, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
-import { useCancelPost, useLibrary, usePosts } from "@/lib/api/queries";
+import { useCancelPost, useLibrary, usePosts, useRetryPost } from "@/lib/api/queries";
 import type { LibraryPost, SocialPost } from "@/lib/api/types";
 
 const when = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -50,6 +50,7 @@ export function PostsPanel() {
 function AutopilotPosts() {
   const posts = usePosts();
   const cancel = useCancelPost();
+  const retry = useRetryPost();
   const client = useQueryClient();
   const busy = posts.data?.data.some((p) => p.status === "publishing") ?? false;
   const wasBusy = useRef(busy);
@@ -135,6 +136,21 @@ function AutopilotPosts() {
                       })}
                     </div>
                   </div>
+                  {post.status === "failed" || post.status === "partially_published" ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={retry.isPending && retry.variables === post.id}
+                      onClick={() =>
+                        retry.mutate(post.id, {
+                          onSuccess: () => toast.success("Retrying the failed platform"),
+                          onError: (err) => toast.error(errorMessage(err)),
+                        })
+                      }
+                    >
+                      <RotateCcw /> Retry
+                    </Button>
+                  ) : null}
                   {post.status === "scheduled" ? (
                     <Button
                       variant="ghost"

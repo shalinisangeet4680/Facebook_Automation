@@ -441,3 +441,15 @@ export function useApplyFacebookProfile() {
     onSuccess: (result) => client.setQueryData(keys.profile, result.checkup),
   });
 }
+
+export function useRetryPost() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.POST("/api/v1/posts/{id}/retry", { params: { path: { id } } })),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.posts });
+      void client.invalidateQueries({ queryKey: keys.inbox });
+    },
+  });
+}

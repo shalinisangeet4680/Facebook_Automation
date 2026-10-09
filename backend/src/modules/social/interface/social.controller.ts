@@ -65,6 +65,15 @@ export class SocialController {
     return this.social.create(actor(ctx), body);
   }
 
+  @Post("posts/:id/retry")
+  @HttpCode(HttpStatus.OK)
+  retry(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<SocialPostDto> {
+    return this.social.retry(actor(ctx), id);
+  }
+
   @Post("posts/:id/cancel")
   @HttpCode(HttpStatus.OK)
   cancel(
