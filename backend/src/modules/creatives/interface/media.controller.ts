@@ -20,6 +20,8 @@ const TYPES: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
   webp: "image/webp",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
 };
 
 @ApiExcludeController()
