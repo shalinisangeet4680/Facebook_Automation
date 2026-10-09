@@ -29,5 +29,5 @@ Design in `docs/12-mcp-connector.md`.
 - [x] 5. Ads application: overview, performance, campaigns, tracking, drafts, pause, confirmation tokens, guardrails, audit
 - [x] 6. MCP endpoint: bearer challenge, per-request stateless server, tools by scope, rate limit
 - [x] 7. Tests: unit and e2e for OAuth, MCP and tools
-- [ ] 8. Web: consent screen, Claude settings page, proxy and rewrites, typed client
-- [ ] 9. Verification: tunnel, end-to-end with a real MCP client, docs
+- [x] 8. Web: consent screen, Claude settings page, proxy and rewrites, typed client
+- [x] 9. Verification: tunnel, end-to-end with a real MCP client, docs

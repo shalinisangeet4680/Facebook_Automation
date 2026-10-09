@@ -244,6 +244,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oauth/authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_context_v1"];
+        put?: never;
+        post: operations["AuthorizationController_decide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_connector_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connected-apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connected-apps/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["AuthorizationController_disconnect_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -417,6 +481,60 @@ export interface components {
             completedCount: number;
             totalCount: number;
             isComplete: boolean;
+        };
+        AuthorizationClientDto: {
+            name: string;
+            /** @enum {string} */
+            kind: "dcr" | "cimd";
+            clientUri: string | null;
+            logoUri: string | null;
+        };
+        AuthorizationWorkspaceDto: {
+            id: string;
+            name: string;
+        };
+        AuthorizationAdAccountDto: {
+            id: string;
+            name: string;
+        };
+        AuthorizationContextDto: {
+            client: components["schemas"]["AuthorizationClientDto"];
+            redirectHost: string;
+            workspace: components["schemas"]["AuthorizationWorkspaceDto"];
+            adAccount: components["schemas"]["AuthorizationAdAccountDto"] | null;
+            writeRequested: boolean;
+        };
+        AuthorizationDecisionDto: {
+            response_type: string;
+            client_id: string;
+            redirect_uri: string;
+            code_challenge: string;
+            code_challenge_method: string;
+            state?: string;
+            scope?: string;
+            resource?: string;
+            approve: boolean;
+            allowWrite?: boolean;
+        };
+        AuthorizationRedirectDto: {
+            redirectTo: string;
+        };
+        ConnectorInfoDto: {
+            mcpUrl: string;
+            maxDailyBudget: number;
+        };
+        ConnectedAppDto: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "dcr" | "cimd";
+            clientUri: string | null;
+            scopes: string[];
+            connectedAt: string;
+            lastUsedAt: string | null;
+        };
+        ConnectedAppListDto: {
+            data: components["schemas"]["ConnectedAppDto"][];
         };
     };
     responses: never;
@@ -1012,6 +1130,154 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OnboardingResponseDto"];
                 };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_context_v1: {
+        parameters: {
+            query: {
+                response_type: string;
+                client_id: string;
+                redirect_uri: string;
+                code_challenge: string;
+                code_challenge_method: string;
+                state?: string;
+                scope?: string;
+                resource?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationContextDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_decide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationDecisionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationRedirectDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_connector_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorInfoDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectedAppListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_disconnect_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: {
                 headers: {

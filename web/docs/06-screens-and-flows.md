@@ -32,6 +32,27 @@ Two columns on desktop.
 
 One section per asset kind (ad account, Page, Instagram, dataset) with radio cards showing name, ID, and key details (currency and spend cap, Page category, Instagram username, dataset last activity). Pre-selected primaries come from the API. Save calls `PUT /meta/assets/selection`, then returns to `/setup`. A "Refresh from Meta" action starts the background job and shows its progress.
 
-## 6. States everywhere
+## 6. Use with Claude (`/claude`)
+
+This page explains how to use Autopilot from your own Claude plan:
+- the connector URL with a copy button
+- steps for the Claude apps, and the `claude mcp add` command for Claude Code
+- example prompts
+- connected apps with their access level, when each was last used, and Disconnect
+- the built-in guardrails, including the daily budget limit
+
+## 7. Consent (`/oauth/authorize`)
+
+Claude sends people here during OAuth. If they are signed out, the proxy sends them to `/login?next=…` and back.
+
+The card shows:
+- the app name and the host it will return to
+- the workspace and ad account
+- read access, which is always included
+- an optional "Prepare and manage campaigns" permission
+
+The person chooses Allow or Cancel, and the app sends them back to Claude with a full-page redirect. If the request is invalid, the card shows an error and never redirects. If the redirect goes to a loopback address, a warning appears.
+
+## 8. States everywhere
 
 Loading uses skeletons shaped like the content. Errors show the backend message with a Retry action. Empty states explain what to do next.

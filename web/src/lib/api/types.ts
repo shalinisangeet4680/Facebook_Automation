@@ -16,3 +16,9 @@ export type Job = Schemas["JobResponseDto"];
 export type OtpRequested = Schemas["OtpRequestedDto"];
 export type SignIn = Schemas["SignInResponseDto"];
 export type AssetSelection = Schemas["SelectAssetsDto"];
+export type AuthorizationContext = Schemas["AuthorizationContextDto"];
+export type AuthorizationQuery = Omit<
+  Schemas["AuthorizationDecisionDto"],
+  "approve" | "allowWrite"
+>;
+export type ConnectedApp = Schemas["ConnectedAppDto"];

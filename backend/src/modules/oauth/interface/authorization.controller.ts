@@ -65,7 +65,10 @@ export class AuthorizationController {
 
   @Get("connector")
   connector(): ConnectorInfoDto {
-    return { mcpUrl: mcpResourceUrl(this.config) };
+    return {
+      mcpUrl: mcpResourceUrl(this.config),
+      maxDailyBudget: this.config.get("ADS_MAX_DAILY_BUDGET", { infer: true }),
+    };
   }
 
   @Get("connected-apps")

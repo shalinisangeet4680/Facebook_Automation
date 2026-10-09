@@ -43,4 +43,5 @@ export class ConnectedAppListDto {
 
 export class ConnectorInfoDto {
   mcpUrl: string;
+  maxDailyBudget: number;
 }

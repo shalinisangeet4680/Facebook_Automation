@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, setSigningOut, unwrap } from "./client";
-import type { AssetSelection, Connection, Job } from "./types";
+import type { AssetSelection, AuthorizationQuery, Connection, Job } from "./types";
 
 export const keys = {
   me: ["me"] as const,
@@ -12,6 +12,9 @@ export const keys = {
   connection: ["meta", "connection"] as const,
   assets: ["meta", "assets"] as const,
   job: (id: string) => ["jobs", id] as const,
+  authorization: (query: AuthorizationQuery) => ["oauth", "authorization", query] as const,
+  connector: ["connector"] as const,
+  connectedApps: ["connected-apps"] as const,
 };
 
 export function useMe() {
@@ -127,5 +130,45 @@ export function useDisconnectMeta() {
 export function useRefreshAssets() {
   return useMutation({
     mutationFn: () => unwrap(api.POST("/api/v1/meta/assets/refresh")),
+  });
+}
+
+export function useAuthorizationContext(query: AuthorizationQuery) {
+  return useQuery({
+    queryKey: keys.authorization(query),
+    queryFn: () => unwrap(api.GET("/api/v1/oauth/authorization", { params: { query } })),
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
+export function useAuthorizationDecision() {
+  return useMutation({
+    mutationFn: (body: AuthorizationQuery & { approve: boolean; allowWrite: boolean }) =>
+      unwrap(api.POST("/api/v1/oauth/authorization", { body })),
+  });
+}
+
+export function useConnector() {
+  return useQuery({
+    queryKey: keys.connector,
+    queryFn: () => unwrap(api.GET("/api/v1/connector")),
+    staleTime: Infinity,
+  });
+}
+
+export function useConnectedApps() {
+  return useQuery({
+    queryKey: keys.connectedApps,
+    queryFn: () => unwrap(api.GET("/api/v1/connected-apps")),
+  });
+}
+
+export function useDisconnectApp() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/connected-apps/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.connectedApps }),
   });
 }

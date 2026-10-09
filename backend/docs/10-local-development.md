@@ -71,3 +71,19 @@ One image runs the API (default), the worker, or the migration step.
 ## 7. Continuous integration
 
 `.github/workflows/backend.yml` runs on every push and pull request touching `backend/`: install, lint, format check, typecheck, migrate a fresh Postgres, unit tests, integration tests with Postgres and Redis service containers, and build.
+
+## 8. Claude connector through a tunnel
+
+Claude's servers must reach the connector, so `localhost` is not enough for claude.ai.
+
+```bash
+cloudflared tunnel --protocol http2 --url http://localhost:3200
+```
+
+1. Copy the `https://….trycloudflare.com` URL it prints. Use `--protocol http2`, because QUIC fails on some networks.
+2. In `backend/.env`, set `APP_URL` to that URL and add it to `WEB_ORIGINS`, then restart the API.
+3. Open `/claude` in the app, copy the connector URL (`{APP_URL}/mcp`) and add it in Claude under Settings → Connectors → Add custom connector.
+
+A quick tunnel gets a new URL every time it starts. After a restart, update `APP_URL` and add the connector again in Claude. A named Cloudflare tunnel or a deployment gives a stable URL.
+
+Claude Code can use the local URL directly: `claude mcp add --transport http autopilot http://localhost:3200/mcp`. This works only when `APP_URL` is `http://localhost:3200`, because tokens are bound to `{APP_URL}/mcp`.
