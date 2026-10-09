@@ -48,3 +48,15 @@ export class CodedError extends DomainError {
     super(message, details);
   }
 }
+
+export class ProtocolError extends Error {
+  constructor(
+    readonly httpStatus: number,
+    readonly body: Record<string, unknown>,
+    readonly headers: Record<string, string> = {},
+  ) {
+    const message = body.error_description ?? body.error;
+    super(typeof message === "string" ? message : "Protocol error");
+    this.name = "ProtocolError";
+  }
+}

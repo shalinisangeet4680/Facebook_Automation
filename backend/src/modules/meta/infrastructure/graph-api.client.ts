@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { Env } from "@shared/config/env.validation";
 
 import {
+  metaRejected,
   metaThrottled,
   metaTokenInvalid,
   metaUnavailable,
@@ -27,8 +28,12 @@ interface GraphError {
   message?: string;
   code?: number;
   error_subcode?: number;
+  error_user_title?: string;
+  error_user_msg?: string;
   fbtrace_id?: string;
 }
+
+export type GraphParams = Record<string, string | number | boolean | object>;
 
 interface Paged<T> {
   data?: T[];
@@ -47,8 +52,8 @@ class GraphRequestError extends Error {
 
 @Injectable()
 export class GraphApiClient implements MetaGraph {
-  private readonly logger = new Logger(GraphApiClient.name);
-  private readonly base: string;
+  protected readonly logger = new Logger(GraphApiClient.name);
+  protected readonly base: string;
 
   constructor(config: ConfigService<Env, true>) {
     this.base = `https://graph.facebook.com/${config.get("META_GRAPH_VERSION", { infer: true })}`;
@@ -165,7 +170,7 @@ export class GraphApiClient implements MetaGraph {
     return new Promise((r) => setTimeout(r, ms));
   }
 
-  private async list<T>(
+  protected async list<T>(
     token: string,
     path: string,
     params: Record<string, string>,
@@ -185,26 +190,49 @@ export class GraphApiClient implements MetaGraph {
     return out;
   }
 
-  private get<T>(
+  protected get<T>(
     token: string,
     path: string,
-    params: Record<string, string>,
+    params: GraphParams,
   ): Promise<T> {
     const url = new URL(`${this.base}${path}`);
-    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    for (const [k, v] of Object.entries(params)) {
+      url.searchParams.set(
+        k,
+        typeof v === "object" ? JSON.stringify(v) : String(v),
+      );
+    }
     return this.request<T>(token, url.toString());
   }
 
-  private async request<T>(token: string, url: string): Promise<T> {
+  protected post<T>(
+    token: string,
+    path: string,
+    params: GraphParams,
+    method: "POST" | "DELETE" = "POST",
+  ): Promise<T> {
+    const body = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      body.set(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+    }
+    return this.request<T>(token, `${this.base}${path}`, { method, body });
+  }
+
+  private async request<T>(
+    token: string,
+    url: string,
+    write?: { method: "POST" | "DELETE"; body: URLSearchParams },
+  ): Promise<T> {
     let lastError: GraphRequestError | null = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        return await this.once<T>(token, url);
+        return await this.once<T>(token, url, write);
       } catch (err) {
         if (!(err instanceof GraphRequestError)) throw err;
         lastError = err;
         if (err.kind === "auth") throw metaTokenInvalid(err.graph.message);
-        if (err.kind === "fatal") break;
+        if (err.kind === "fatal") throw this.rejected(err.graph);
+        if (write && err.kind === "transient") break;
         if (attempt < MAX_ATTEMPTS) {
           const delay =
             err.kind === "throttled"
@@ -223,12 +251,29 @@ export class GraphApiClient implements MetaGraph {
     throw metaUnavailable();
   }
 
-  private async once<T>(token: string, url: string): Promise<T> {
+  private rejected(error: GraphError) {
+    const message =
+      error.error_user_msg ?? error.message ?? "Meta rejected the request.";
+    return metaRejected(message, {
+      metaCode: error.code ?? null,
+      metaSubcode: error.error_subcode ?? null,
+      title: error.error_user_title ?? null,
+      fbtraceId: error.fbtrace_id ?? null,
+    });
+  }
+
+  private async once<T>(
+    token: string,
+    url: string,
+    write?: { method: "POST" | "DELETE"; body: URLSearchParams },
+  ): Promise<T> {
     let res: Response;
     try {
       res = await fetch(url, {
+        method: write?.method ?? "GET",
+        body: write?.body,
         headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(write ? TIMEOUT_MS * 3 : TIMEOUT_MS),
       });
     } catch (err) {
       throw new GraphRequestError("transient", {

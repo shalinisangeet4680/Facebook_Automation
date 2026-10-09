@@ -4,3 +4,4 @@ export * from "../../modules/meta/infrastructure/meta.tables";
 export * from "../../modules/onboarding/infrastructure/onboarding.tables";
 export * from "../../modules/audit/infrastructure/audit.tables";
 export * from "../idempotency/idempotency.tables";
+export * from "../../modules/oauth/infrastructure/oauth.tables";

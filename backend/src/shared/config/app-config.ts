@@ -12,6 +12,14 @@ export function webOrigins(config: AppConfig): string[] {
   return config.get("WEB_ORIGINS", { infer: true });
 }
 
+export function appUrl(config: AppConfig): string {
+  return config.get("APP_URL", { infer: true });
+}
+
+export function mcpResourceUrl(config: AppConfig): string {
+  return `${appUrl(config)}/mcp`;
+}
+
 export function otpTestNumbers(config: AppConfig): Map<string, string> {
   const map = new Map<string, string>();
   for (const pair of config

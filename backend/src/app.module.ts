@@ -8,7 +8,9 @@ import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
 import { JobsModule } from "@modules/jobs/jobs.module";
+import { McpModule } from "@modules/mcp/mcp.module";
 import { MetaModule } from "@modules/meta/meta.module";
+import { OAuthModule } from "@modules/oauth/oauth.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -47,6 +49,8 @@ import { SecurityModule } from "@shared/security/security.module";
     AuthModule,
     MetaModule,
     OnboardingModule,
+    OAuthModule,
+    McpModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

@@ -1,0 +1,770 @@
+import { createHash, randomBytes } from "crypto";
+
+import { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { eq, sql } from "drizzle-orm";
+import Redis from "ioredis";
+
+import { otpChallenges } from "@modules/auth/infrastructure/auth.tables";
+import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
+import { resetMockAds } from "@modules/meta/infrastructure/mock-meta.ads";
+import {
+  oauthClients,
+  oauthRefreshTokens,
+} from "@modules/oauth/infrastructure/oauth.tables";
+import { DATABASE, Database } from "@shared/database/database";
+
+import { createApp } from "../src/app.factory";
+import { call } from "./helpers";
+
+const PHONE = "9000000003";
+const E164 = `+91${PHONE}`;
+const APP_URL = "http://localhost:3200";
+const CALLBACK = "https://claude.ai/api/mcp/auth_callback";
+const CIMD_URL = "https://203.0.113.10/oauth/client-metadata.json";
+
+function pkce() {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
+
+describe("Claude connector (OAuth + MCP)", () => {
+  let app: NestFastifyApplication;
+  let db: Database;
+  let session: Record<string, string>;
+  let clientId: string;
+  let accessToken: string;
+  let refreshToken: string;
+  let rpcId = 0;
+  const clientIds: string[] = [];
+
+  async function form(url: string, body: Record<string, string>) {
+    const res = await app.inject({
+      method: "POST",
+      url,
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      payload: new URLSearchParams(body).toString(),
+    });
+    return {
+      statusCode: res.statusCode,
+      body: JSON.parse(res.body || "{}") as Record<string, unknown>,
+    };
+  }
+
+  function authorizeParams(
+    id: string,
+    challenge: string,
+    extra: Record<string, string> = {},
+  ) {
+    return new URLSearchParams({
+      response_type: "code",
+      client_id: id,
+      redirect_uri: CALLBACK,
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      state: "st-123",
+      scope: "ads:read ads:write offline_access",
+      resource: `${APP_URL}/mcp`,
+      ...extra,
+    });
+  }
+
+  async function authorize(id: string, allowWrite: boolean) {
+    const { verifier, challenge } = pkce();
+    const params = Object.fromEntries(authorizeParams(id, challenge));
+    const res = await call(app, "POST", "/api/v1/oauth/authorization", {
+      headers: session,
+      body: { ...params, approve: true, allowWrite },
+    });
+    expect(res.statusCode).toBe(200);
+    const redirect = new URL(res.body.redirectTo as string);
+    return { code: redirect.searchParams.get("code")!, verifier, redirect };
+  }
+
+  async function exchange(id: string, code: string, verifier: string) {
+    return form("/oauth/token", {
+      grant_type: "authorization_code",
+      code,
+      code_verifier: verifier,
+      redirect_uri: CALLBACK,
+      client_id: id,
+    });
+  }
+
+  async function rpc(
+    token: string,
+    method: string,
+    params: Record<string, unknown> = {},
+  ) {
+    const res = await app.inject({
+      method: "POST",
+      url: "/mcp",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2025-06-18",
+      },
+      payload: { jsonrpc: "2.0", id: ++rpcId, method, params },
+    });
+    return {
+      statusCode: res.statusCode,
+      headers: res.headers,
+      body: res.body ? (JSON.parse(res.body) as Record<string, any>) : {},
+    };
+  }
+
+  async function tool(
+    token: string,
+    name: string,
+    args: Record<string, unknown> = {},
+  ) {
+    const res = await rpc(token, "tools/call", { name, arguments: args });
+    expect(res.statusCode).toBe(200);
+    const result = res.body.result as {
+      isError?: boolean;
+      content: { text: string }[];
+    };
+    const text = result.content[0]!.text;
+    let data: Record<string, any> = {};
+    try {
+      data = JSON.parse(text) as Record<string, any>;
+    } catch {
+      data = {};
+    }
+    return { isError: result.isError ?? false, text, data };
+  }
+
+  beforeAll(async () => {
+    const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379");
+    const keys = await redis.keys("throttle:*");
+    if (keys.length) await redis.del(...keys);
+    await redis.quit();
+    resetMockAds();
+    app = await createApp();
+    await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+    db = app.get(DATABASE);
+    await db.delete(otpChallenges).where(eq(otpChallenges.phone, E164));
+
+    const mobile = { "x-client": "mobile" };
+    await call(app, "POST", "/api/v1/auth/otp/request", {
+      headers: mobile,
+      body: { phone: PHONE },
+    });
+    const signIn = await call(app, "POST", "/api/v1/auth/otp/verify", {
+      headers: mobile,
+      body: { phone: PHONE, code: "123456" },
+    });
+    session = {
+      "x-client": "mobile",
+      authorization: `Bearer ${signIn.body.accessToken as string}`,
+    };
+    const connected = await call(app, "POST", "/api/v1/meta/connection", {
+      headers: session,
+      body: { token: `EAA${"x".repeat(40)}` },
+    });
+    expect(connected.statusCode).toBe(200);
+  });
+
+  afterAll(async () => {
+    vi.unstubAllGlobals();
+    const user = await db.query.users.findFirst({
+      where: eq(users.phone, E164),
+    });
+    if (user) {
+      await db.delete(workspaces).where(eq(workspaces.ownerId, user.id));
+      await db.delete(users).where(eq(users.id, user.id));
+    }
+    for (const id of clientIds)
+      await db.delete(oauthClients).where(eq(oauthClients.clientId, id));
+    await db.delete(otpChallenges).where(eq(otpChallenges.phone, E164));
+    await app.close();
+  });
+
+  it("serves protected resource and authorization server metadata", async () => {
+    const resource = await call(
+      app,
+      "GET",
+      "/.well-known/oauth-protected-resource/mcp",
+    );
+    expect(resource.statusCode).toBe(200);
+    expect(resource.body).toMatchObject({
+      resource: `${APP_URL}/mcp`,
+      authorization_servers: [APP_URL],
+      scopes_supported: ["ads:read", "ads:write"],
+    });
+    const server = await call(
+      app,
+      "GET",
+      "/.well-known/oauth-authorization-server",
+    );
+    expect(server.body).toMatchObject({
+      issuer: APP_URL,
+      authorization_endpoint: `${APP_URL}/oauth/authorize`,
+      token_endpoint: `${APP_URL}/oauth/token`,
+      registration_endpoint: `${APP_URL}/oauth/register`,
+      code_challenge_methods_supported: ["S256"],
+      client_id_metadata_document_supported: true,
+    });
+    expect(server.body.token_endpoint_auth_methods_supported).toContain("none");
+    expect(server.body.scopes_supported).toContain("offline_access");
+  });
+
+  it("challenges unauthenticated MCP calls with a 401 that points at the metadata", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/mcp",
+      payload: { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.headers["www-authenticate"]).toContain(
+      `resource_metadata="${APP_URL}/.well-known/oauth-protected-resource/mcp"`,
+    );
+    const bad = await rpc("not-a-token", "tools/list");
+    expect(bad.statusCode).toBe(401);
+    expect(bad.headers["www-authenticate"]).toContain('error="invalid_token"');
+  });
+
+  it("registers clients dynamically and validates redirect URIs", async () => {
+    const bad = await call(app, "POST", "/oauth/register", {
+      body: {
+        client_name: "Bad",
+        redirect_uris: ["http://evil.example/cb"],
+        token_endpoint_auth_method: "none",
+      },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.body.error).toBe("invalid_redirect_uri");
+
+    const res = await call(app, "POST", "/oauth/register", {
+      body: {
+        client_name: "Claude",
+        redirect_uris: [CALLBACK, "http://localhost/callback"],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.client_secret).toBeUndefined();
+    clientId = res.body.client_id as string;
+    clientIds.push(clientId);
+  });
+
+  it("describes the request on the consent screen and refuses bad requests", async () => {
+    const { challenge } = pkce();
+    const ok = await call(
+      app,
+      "GET",
+      `/api/v1/oauth/authorization?${authorizeParams(clientId, challenge)}`,
+      {
+        headers: session,
+      },
+    );
+    expect(ok.statusCode).toBe(200);
+    expect(ok.body).toMatchObject({
+      client: { name: "Claude", kind: "dcr" },
+      redirectHost: "claude.ai",
+      writeRequested: true,
+      adAccount: { id: "act_1201000000000001" },
+    });
+
+    const wrongRedirect = await call(
+      app,
+      "GET",
+      `/api/v1/oauth/authorization?${authorizeParams(clientId, challenge, { redirect_uri: "https://evil.example/cb" })}`,
+      { headers: session },
+    );
+    expect(wrongRedirect.statusCode).toBe(400);
+    expect((wrongRedirect.body.details as unknown) ?? null).toBeNull();
+
+    const noPkce = await call(
+      app,
+      "GET",
+      `/api/v1/oauth/authorization?${authorizeParams(clientId, "short", { code_challenge_method: "plain" })}`,
+      { headers: session },
+    );
+    expect(noPkce.statusCode).toBe(400);
+    expect(
+      (noPkce.body.details as { redirectTo: string }).redirectTo,
+    ).toContain("error=invalid_request");
+
+    const signedOut = await call(
+      app,
+      "GET",
+      `/api/v1/oauth/authorization?${authorizeParams(clientId, challenge)}`,
+    );
+    expect(signedOut.statusCode).toBe(401);
+  });
+
+  it("returns access_denied when the user cancels", async () => {
+    const { challenge } = pkce();
+    const res = await call(app, "POST", "/api/v1/oauth/authorization", {
+      headers: session,
+      body: {
+        ...Object.fromEntries(authorizeParams(clientId, challenge)),
+        approve: false,
+      },
+    });
+    const redirect = new URL(res.body.redirectTo as string);
+    expect(redirect.origin + redirect.pathname).toBe(CALLBACK);
+    expect(redirect.searchParams.get("error")).toBe("access_denied");
+    expect(redirect.searchParams.get("state")).toBe("st-123");
+  });
+
+  it("exchanges a single-use code only with the right PKCE verifier", async () => {
+    const first = await authorize(clientId, true);
+    expect(first.redirect.searchParams.get("state")).toBe("st-123");
+    expect(first.redirect.searchParams.get("iss")).toBe(APP_URL);
+    const wrong = await exchange(clientId, first.code, pkce().verifier);
+    expect(wrong.statusCode).toBe(400);
+    expect(wrong.body.error).toBe("invalid_grant");
+    const replay = await exchange(clientId, first.code, first.verifier);
+    expect(replay.body.error).toBe("invalid_grant");
+
+    const second = await authorize(clientId, true);
+    const res = await exchange(clientId, second.code, second.verifier);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      token_type: "Bearer",
+      expires_in: 3600,
+      scope: "ads:read ads:write",
+    });
+    accessToken = res.body.access_token as string;
+    refreshToken = res.body.refresh_token as string;
+  });
+
+  it("lists every tool for a grant with changes allowed", async () => {
+    const init = await rpc(accessToken, "initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "test", version: "1" },
+    });
+    expect(init.statusCode).toBe(200);
+    expect(init.body.result.serverInfo.name).toBe("ads-autopilot");
+    expect(init.body.result.instructions).toContain("confirm_token");
+
+    const list = await rpc(accessToken, "tools/list");
+    const names = (list.body.result.tools as { name: string }[])
+      .map((t) => t.name)
+      .sort();
+    expect(names).toEqual([
+      "activate",
+      "check_tracking",
+      "create_campaign_draft",
+      "get_account_overview",
+      "get_campaign",
+      "get_performance",
+      "list_campaigns",
+      "pause",
+      "search_targeting",
+      "update_daily_budget",
+    ]);
+  });
+
+  it("answers read tools from the selected ad account", async () => {
+    const overview = await tool(accessToken, "get_account_overview");
+    expect(overview.data.adAccount).toMatchObject({
+      id: "act_1201000000000001",
+      currency: "INR",
+    });
+    expect(overview.data.pixel.id).toBe("2519233968487265");
+
+    const perf = await tool(accessToken, "get_performance", {
+      level: "campaign",
+      date_preset: "last_7d",
+    });
+    expect(perf.isError).toBe(false);
+    expect(perf.data.currency).toBe("INR");
+    const leads = (
+      perf.data.rows as {
+        name: string;
+        result: { type: string } | null;
+        spend: number;
+      }[]
+    )[0]!;
+    expect(leads.spend).toBeGreaterThan(0);
+    expect(leads.result?.type).toBe("lead");
+
+    const daily = await tool(accessToken, "get_performance", {
+      level: "account",
+      date_preset: "last_7d",
+      daily: true,
+    });
+    expect(daily.data.rows).toHaveLength(7);
+
+    const campaigns = await tool(accessToken, "list_campaigns", {
+      status: "active",
+    });
+    expect(campaigns.data.campaigns).toHaveLength(1);
+
+    const detail = await tool(accessToken, "get_campaign", {
+      campaign_id: "120210000000000001",
+    });
+    expect(detail.data.adSets[0].dailyBudget).toBe(800);
+    expect(detail.data.ads).toHaveLength(2);
+
+    const tracking = await tool(accessToken, "check_tracking");
+    expect(tracking.data.warnings).toEqual([]);
+
+    const cities = await tool(accessToken, "search_targeting", {
+      type: "city",
+      query: "pat",
+    });
+    expect(cities.data.results[0].key).toBe("1035921");
+
+    const invalid = await tool(accessToken, "get_campaign", {
+      campaign_id: "abc",
+    });
+    expect(invalid.isError).toBe(true);
+  });
+
+  it("creates paused drafts and never activates without the user's confirmation", async () => {
+    const draftArgs = {
+      name: "Clinic owners – Patna – Demo",
+      goal: "leads",
+      daily_budget: 600,
+      targeting: {
+        cities: [{ key: "1035921", radius_km: 25 }],
+        age_min: 26,
+        age_max: 60,
+      },
+      creative: {
+        primary_text: "Run your whole clinic from one app. Try the free demo.",
+        headline: "Free demo clinic",
+        link_url: "https://arogyasystem.com/",
+        image_url: "https://arogyasystem.com/og.png",
+        call_to_action: "SIGN_UP",
+      },
+    };
+    const draft = await tool(accessToken, "create_campaign_draft", draftArgs);
+    expect(draft.isError).toBe(false);
+    expect(draft.data.status).toBe("created_paused");
+    const campaignId = draft.data.campaignId as string;
+
+    const again = await tool(accessToken, "create_campaign_draft", draftArgs);
+    expect(again.data.campaignId).toBe(campaignId);
+    expect(again.data.duplicate).toBe(true);
+
+    const detail = await tool(accessToken, "get_campaign", {
+      campaign_id: campaignId,
+    });
+    expect(detail.data.campaign.status).toBe("PAUSED");
+    expect(detail.data.adSets[0].status).toBe("PAUSED");
+    expect(detail.data.adSets[0].promotedObject).toEqual({
+      pixel_id: "2519233968487265",
+      custom_event_type: "LEAD",
+    });
+    expect(detail.data.adSets[0].targeting.geo_locations).toEqual({
+      cities: [{ key: "1035921", radius: 25, distance_unit: "kilometer" }],
+    });
+
+    const tooBig = await tool(accessToken, "create_campaign_draft", {
+      ...draftArgs,
+      name: "Huge",
+      daily_budget: 50_000,
+    });
+    expect(tooBig.isError).toBe(true);
+    expect(tooBig.text).toContain("BUDGET_LIMIT");
+
+    const rejectedByMeta = await tool(accessToken, "create_campaign_draft", {
+      ...draftArgs,
+      name: "Broken link",
+      creative: { ...draftArgs.creative, link_url: "https://reject.example/" },
+    });
+    expect(rejectedByMeta.isError).toBe(true);
+    expect(rejectedByMeta.text).toContain("isn't working");
+
+    const ask = await tool(accessToken, "activate", { id: campaignId });
+    expect(ask.data.status).toBe("confirmation_required");
+    expect(ask.data.summary).toContain("Daily budget across ad sets: ₹600");
+    const stillPaused = await tool(accessToken, "get_campaign", {
+      campaign_id: campaignId,
+    });
+    expect(stillPaused.data.campaign.status).toBe("PAUSED");
+
+    const forged = await tool(accessToken, "activate", {
+      id: campaignId,
+      confirm_token: "made-up",
+    });
+    expect(forged.isError).toBe(true);
+    expect(forged.text).toContain("CONFIRMATION_REQUIRED");
+
+    const otherTarget = await tool(accessToken, "activate", {
+      id: "120210000000000002",
+      confirm_token: ask.data.confirmToken,
+    });
+    expect(otherTarget.isError).toBe(true);
+
+    const ask2 = await tool(accessToken, "activate", { id: campaignId });
+    const done = await tool(accessToken, "activate", {
+      id: campaignId,
+      confirm_token: ask2.data.confirmToken,
+    });
+    expect(done.data.status).toBe("active");
+    expect(done.data.activated).toHaveLength(3);
+    const reuse = await tool(accessToken, "activate", {
+      id: campaignId,
+      confirm_token: ask2.data.confirmToken,
+    });
+    expect(reuse.data.status).toBe("already_active");
+
+    const paused = await tool(accessToken, "pause", { id: campaignId });
+    expect(paused.data.status).toBe("paused");
+  });
+
+  it("changes budgets only after confirmation and within the limit", async () => {
+    const adSet = "120220000000000001";
+    const over = await tool(accessToken, "update_daily_budget", {
+      id: adSet,
+      daily_budget: 20_000,
+    });
+    expect(over.text).toContain("BUDGET_LIMIT");
+
+    const ask = await tool(accessToken, "update_daily_budget", {
+      id: adSet,
+      daily_budget: 1000,
+    });
+    expect(ask.data.summary).toContain("from ₹800 to ₹1,000 (+25%)");
+    const mismatch = await tool(accessToken, "update_daily_budget", {
+      id: adSet,
+      daily_budget: 5000,
+      confirm_token: ask.data.confirmToken,
+    });
+    expect(mismatch.isError).toBe(true);
+
+    const ask2 = await tool(accessToken, "update_daily_budget", {
+      id: adSet,
+      daily_budget: 1000,
+    });
+    const done = await tool(accessToken, "update_daily_budget", {
+      id: adSet,
+      daily_budget: 1000,
+      confirm_token: ask2.data.confirmToken,
+    });
+    expect(done.data).toMatchObject({ status: "updated", from: 800, to: 1000 });
+
+    const onAd = await tool(accessToken, "update_daily_budget", {
+      id: "120230000000000001",
+      daily_budget: 500,
+    });
+    expect(onAd.text).toContain("Ads don't have budgets");
+  });
+
+  it("refuses objects outside the selected ad account", async () => {
+    const res = await tool(accessToken, "pause", { id: "999999999" });
+    expect(res.isError).toBe(true);
+    expect(res.text).toContain("isn't in your selected ad account");
+  });
+
+  it("records changes made through Claude in the audit log", async () => {
+    const res = await call(app, "GET", "/api/v1/audit-events?limit=50", {
+      headers: session,
+    });
+    const events = res.body.data as {
+      action: string;
+      data: { via?: string };
+    }[];
+    const actions = events.map((e) => e.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        "oauth.app_connected",
+        "ads.draft_created",
+        "ads.activated",
+        "ads.paused",
+        "ads.budget_changed",
+      ]),
+    );
+    expect(events.find((e) => e.action === "ads.draft_created")?.data.via).toBe(
+      "mcp:Claude",
+    );
+  });
+
+  it("gives read-only tools when the user doesn't allow changes", async () => {
+    const reg = await call(app, "POST", "/oauth/register", {
+      body: {
+        client_name: "Read only",
+        redirect_uris: [CALLBACK],
+        token_endpoint_auth_method: "none",
+      },
+    });
+    const id = reg.body.client_id as string;
+    clientIds.push(id);
+    const { code, verifier } = await authorize(id, false);
+    const tokens = await exchange(id, code, verifier);
+    expect(tokens.body.scope).toBe("ads:read");
+    const list = await rpc(tokens.body.access_token as string, "tools/list");
+    const names = (list.body.result.tools as { name: string }[]).map(
+      (t) => t.name,
+    );
+    expect(names).toHaveLength(6);
+    expect(names).not.toContain("activate");
+  });
+
+  it("supports confidential clients with a secret", async () => {
+    const reg = await call(app, "POST", "/oauth/register", {
+      body: {
+        client_name: "Confidential",
+        redirect_uris: [CALLBACK],
+        token_endpoint_auth_method: "client_secret_basic",
+      },
+    });
+    const id = reg.body.client_id as string;
+    const secret = reg.body.client_secret as string;
+    clientIds.push(id);
+    expect(secret).toBeTruthy();
+    const { code, verifier } = await authorize(id, false);
+    const noSecret = await exchange(id, code, verifier);
+    expect(noSecret.statusCode).toBe(401);
+    expect(noSecret.body.error).toBe("invalid_client");
+
+    const again = await authorize(id, false);
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
+      },
+      payload: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: again.code,
+        code_verifier: again.verifier,
+        redirect_uri: CALLBACK,
+      }).toString(),
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("accepts a client identified by a metadata document", async () => {
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal(
+      "fetch",
+      (input: string | URL | Request, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url !== CIMD_URL) return realFetch(input, init);
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              client_id: CIMD_URL,
+              client_name: "Claude (metadata)",
+              redirect_uris: [CALLBACK],
+              token_endpoint_auth_method: "none",
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+        );
+      },
+    );
+    clientIds.push(CIMD_URL);
+    const { code, verifier } = await authorize(CIMD_URL, true);
+    const res = await exchange(CIMD_URL, code, verifier);
+    expect(res.statusCode).toBe(200);
+    const row = await db.query.oauthClients.findFirst({
+      where: eq(oauthClients.clientId, CIMD_URL),
+    });
+    expect(row?.kind).toBe("cimd");
+    vi.unstubAllGlobals();
+  });
+
+  it("rotates refresh tokens and revokes the connection when an old one is replayed", async () => {
+    const rotated = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+    });
+    expect(rotated.statusCode).toBe(200);
+    expect(rotated.body.refresh_token).not.toBe(refreshToken);
+    const newAccess = rotated.body.access_token as string;
+
+    const raced = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+    });
+    expect(raced.body.error).toBe("invalid_grant");
+    expect((await rpc(newAccess, "tools/list")).statusCode).toBe(200);
+
+    await db
+      .update(oauthRefreshTokens)
+      .set({ replacedAt: sql`now() - interval '5 minutes'` })
+      .where(sql`replaced_at is not null`);
+    const replay = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+    });
+    expect(replay.body.error).toBe("invalid_grant");
+
+    const blocked = await rpc(newAccess, "tools/list");
+    expect(blocked.statusCode).toBe(401);
+    const latest = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: rotated.body.refresh_token as string,
+      client_id: clientId,
+    });
+    expect(latest.body.error).toBe("invalid_grant");
+  });
+
+  it("lists connected apps and disconnects one immediately", async () => {
+    const { code, verifier } = await authorize(clientId, true);
+    const tokens = await exchange(clientId, code, verifier);
+    const token = tokens.body.access_token as string;
+    expect((await rpc(token, "tools/list")).statusCode).toBe(200);
+
+    const list = await call(app, "GET", "/api/v1/connected-apps", {
+      headers: session,
+    });
+    const apps = list.body.data as {
+      id: string;
+      name: string;
+      lastUsedAt: string | null;
+    }[];
+    const claude = apps.find((a) => a.name === "Claude")!;
+    expect(claude.lastUsedAt).not.toBeNull();
+
+    const info = await call(app, "GET", "/api/v1/connector", {
+      headers: session,
+    });
+    expect(info.body.mcpUrl).toBe(`${APP_URL}/mcp`);
+
+    const del = await call(
+      app,
+      "DELETE",
+      `/api/v1/connected-apps/${claude.id}`,
+      { headers: session },
+    );
+    expect(del.statusCode).toBe(204);
+    expect((await rpc(token, "tools/list")).statusCode).toBe(401);
+    const missing = await call(
+      app,
+      "DELETE",
+      `/api/v1/connected-apps/${claude.id}`,
+      { headers: session },
+    );
+    expect(missing.statusCode).toBe(404);
+  });
+
+  it("revokes tokens through the revocation endpoint", async () => {
+    const { code, verifier } = await authorize(clientId, false);
+    const tokens = await exchange(clientId, code, verifier);
+    const revoke = await form("/oauth/revoke", {
+      token: tokens.body.refresh_token as string,
+      client_id: clientId,
+    });
+    expect(revoke.statusCode).toBe(200);
+    expect(
+      (await rpc(tokens.body.access_token as string, "tools/list")).statusCode,
+    ).toBe(401);
+  });
+
+  it("rejects GET on the MCP endpoint", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/mcp",
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect([401, 405]).toContain(res.statusCode);
+  });
+});

@@ -22,12 +22,12 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 
 Design in `docs/12-mcp-connector.md`.
 
-- [ ] 1. Config and plumbing: `APP_URL`, `ADS_MAX_DAILY_BUDGET`, form body parser, routes outside the `/api` prefix, client guard exemptions
-- [ ] 2. OAuth tables and migration: `oauth_clients`, `oauth_grants`, `oauth_refresh_tokens`
-- [ ] 3. Authorization server: metadata, DCR, CIMD, consent context and decision, code exchange with PKCE, refresh rotation, revocation, connected apps
-- [ ] 4. Meta ads port: shared Graph transport with POST, real client for insights, campaigns, targeting search, pixel stats, drafts, status and budget; in-memory mock
-- [ ] 5. Ads application: overview, performance, campaigns, tracking, drafts, pause, confirmation tokens, guardrails, audit
-- [ ] 6. MCP endpoint: bearer challenge, per-request stateless server, tools by scope, rate limit
-- [ ] 7. Tests: unit and e2e for OAuth, MCP and tools
+- [x] 1. Config and plumbing: `APP_URL`, `ADS_MAX_DAILY_BUDGET`, form body parser, routes outside the `/api` prefix, client guard exemptions
+- [x] 2. OAuth tables and migration: `oauth_clients`, `oauth_grants`, `oauth_refresh_tokens`
+- [x] 3. Authorization server: metadata, DCR, CIMD, consent context and decision, code exchange with PKCE, refresh rotation, revocation, connected apps
+- [x] 4. Meta ads port: shared Graph transport with POST, real client for insights, campaigns, targeting search, pixel stats, drafts, status and budget; in-memory mock
+- [x] 5. Ads application: overview, performance, campaigns, tracking, drafts, pause, confirmation tokens, guardrails, audit
+- [x] 6. MCP endpoint: bearer challenge, per-request stateless server, tools by scope, rate limit
+- [x] 7. Tests: unit and e2e for OAuth, MCP and tools
 - [ ] 8. Web: consent screen, Claude settings page, proxy and rewrites, typed client
 - [ ] 9. Verification: tunnel, end-to-end with a real MCP client, docs

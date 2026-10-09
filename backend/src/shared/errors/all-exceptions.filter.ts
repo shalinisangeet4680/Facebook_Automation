@@ -10,7 +10,7 @@ import { ThrottlerException } from "@nestjs/throttler";
 import * as Sentry from "@sentry/nestjs";
 import { FastifyReply, FastifyRequest } from "fastify";
 
-import { DomainError } from "./domain-error";
+import { DomainError, ProtocolError } from "./domain-error";
 import { ErrorCode } from "./error-codes";
 
 const STATUS_CODES: Record<number, ErrorCode> = {
@@ -39,6 +39,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<FastifyReply>();
     const request = ctx.getRequest<FastifyRequest>();
     const traceId = String(request.id);
+    if (exception instanceof ProtocolError) {
+      void response
+        .status(exception.httpStatus)
+        .headers({ "cache-control": "no-store", ...exception.headers })
+        .send(exception.body);
+      return;
+    }
     const { status, body } = this.toError(exception, traceId);
 
     if (status >= 500) {

@@ -1,4 +1,5 @@
 import fastifyCookie from "@fastify/cookie";
+import fastifyFormbody from "@fastify/formbody";
 import fastifyHelmet from "@fastify/helmet";
 import { BadRequestException, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -15,6 +16,17 @@ import { Logger } from "nestjs-pino";
 import { AppConfig, isProduction, webOrigins } from "@shared/config/app-config";
 
 import { AppModule } from "./app.module";
+
+const ROOT_ROUTES = [
+  "health",
+  "mcp",
+  ".well-known/oauth-protected-resource",
+  ".well-known/oauth-protected-resource/mcp",
+  ".well-known/oauth-authorization-server",
+  "oauth/token",
+  "oauth/register",
+  "oauth/revoke",
+];
 
 export async function createApp(): Promise<NestFastifyApplication> {
   const adapter = new FastifyAdapter({
@@ -41,6 +53,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
     contentSecurityPolicy: production ? undefined : false,
   });
   await app.register(fastifyCookie);
+  await app.register(fastifyFormbody);
 
   app.enableCors({
     origin: webOrigins(config),
@@ -57,7 +70,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
     maxAge: 86400,
   });
 
-  app.setGlobalPrefix("api", { exclude: ["health"] });
+  app.setGlobalPrefix("api", { exclude: ROOT_ROUTES });
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: "1" });
   app.enableShutdownHooks();
 

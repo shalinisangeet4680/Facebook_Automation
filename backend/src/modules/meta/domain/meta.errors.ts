@@ -30,3 +30,8 @@ export const metaNotConnected = () =>
     409,
     "Connect your Meta account first.",
   );
+
+export const metaRejected = (
+  message: string,
+  details?: Record<string, unknown>,
+) => new CodedError(ErrorCode.META_REJECTED, 422, message, details);

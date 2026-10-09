@@ -64,7 +64,7 @@ describe("AuthGuard", () => {
 });
 
 describe("ClientGuard", () => {
-  const guard = new ClientGuard();
+  const guard = new ClientGuard(new Reflector());
 
   it("lets safe methods through without the header", () => {
     expect(guard.canActivate(contextFor({ method: "GET", headers: {} }))).toBe(

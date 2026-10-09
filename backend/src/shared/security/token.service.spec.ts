@@ -34,4 +34,40 @@ describe("TokenService", () => {
     );
     expect(() => tokens.verifyAccess(expired)).toThrow();
   });
+
+  describe("MCP tokens", () => {
+    const mcp = {
+      userId: "u1",
+      workspaceId: "w1",
+      grantId: "g1",
+      clientId: "c1",
+      scopes: ["ads:read", "ads:write"],
+      audience: "https://app.example/mcp",
+      ttlSeconds: 3600,
+    };
+
+    it("round-trips for the right audience", () => {
+      const token = tokens.signMcp(mcp);
+      expect(tokens.verifyMcp(token, mcp.audience)).toEqual({
+        userId: "u1",
+        workspaceId: "w1",
+        grantId: "g1",
+        clientId: "c1",
+        scopes: ["ads:read", "ads:write"],
+      });
+    });
+
+    it("rejects another audience", () => {
+      const token = tokens.signMcp(mcp);
+      expect(() =>
+        tokens.verifyMcp(token, "https://other.example/mcp"),
+      ).toThrow();
+    });
+
+    it("is not accepted as an app access token and vice versa", () => {
+      expect(() => tokens.verifyAccess(tokens.signMcp(mcp))).toThrow();
+      const access = tokens.signAccess(input);
+      expect(() => tokens.verifyMcp(access, mcp.audience)).toThrow();
+    });
+  });
 });

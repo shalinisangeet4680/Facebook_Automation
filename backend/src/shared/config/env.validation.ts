@@ -26,6 +26,12 @@ const envSchema = z.object({
     ),
   OTP_TEST_NUMBERS: z.string().default(""),
   WEB_ORIGINS: csv,
+  APP_URL: z
+    .string()
+    .url()
+    .default("http://localhost:3200")
+    .transform((v) => v.replace(/\/+$/, "")),
+  ADS_MAX_DAILY_BUDGET: z.coerce.number().positive().default(10_000),
   META_GRAPH_VERSION: z.string().default("v23.0"),
   META_MOCK: z
     .string()

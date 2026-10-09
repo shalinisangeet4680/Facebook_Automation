@@ -1,0 +1,15 @@
+import { Module } from "@nestjs/common";
+
+import { AdsModule } from "@modules/ads/ads.module";
+import { OAuthModule } from "@modules/oauth/oauth.module";
+
+import { McpServerFactory } from "./application/mcp-server.factory";
+import { McpAuthGuard } from "./interface/mcp-auth.guard";
+import { McpController } from "./interface/mcp.controller";
+
+@Module({
+  imports: [AdsModule, OAuthModule],
+  controllers: [McpController],
+  providers: [McpServerFactory, McpAuthGuard],
+})
+export class McpModule {}
