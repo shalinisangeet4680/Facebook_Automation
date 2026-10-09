@@ -15,10 +15,13 @@ import {
   CREATIVE_MIME,
   MAX_SVG_BYTES,
   MAX_UPLOAD_BYTES,
+  MAX_VIDEO_BYTES,
   SVG_FORMATS,
   SvgFormat,
+  VIDEO_MIME,
   sanitizeSvg,
 } from "../domain/creative.rules";
+import { readMp4 } from "../domain/mp4";
 import { MEDIA_STORAGE, MediaStorage } from "../domain/ports/media-storage";
 import { socialPosts } from "../../social/infrastructure/social.tables";
 import { CreativeRow, creatives } from "../infrastructure/creatives.tables";
@@ -38,6 +41,8 @@ export interface CreativeView {
   width: number;
   height: number;
   bytes: number;
+  kind: "image" | "video";
+  durationSeconds: number | null;
   createdAt: string;
 }
 
@@ -60,6 +65,8 @@ export class CreativesService {
       width: row.width,
       height: row.height,
       bytes: row.bytes,
+      kind: row.kind,
+      durationSeconds: row.durationSeconds,
       createdAt: row.createdAt.toISOString(),
     };
   }
@@ -69,6 +76,8 @@ export class CreativesService {
     file: { buffer: Buffer; mime: string; filename: string },
     name?: string,
   ) {
+    const videoExt = VIDEO_MIME[file.mime];
+    if (videoExt) return this.uploadVideo(actor, file, videoExt, name);
     const ext = CREATIVE_MIME[file.mime];
     if (!ext) throw new ValidationError("Upload a PNG, JPEG or WebP image.");
     if (file.buffer.length > MAX_UPLOAD_BYTES)
@@ -102,6 +111,34 @@ export class CreativesService {
       ext,
       width: size.width,
       height: size.height,
+    });
+  }
+
+  private async uploadVideo(
+    actor: CreativeActor,
+    file: { buffer: Buffer; mime: string; filename: string },
+    ext: string,
+    name?: string,
+  ) {
+    if (file.buffer.length > MAX_VIDEO_BYTES)
+      throw new ValidationError("Videos can be at most 200 MB.");
+    const info = readMp4(file.buffer);
+    if (!info)
+      throw new ValidationError("This file isn't a readable MP4 video.");
+    if (info.durationSeconds < 3)
+      throw new ValidationError("Videos must be at least 3 seconds long.");
+    return this.store(actor, {
+      name:
+        (name ?? file.filename.replace(/\.[a-z0-9]+$/i, "")).slice(0, 120) ||
+        "Video",
+      source: "upload",
+      body: file.buffer,
+      mime: file.mime,
+      ext,
+      width: info.width,
+      height: info.height,
+      kind: "video",
+      durationSeconds: info.durationSeconds,
     });
   }
 
@@ -204,6 +241,8 @@ export class CreativesService {
       ext: string;
       width: number;
       height: number;
+      kind?: "image" | "video";
+      durationSeconds?: number;
     },
   ): Promise<CreativeView> {
     const id = uuidv7();
@@ -221,6 +260,8 @@ export class CreativesService {
         width: input.width,
         height: input.height,
         bytes: input.body.length,
+        kind: input.kind ?? "image",
+        durationSeconds: input.durationSeconds ?? null,
         createdBy: actor.userId,
       })
       .returning();

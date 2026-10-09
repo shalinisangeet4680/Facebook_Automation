@@ -1,0 +1,1 @@
+ALTER TABLE "social_posts" ADD COLUMN "media_type" text DEFAULT 'image' NOT NULL;

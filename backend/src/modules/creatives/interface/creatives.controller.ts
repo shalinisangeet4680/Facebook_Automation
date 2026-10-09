@@ -24,7 +24,7 @@ import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
 import { CreativesService } from "../application/creatives.service";
-import { MAX_UPLOAD_BYTES } from "../domain/creative.rules";
+import { MAX_VIDEO_BYTES } from "../domain/creative.rules";
 import { CreativeDto, CreativeListDto } from "./dto/creative.dto";
 
 const actor = (ctx: TenantContext) => ({
@@ -64,11 +64,13 @@ export class CreativesController {
     if (!req.isMultipart())
       throw new ValidationError("Send the image as multipart/form-data.");
     const file = await req.file({
-      limits: { fileSize: MAX_UPLOAD_BYTES + 1, files: 1 },
+      limits: { fileSize: MAX_VIDEO_BYTES + 1, files: 1 },
     });
     if (!file) throw new ValidationError("Choose an image to upload.");
     const buffer = await file.toBuffer().catch(() => {
-      throw new ValidationError("Images can be at most 8 MB.");
+      throw new ValidationError(
+        "This file is too large. Images can be 8 MB and videos 200 MB.",
+      );
     });
     const nameField = file.fields.name as { value?: unknown } | undefined;
     const name =

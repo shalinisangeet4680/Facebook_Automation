@@ -35,6 +35,7 @@ export const socialPosts = pgTable(
       onDelete: "set null",
     }),
     imageUrl: text("image_url").notNull(),
+    mediaType: text("media_type").notNull().default("image"),
     platforms: text("platforms").array().notNull(),
     facebookCaption: text("facebook_caption"),
     instagramCaption: text("instagram_caption"),

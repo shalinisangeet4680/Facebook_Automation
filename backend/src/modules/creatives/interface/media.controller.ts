@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Headers,
   Inject,
   NotFoundException,
   Param,
@@ -32,16 +33,47 @@ export class MediaController {
   async serve(
     @Param("key") key: string,
     @Res() reply: FastifyReply,
+    @Headers("range") range?: string,
   ): Promise<void> {
     const ext = key.split(".").pop() ?? "";
     const type = TYPES[ext];
-    const file = type ? await this.storage.read(key) : null;
-    if (!file || !type) throw new NotFoundException();
+    const head = type ? await this.storage.read(key) : null;
+    if (!head || !type) throw new NotFoundException();
+    head.stream.destroy();
+    const common = {
+      "content-type": type,
+      "accept-ranges": "bytes",
+      "cache-control": "public, max-age=31536000, immutable",
+      "x-content-type-options": "nosniff",
+    };
+    const match = range ? /^bytes=(\d*)-(\d*)$/.exec(range) : null;
+    if (match && (match[1] || match[2])) {
+      const size = head.size;
+      let start = match[1] ? Number(match[1]) : size - Number(match[2]);
+      let end = match[1] && match[2] ? Number(match[2]) : size - 1;
+      start = Math.max(0, start);
+      end = Math.min(end, size - 1);
+      if (start > end) {
+        await reply
+          .status(416)
+          .header("content-range", `bytes */${size}`)
+          .send();
+        return;
+      }
+      const part = await this.storage.read(key, { start, end });
+      await reply
+        .status(206)
+        .headers({
+          ...common,
+          "content-range": `bytes ${start}-${end}/${size}`,
+          "content-length": String(end - start + 1),
+        })
+        .send(part!.stream);
+      return;
+    }
+    const file = await this.storage.read(key);
     await reply
-      .header("content-type", type)
-      .header("content-length", String(file.size))
-      .header("cache-control", "public, max-age=31536000, immutable")
-      .header("x-content-type-options", "nosniff")
-      .send(file.stream);
+      .headers({ ...common, "content-length": String(file!.size) })
+      .send(file!.stream);
   }
 }

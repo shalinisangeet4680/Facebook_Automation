@@ -94,6 +94,7 @@ export class SocialService {
       id: row.id,
       creativeId: row.creativeId,
       imageUrl: row.imageUrl,
+      mediaType: row.mediaType as "image" | "video",
       platforms: row.platforms as Platform[],
       facebookCaption: row.facebookCaption,
       instagramCaption: row.instagramCaption,
@@ -149,6 +150,23 @@ export class SocialService {
       actor.workspaceId,
       input.creativeId,
     );
+    if (creative.kind === "video") {
+      const duration = creative.durationSeconds ?? 0;
+      const vertical = creative.height / creative.width;
+      if (
+        platforms.includes("facebook") &&
+        (duration < 3 || duration > 90 || vertical < 1.7 || vertical > 1.8)
+      ) {
+        throw new ValidationError(
+          "Facebook Reels need a vertical 9:16 video between 3 and 90 seconds.",
+        );
+      }
+      if (platforms.includes("instagram") && (duration < 3 || duration > 900)) {
+        throw new ValidationError(
+          "Instagram Reels must be between 3 seconds and 15 minutes.",
+        );
+      }
+    }
     return { platforms, scheduledAt, creative, channels };
   }
 
@@ -163,6 +181,7 @@ export class SocialService {
         workspaceId: actor.workspaceId,
         creativeId: creative.id,
         imageUrl: mediaUrl(this.config, creative.storageKey),
+        mediaType: creative.kind,
         platforms,
         facebookCaption: platforms.includes("facebook")
           ? input.facebookCaption!.trim()
@@ -328,12 +347,19 @@ export class SocialService {
       if (!page) updates.facebookError = "No Facebook Page is selected.";
       else
         await attempt("facebook", () =>
-          this.publishing.publishFacebookPhoto(
-            token,
-            page.id,
-            claimed.imageUrl,
-            claimed.facebookCaption ?? "",
-          ),
+          claimed.mediaType === "video"
+            ? this.publishing.publishFacebookReel(
+                token,
+                page.id,
+                claimed.imageUrl,
+                claimed.facebookCaption ?? "",
+              )
+            : this.publishing.publishFacebookPhoto(
+                token,
+                page.id,
+                claimed.imageUrl,
+                claimed.facebookCaption ?? "",
+              ),
         );
     }
     if (claimed.platforms.includes("instagram") && !claimed.instagramMediaId) {
@@ -341,12 +367,19 @@ export class SocialService {
       if (!ig) updates.instagramError = "No Instagram account is connected.";
       else
         await attempt("instagram", () =>
-          this.publishing.publishInstagramImage(
-            token,
-            ig.id,
-            claimed.imageUrl,
-            claimed.instagramCaption ?? "",
-          ),
+          claimed.mediaType === "video"
+            ? this.publishing.publishInstagramReel(
+                token,
+                ig.id,
+                claimed.imageUrl,
+                claimed.instagramCaption ?? "",
+              )
+            : this.publishing.publishInstagramImage(
+                token,
+                ig.id,
+                claimed.imageUrl,
+                claimed.instagramCaption ?? "",
+              ),
         );
     }
 

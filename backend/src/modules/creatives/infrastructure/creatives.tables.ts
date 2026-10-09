@@ -1,4 +1,5 @@
 import {
+  doublePrecision,
   index,
   integer,
   pgEnum,
@@ -11,6 +12,7 @@ import { createdAt, primaryId } from "../../../shared/database/columns";
 import { users, workspaces } from "../../iam/infrastructure/iam.tables";
 
 export const creativeSource = pgEnum("creative_source", ["upload", "claude"]);
+export const creativeKind = pgEnum("creative_kind", ["image", "video"]);
 
 export const creatives = pgTable(
   "creatives",
@@ -21,6 +23,8 @@ export const creatives = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     source: creativeSource("source").notNull(),
+    kind: creativeKind("kind").notNull().default("image"),
+    durationSeconds: doublePrecision("duration_seconds"),
     storageKey: text("storage_key").notNull().unique(),
     mime: text("mime").notNull(),
     width: integer("width").notNull(),

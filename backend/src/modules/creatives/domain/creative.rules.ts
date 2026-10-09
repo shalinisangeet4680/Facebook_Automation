@@ -4,7 +4,13 @@ export const CREATIVE_MIME: Record<string, string> = {
   "image/webp": "webp",
 };
 
+export const VIDEO_MIME: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+};
+
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 export const MAX_SVG_BYTES = 400 * 1024;
 
 export const SVG_FORMATS = {

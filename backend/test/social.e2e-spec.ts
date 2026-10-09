@@ -1,4 +1,8 @@
 import { Resvg } from "@resvg/resvg-js";
+import { execFileSync } from "child_process";
+import { readFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { INestApplicationContext } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestFastifyApplication } from "@nestjs/platform-fastify";
@@ -230,4 +234,99 @@ describe("Social publishing", () => {
       ]),
     );
   });
+
+  const hasFfmpeg = (() => {
+    try {
+      execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  function video(size: string, seconds: number): Buffer {
+    const file = join(tmpdir(), `reel-${Date.now()}-${size}.mp4`);
+    execFileSync("ffmpeg", [
+      "-v",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      `color=c=green:s=${size}:d=${seconds}`,
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      file,
+    ]);
+    const data = readFileSync(file);
+    rmSync(file);
+    return data;
+  }
+
+  async function uploadVideo(data: Buffer, name: string) {
+    const body = multipart(data, "video/mp4", `${name}.mp4`, name);
+    return app.inject({
+      method: "POST",
+      url: "/api/v1/creatives",
+      headers: { ...headers, "content-type": body.contentType },
+      payload: body.payload,
+    });
+  }
+
+  it.runIf(hasFfmpeg)(
+    "publishes a vertical video as a Reel on both platforms",
+    async () => {
+      const uploaded = await uploadVideo(video("1080x1920", 4), "Reel");
+      expect(uploaded.statusCode).toBe(201);
+      const creative = JSON.parse(uploaded.body) as {
+        id: string;
+        kind: string;
+        durationSeconds: number;
+        width: number;
+      };
+      expect(creative).toMatchObject({
+        kind: "video",
+        durationSeconds: 4,
+        width: 1080,
+      });
+
+      const res = await call(app, "POST", "/api/v1/posts", {
+        headers,
+        body: {
+          creativeId: creative.id,
+          platforms: ["facebook", "instagram"],
+          facebookCaption: "Clinic ka management, ek app mein.",
+          instagramCaption: "Clinic ka management, ek app mein. #clinic",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.mediaType).toBe("video");
+      const post = await waitFor(
+        res.body.id as string,
+        (p) => !["scheduled", "publishing"].includes(p.status),
+      );
+      expect(post.status).toBe("published");
+      expect(post.facebook?.permalink).toContain("/reel/");
+      expect(post.instagram?.permalink).toContain("/reel/");
+    },
+  );
+
+  it.runIf(hasFfmpeg)(
+    "refuses a landscape video for Facebook Reels",
+    async () => {
+      const uploaded = await uploadVideo(video("1280x720", 4), "Wide");
+      const creative = JSON.parse(uploaded.body) as { id: string };
+      const res = await call(app, "POST", "/api/v1/posts", {
+        headers,
+        body: {
+          creativeId: creative.id,
+          platforms: ["facebook"],
+          facebookCaption: "Wide video",
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain("9:16");
+    },
+  );
 });

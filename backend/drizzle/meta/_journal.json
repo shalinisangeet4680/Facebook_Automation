@@ -57,6 +57,20 @@
       "when": 1791558894782,
       "tag": "0007_profile_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791574611102,
+      "tag": "0008_creative_video",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791574641043,
+      "tag": "0009_post_media_type",
+      "breakpoints": true
     }
   ]
 }

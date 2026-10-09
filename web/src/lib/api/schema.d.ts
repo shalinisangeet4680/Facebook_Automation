@@ -1026,6 +1026,9 @@ export interface components {
             width: number;
             height: number;
             bytes: number;
+            /** @enum {string} */
+            kind: "image" | "video";
+            durationSeconds: number | null;
             createdAt: string;
         };
         CreativeListDto: {
@@ -1066,6 +1069,8 @@ export interface components {
             id: string;
             creativeId: string | null;
             imageUrl: string;
+            /** @enum {string} */
+            mediaType: "image" | "video";
             platforms: ("instagram" | "facebook")[];
             facebookCaption: string | null;
             instagramCaption: string | null;

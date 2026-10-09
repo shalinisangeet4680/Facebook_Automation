@@ -82,12 +82,22 @@ function AutopilotPosts() {
               const caption = post.facebookCaption ?? post.instagramCaption ?? "";
               return (
                 <li key={post.id} className="flex gap-4 p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mediaSrc(post.imageUrl)}
-                    alt=""
-                    className="bg-surface-muted size-16 shrink-0 rounded-lg object-cover"
-                  />
+                  {post.mediaType === "video" ? (
+                    <video
+                      src={mediaSrc(post.imageUrl)}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-20 w-12 shrink-0 rounded-lg bg-black object-cover"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mediaSrc(post.imageUrl)}
+                      alt=""
+                      className="bg-surface-muted size-16 shrink-0 rounded-lg object-cover"
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={status.tone}>{status.label}</Badge>

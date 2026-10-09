@@ -7,6 +7,8 @@ export class CreativeDto {
   width: number;
   height: number;
   bytes: number;
+  kind: "image" | "video";
+  durationSeconds: number | null;
   createdAt: string;
 }
 

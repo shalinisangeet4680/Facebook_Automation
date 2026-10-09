@@ -30,6 +30,18 @@ export interface MetaPublishing {
     imageUrl: string,
     caption: string,
   ): Promise<PublishedPost>;
+  publishFacebookReel(
+    token: string,
+    pageId: string,
+    videoUrl: string,
+    description: string,
+  ): Promise<PublishedPost>;
+  publishInstagramReel(
+    token: string,
+    instagramId: string,
+    videoUrl: string,
+    caption: string,
+  ): Promise<PublishedPost>;
   facebookPosts(
     token: string,
     pageId: string,

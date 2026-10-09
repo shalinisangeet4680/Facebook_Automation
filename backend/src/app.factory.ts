@@ -57,7 +57,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
   await app.register(fastifyCookie);
   await app.register(fastifyFormbody);
   await app.register(fastifyMultipart, {
-    limits: { fileSize: 8 * 1024 * 1024 + 1, files: 1, fields: 5 },
+    limits: { fileSize: 200 * 1024 * 1024 + 1, files: 1, fields: 5 },
   });
 
   app.enableCors({

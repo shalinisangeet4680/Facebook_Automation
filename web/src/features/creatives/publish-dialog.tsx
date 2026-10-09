@@ -123,7 +123,13 @@ export function PublishDialog({
   return (
     <Dialog open={open} onOpenChange={close}>
       <DialogContent
-        title={review ? "Ready to publish?" : "Post this image"}
+        title={
+          review
+            ? "Ready to publish?"
+            : creative.kind === "video"
+              ? "Post this Reel"
+              : "Post this image"
+        }
         description={
           review
             ? "This will be public on the accounts below."
@@ -134,12 +140,22 @@ export function PublishDialog({
         {review ? (
           <div className="grid gap-4">
             <div className="flex gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={mediaSrc(creative.url)}
-                alt=""
-                className="bg-surface-muted size-20 shrink-0 rounded-lg object-cover"
-              />
+              {creative.kind === "video" ? (
+                <video
+                  src={mediaSrc(creative.url)}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="h-28 w-16 shrink-0 rounded-lg bg-black object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={mediaSrc(creative.url)}
+                  alt=""
+                  className="bg-surface-muted size-20 shrink-0 rounded-lg object-cover"
+                />
+              )}
               <ul className="text-small grid content-start gap-1.5">
                 {chosen.map((p) => (
                   <li key={p} className="flex items-center gap-1.5">

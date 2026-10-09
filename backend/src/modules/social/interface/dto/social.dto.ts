@@ -57,6 +57,7 @@ export class SocialPostDto {
   id: string;
   creativeId: string | null;
   imageUrl: string;
+  mediaType: "image" | "video";
   platforms: ("facebook" | "instagram")[];
   facebookCaption: string | null;
   instagramCaption: string | null;

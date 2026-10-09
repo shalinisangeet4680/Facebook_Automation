@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { PostsPanel } from "./posts-panel";
 import { PublishDialog } from "./publish-dialog";
 
-const ACCEPT = "image/png,image/jpeg,image/webp";
+const ACCEPT = "image/png,image/jpeg,image/webp,video/mp4,video/quicktime";
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
 
 export function mediaSrc(url: string): string {
@@ -147,8 +147,9 @@ export function CreativesPage() {
                 Drop an image here or choose a file
               </span>
               <span className="text-small text-muted mt-1 max-w-md">
-                PNG, JPEG or WebP up to 8 MB. Square 1080 × 1080 works everywhere. Or ask Claude:
-                “Design a square ad image for my clinic app and save it to Autopilot.”
+                Images (PNG, JPEG, WebP up to 8 MB) or vertical videos for Reels (MP4 up to 200 MB).
+                Square 1080 × 1080 images work everywhere. Or ask Claude: “Design a square ad image
+                for my clinic app and save it to Autopilot.”
               </span>
             </button>
           ) : (
@@ -179,13 +180,25 @@ function CreativeCard({ creative }: { creative: Creative }) {
     <li>
       <Card className="flex h-full flex-col overflow-hidden">
         <div className="bg-surface-muted relative aspect-square">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={mediaSrc(creative.url)}
-            alt={creative.name}
-            loading="lazy"
-            className="size-full object-contain"
-          />
+          {creative.kind === "video" ? (
+            <video
+              src={mediaSrc(creative.url)}
+              aria-label={creative.name}
+              controls
+              muted
+              playsInline
+              preload="metadata"
+              className="size-full bg-black object-contain"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mediaSrc(creative.url)}
+              alt={creative.name}
+              loading="lazy"
+              className="size-full object-contain"
+            />
+          )}
           {creative.source === "claude" ? (
             <Badge tone="accent" className="absolute top-2 left-2">
               <Sparkles className="size-3" /> Claude
@@ -196,6 +209,7 @@ function CreativeCard({ creative }: { creative: Creative }) {
           <div className="min-w-0">
             <p className="truncate text-[14px] font-medium">{creative.name}</p>
             <p className="text-caption text-muted">
+              {creative.kind === "video" ? `Video · ${creative.durationSeconds ?? 0}s · ` : ""}
               {creative.width} × {creative.height} · {sizeLabel(creative.bytes)} ·{" "}
               {date.format(new Date(creative.createdAt))}
             </p>

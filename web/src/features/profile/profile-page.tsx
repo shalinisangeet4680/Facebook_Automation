@@ -188,31 +188,33 @@ function ImageChoice({
             </p>
           ) : (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {creatives.data.data.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange({ id: c.id, name: c.name, url: c.url });
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "border-border w-full overflow-hidden rounded-lg border text-left outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-                      image?.id === c.id && "border-accent ring-accent ring-1",
-                    )}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src(c.url)!}
-                      alt=""
-                      className="bg-surface-muted aspect-square w-full object-contain"
-                    />
-                    <p className="truncate p-2 text-[12px]">
-                      {c.name} · {c.width}×{c.height}
-                    </p>
-                  </button>
-                </li>
-              ))}
+              {creatives.data.data
+                .filter((c) => c.kind !== "video")
+                .map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange({ id: c.id, name: c.name, url: c.url });
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "border-border w-full overflow-hidden rounded-lg border text-left outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
+                        image?.id === c.id && "border-accent ring-accent ring-1",
+                      )}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src(c.url)!}
+                        alt=""
+                        className="bg-surface-muted aspect-square w-full object-contain"
+                      />
+                      <p className="truncate p-2 text-[12px]">
+                        {c.name} · {c.width}×{c.height}
+                      </p>
+                    </button>
+                  </li>
+                ))}
             </ul>
           )}
         </DialogContent>

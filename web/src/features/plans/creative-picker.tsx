@@ -91,15 +91,17 @@ export function CreativePicker({
             </p>
           ) : (
             <Grid>
-              {creatives.data.data.map((c) => (
-                <Option
-                  key={c.id}
-                  label={c.name}
-                  image={displaySrc(c.url)}
-                  selected={!creative.post && creative.imageUrl === c.url}
-                  onSelect={() => pick({ imageUrl: c.url, post: null })}
-                />
-              ))}
+              {creatives.data.data
+                .filter((c) => c.kind !== "video")
+                .map((c) => (
+                  <Option
+                    key={c.id}
+                    label={c.name}
+                    image={displaySrc(c.url)}
+                    selected={!creative.post && creative.imageUrl === c.url}
+                    onSelect={() => pick({ imageUrl: c.url, post: null })}
+                  />
+                ))}
             </Grid>
           )
         ) : library.isPending ? (

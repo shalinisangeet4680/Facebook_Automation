@@ -99,6 +99,60 @@ export class MockMetaPublishing implements MetaPublishing {
     });
   }
 
+  publishFacebookReel(
+    _token: string,
+    _pageId: string,
+    _videoUrl: string,
+    description: string,
+  ): Promise<PublishedPost> {
+    seed();
+    const id = `${910000 + ++sequence}`;
+    posts.unshift({
+      id,
+      platform: "facebook",
+      text: description,
+      imageUrl: null,
+      permalink: `https://www.facebook.com/reel/${id}`,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      comments: 0,
+      mediaType: "VIDEO",
+    });
+    return Promise.resolve({
+      id,
+      permalink: `https://www.facebook.com/reel/${id}`,
+    });
+  }
+
+  publishInstagramReel(
+    _token: string,
+    _instagramId: string,
+    _videoUrl: string,
+    caption: string,
+  ): Promise<PublishedPost> {
+    if (caption.includes("#fail-instagram"))
+      return Promise.reject(
+        metaRejected("Instagram couldn't process the video."),
+      );
+    seed();
+    const id = `1792000000000${String(++sequence).padStart(4, "0")}`;
+    posts.unshift({
+      id,
+      platform: "instagram",
+      text: caption,
+      imageUrl: null,
+      permalink: `https://www.instagram.com/reel/MOCK${id.slice(-4)}/`,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      comments: 0,
+      mediaType: "REELS",
+    });
+    return Promise.resolve({
+      id,
+      permalink: `https://www.instagram.com/reel/MOCK${id.slice(-4)}/`,
+    });
+  }
+
   facebookPosts(
     _token: string,
     _pageId: string,

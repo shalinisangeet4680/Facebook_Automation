@@ -24,11 +24,14 @@ export class LocalMediaStorage implements MediaStorage {
     await writeFile(this.path(key), body);
   }
 
-  async read(key: string) {
+  async read(key: string, range?: { start: number; end: number }) {
     if (!SAFE_KEY.test(key)) return null;
     try {
       const info = await stat(this.path(key));
-      return { stream: createReadStream(this.path(key)), size: info.size };
+      return {
+        stream: createReadStream(this.path(key), range),
+        size: info.size,
+      };
     } catch {
       return null;
     }
