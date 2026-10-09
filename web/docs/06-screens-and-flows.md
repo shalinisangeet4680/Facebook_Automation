@@ -53,6 +53,18 @@ The card shows:
 
 The person chooses Allow or Cancel, and the app sends them back to Claude with a full-page redirect. If the request is invalid, the card shows an error and never redirects. If the redirect goes to a loopback address, a warning appears.
 
-## 8. States everywhere
+## 8. Campaigns (`/campaigns`, `/campaigns/plans/:id`)
+
+The list shows plans proposed by Claude, with their status and a prompt to copy for asking Claude for a new plan.
+
+The review page shows the name, summary and expected results, then a section each for Goal, Audience, Budget and Ad, each with Claude's "Why". Every setting can be edited:
+- locations and interests through targeting search
+- alternative ad texts swap in with "Use this"
+- a live ad preview
+- the image link, with Claude's image idea as a hint
+
+A sticky footer holds Discard, Save, Create in Meta (paused) and Launch. Launch opens a confirmation dialog that shows the daily and monthly spend. After a plan is created, its fields are read-only and the page links to Ads Manager.
+
+## 9. States everywhere
 
 Loading uses skeletons shaped like the content. Errors show the backend message with a Retry action. Empty states explain what to do next.

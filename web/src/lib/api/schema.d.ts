@@ -308,6 +308,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campaign-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlansController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlansController_get_v1"];
+        put: operations["PlansController_replace_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-plans/{id}/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlansController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-plans/{id}/launch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlansController_launch_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-plans/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlansController_discard_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/targeting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdsController_targeting_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -535,6 +631,127 @@ export interface components {
         };
         ConnectedAppListDto: {
             data: components["schemas"]["ConnectedAppDto"][];
+        };
+        PlanSummaryDto: {
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "created" | "launched" | "discarded";
+            source: string;
+            name: string;
+            goal: string;
+            dailyBudget: number;
+            createdAt: string;
+        };
+        PlanListResponseDto: {
+            data: components["schemas"]["PlanSummaryDto"][];
+        };
+        GoalOptionDto: {
+            name: string;
+            needsPixel: boolean;
+        };
+        PlanOptionsDto: {
+            currency: string;
+            maxDailyBudget: number;
+            goals: components["schemas"]["GoalOptionDto"][];
+            conversionEvents: string[];
+            callsToAction: string[];
+        };
+        KeyedOptionDto: {
+            key: string;
+            name: string;
+        };
+        CityOptionDto: {
+            key: string;
+            name: string;
+            radiusKm?: number | null;
+        };
+        InterestOptionDto: {
+            id: string;
+            name: string;
+        };
+        PlanTargetingDto: {
+            countries: string[];
+            regions: components["schemas"]["KeyedOptionDto"][];
+            cities: components["schemas"]["CityOptionDto"][];
+            ageMin: number;
+            ageMax: number;
+            /** @enum {string} */
+            genders: "all" | "male" | "female";
+            interests: components["schemas"]["InterestOptionDto"][];
+        };
+        PlanCreativeDto: {
+            primaryText: string;
+            alternatives: string[];
+            headline: string;
+            description?: string | null;
+            linkUrl: string;
+            imageUrl?: string | null;
+            imageIdea?: string | null;
+            callToAction: string;
+        };
+        PlanReasonsDto: {
+            goal: string;
+            audience: string;
+            budget: string;
+            creative: string;
+        };
+        CampaignPlanDto: {
+            name: string;
+            summary: string;
+            goal: string;
+            conversionEvent?: string | null;
+            dailyBudget: number;
+            targeting: components["schemas"]["PlanTargetingDto"];
+            creative: components["schemas"]["PlanCreativeDto"];
+            reasons: components["schemas"]["PlanReasonsDto"];
+            expectedResults?: string | null;
+        };
+        PlanMetaDto: {
+            campaignId: string;
+            adSetId: string;
+            creativeId: string;
+            adId: string;
+            adsManagerUrl: string;
+        };
+        PlanDetailResponseDto: {
+            options: components["schemas"]["PlanOptionsDto"];
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "created" | "launched" | "discarded";
+            source: string;
+            plan: components["schemas"]["CampaignPlanDto"];
+            meta: components["schemas"]["PlanMetaDto"] | null;
+            error: string | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        ReplacePlanDto: {
+            plan: components["schemas"]["CampaignPlanDto"];
+        };
+        PlanResponseDto: {
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "created" | "launched" | "discarded";
+            source: string;
+            plan: components["schemas"]["CampaignPlanDto"];
+            meta: components["schemas"]["PlanMetaDto"] | null;
+            error: string | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        LaunchPlanDto: {
+            confirm: boolean;
+        };
+        TargetingOptionDto: {
+            key: string;
+            name: string;
+            type: string;
+            region: string | null;
+            countryCode: string | null;
+            audienceSize: number | null;
+        };
+        TargetingResultsDto: {
+            results: components["schemas"]["TargetingOptionDto"][];
         };
     };
     responses: never;
@@ -1278,6 +1495,217 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanListResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDetailResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_replace_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplacePlanDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_launch_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LaunchPlanDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_discard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdsController_targeting_v1: {
+        parameters: {
+            query: {
+                type: "city" | "region" | "country" | "interest";
+                q: string;
+                country?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetingResultsDto"];
+                };
             };
             default: {
                 headers: {

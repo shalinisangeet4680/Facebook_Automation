@@ -22,3 +22,8 @@ export type AuthorizationQuery = Omit<
   "approve" | "allowWrite"
 >;
 export type ConnectedApp = Schemas["ConnectedAppDto"];
+export type CampaignPlan = Schemas["CampaignPlanDto"];
+export type PlanDetail = Schemas["PlanDetailResponseDto"];
+export type PlanSummary = Schemas["PlanSummaryDto"];
+export type PlanStatus = PlanSummary["status"];
+export type TargetingOption = Schemas["TargetingOptionDto"];

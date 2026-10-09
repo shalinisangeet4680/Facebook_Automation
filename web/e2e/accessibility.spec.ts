@@ -30,7 +30,13 @@ for (const theme of ["light", "dark"] as const) {
     test.describe("signed in", () => {
       test.use({ storageState: STORAGE_STATE });
 
-      for (const path of ["/setup", "/setup/connect-meta", "/setup/accounts", "/claude"]) {
+      for (const path of [
+        "/setup",
+        "/setup/connect-meta",
+        "/setup/accounts",
+        "/claude",
+        "/campaigns",
+      ]) {
         test(path, async ({ page }) => {
           await page.request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
           await page.goto(path);

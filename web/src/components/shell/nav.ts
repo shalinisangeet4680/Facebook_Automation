@@ -20,7 +20,7 @@ export const NAV: NavItem[] = [
   { href: "/setup", label: "Setup", icon: ListChecks },
   { href: "/claude", label: "Claude", icon: Sparkles },
   { href: "/inbox", label: "Inbox", icon: Inbox, soon: true },
-  { href: "/campaigns", label: "Campaigns", icon: Megaphone, soon: true },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/creatives", label: "Creatives", icon: LayoutGrid, soon: true },
   { href: "/reports", label: "Reports", icon: BarChart3, soon: true },
   { href: "/settings", label: "Settings", icon: Settings, soon: true },

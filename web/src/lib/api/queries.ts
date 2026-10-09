@@ -3,7 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, setSigningOut, unwrap } from "./client";
-import type { AssetSelection, AuthorizationQuery, Connection, Job } from "./types";
+import type {
+  AssetSelection,
+  AuthorizationQuery,
+  CampaignPlan,
+  Connection,
+  Job,
+  PlanDetail,
+} from "./types";
 
 export const keys = {
   me: ["me"] as const,
@@ -15,6 +22,9 @@ export const keys = {
   authorization: (query: AuthorizationQuery) => ["oauth", "authorization", query] as const,
   connector: ["connector"] as const,
   connectedApps: ["connected-apps"] as const,
+  plans: ["plans"] as const,
+  plan: (id: string) => ["plans", id] as const,
+  targeting: (type: string, q: string) => ["targeting", type, q] as const,
 };
 
 export function useMe() {
@@ -170,5 +180,68 @@ export function useDisconnectApp() {
     mutationFn: (id: string) =>
       unwrap(api.DELETE("/api/v1/connected-apps/{id}", { params: { path: { id } } })),
     onSuccess: () => void client.invalidateQueries({ queryKey: keys.connectedApps }),
+  });
+}
+
+export function usePlans() {
+  return useQuery({
+    queryKey: keys.plans,
+    queryFn: () => unwrap(api.GET("/api/v1/campaign-plans")),
+  });
+}
+
+export function usePlan(id: string) {
+  return useQuery({
+    queryKey: keys.plan(id),
+    queryFn: () => unwrap(api.GET("/api/v1/campaign-plans/{id}", { params: { path: { id } } })),
+  });
+}
+
+function usePlanMutation<T>(id: string, run: (input: T) => Promise<Omit<PlanDetail, "options">>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: (plan) => {
+      client.setQueryData<PlanDetail>(keys.plan(id), (old) => (old ? { ...old, ...plan } : old));
+      void client.invalidateQueries({ queryKey: keys.plans, exact: true });
+    },
+  });
+}
+
+export function useSavePlan(id: string) {
+  return usePlanMutation(id, (plan: CampaignPlan) =>
+    unwrap(api.PUT("/api/v1/campaign-plans/{id}", { params: { path: { id } }, body: { plan } })),
+  );
+}
+
+export function useCreatePlanInMeta(id: string) {
+  return usePlanMutation(id, () =>
+    unwrap(api.POST("/api/v1/campaign-plans/{id}/create", { params: { path: { id } } })),
+  );
+}
+
+export function useLaunchPlan(id: string) {
+  return usePlanMutation(id, () =>
+    unwrap(
+      api.POST("/api/v1/campaign-plans/{id}/launch", {
+        params: { path: { id } },
+        body: { confirm: true },
+      }),
+    ),
+  );
+}
+
+export function useDiscardPlan(id: string) {
+  return usePlanMutation(id, () =>
+    unwrap(api.POST("/api/v1/campaign-plans/{id}/discard", { params: { path: { id } } })),
+  );
+}
+
+export function useTargetingSearch(type: "city" | "region" | "interest", q: string) {
+  return useQuery({
+    queryKey: keys.targeting(type, q),
+    queryFn: () => unwrap(api.GET("/api/v1/ads/targeting", { params: { query: { type, q } } })),
+    enabled: q.trim().length >= 2,
+    staleTime: 5 * 60_000,
   });
 }
