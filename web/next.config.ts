@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  devIndicators: { position: "bottom-right" },
   reactStrictMode: true,
   turbopack: {
     rules: {

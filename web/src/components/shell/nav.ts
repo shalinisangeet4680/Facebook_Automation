@@ -1,0 +1,29 @@
+import {
+  BarChart3,
+  Inbox,
+  LayoutGrid,
+  ListChecks,
+  type LucideIcon,
+  Megaphone,
+  Settings,
+} from "lucide-react";
+
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  soon?: boolean;
+}
+
+export const NAV: NavItem[] = [
+  { href: "/setup", label: "Setup", icon: ListChecks },
+  { href: "/inbox", label: "Inbox", icon: Inbox, soon: true },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone, soon: true },
+  { href: "/creatives", label: "Creatives", icon: LayoutGrid, soon: true },
+  { href: "/reports", label: "Reports", icon: BarChart3, soon: true },
+  { href: "/settings", label: "Settings", icon: Settings, soon: true },
+];
+
+export function sectionFor(pathname: string): NavItem | undefined {
+  return NAV.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+}
