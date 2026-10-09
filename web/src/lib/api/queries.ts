@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, unwrap } from "./client";
+import { api, setSigningOut, unwrap } from "./client";
 import type { AssetSelection, Connection, Job } from "./types";
 
 export const keys = {
@@ -71,14 +71,20 @@ export function useVerifyOtp() {
   return useMutation({
     mutationFn: (input: { phone: string; code: string }) =>
       unwrap(api.POST("/api/v1/auth/otp/verify", { body: input })),
-    onSuccess: () => client.clear(),
+    onSuccess: () => {
+      setSigningOut(false);
+      client.clear();
+    },
   });
 }
 
 export function useSignOut() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => unwrap(api.POST("/api/v1/auth/logout")),
+    mutationFn: () => {
+      setSigningOut(true);
+      return unwrap(api.POST("/api/v1/auth/logout"));
+    },
     onSettled: () => client.clear(),
   });
 }

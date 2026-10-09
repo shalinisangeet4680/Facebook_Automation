@@ -22,6 +22,11 @@ function refreshSession(): Promise<boolean> {
 }
 
 let expiredHandler: () => void = () => undefined;
+let signingOut = false;
+
+export function setSigningOut(value: boolean): void {
+  signingOut = value;
+}
 
 export function onSessionExpired(handler: () => void): () => void {
   expiredHandler = handler;
@@ -31,7 +36,7 @@ export function onSessionExpired(handler: () => void): () => void {
 }
 
 function sessionExpired(): void {
-  expiredHandler();
+  if (!signingOut) expiredHandler();
 }
 
 export async function authFetch(request: Request): Promise<Response> {

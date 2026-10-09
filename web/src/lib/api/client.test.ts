@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { authFetch, onSessionExpired } from "./client";
+import { authFetch, onSessionExpired, setSigningOut } from "./client";
 
 const ok = (body: unknown = {}) => new Response(JSON.stringify(body), { status: 200 });
 const status = (code: number) => new Response("{}", { status: code });
@@ -74,6 +74,14 @@ describe("authFetch", () => {
     const res = await authFetch(req("/api/v1/me"));
     expect(res.status).toBe(401);
     expect(expired).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not report an expired session while signing out", async () => {
+    setSigningOut(true);
+    fetchMock.mockResolvedValueOnce(status(401)).mockResolvedValueOnce(status(401));
+    await authFetch(req("/api/v1/me"));
+    expect(expired).not.toHaveBeenCalled();
+    setSigningOut(false);
   });
 
   it("never refreshes for auth endpoints", async () => {

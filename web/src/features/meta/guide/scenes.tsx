@@ -72,7 +72,7 @@ function SettingsNav({ active }: { active: string }) {
           {g.items.map((i) => (
             <p
               key={i}
-              className={`rounded-[4px] px-1.5 py-[3px] ${i === active ? "bg-[#e7f0ff] font-semibold text-[#0866ff] dark:bg-[#263951]" : ""}`}
+              className={`rounded-[4px] px-1.5 py-[3px] ${i === active ? "bg-[#e7f0ff] font-semibold text-[#0050c8] dark:bg-[#263951] dark:text-[#9fc4ff]" : ""}`}
             >
               {i}
             </p>
@@ -142,7 +142,7 @@ export function SceneOpenSettings() {
         {["Home", "Notifications", "Ads", "Insights", "Content", "Inbox"].map((i, n) => (
           <p
             key={i}
-            className={`rounded-[4px] px-1.5 py-[3px] ${n === 0 ? "bg-[#e7f0ff] font-semibold text-[#0866ff] dark:bg-[#263951]" : ""}`}
+            className={`rounded-[4px] px-1.5 py-[3px] ${n === 0 ? "bg-[#e7f0ff] font-semibold text-[#0050c8] dark:bg-[#263951] dark:text-[#9fc4ff]" : ""}`}
           >
             {i}
           </p>
