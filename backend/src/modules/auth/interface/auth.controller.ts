@@ -12,6 +12,7 @@ import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { FastifyReply, FastifyRequest } from "fastify";
 
+import { AuditService } from "@modules/audit/application/audit.service";
 import { isProduction } from "@shared/config/app-config";
 import { Env } from "@shared/config/env.validation";
 import { CurrentUser } from "@shared/security/current-user.decorator";
@@ -46,6 +47,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly otp: OtpService,
     private readonly sessions: SessionService,
+    private readonly audit: AuditService,
   ) {
     this.secureCookies = isProduction(config);
   }
@@ -105,6 +107,12 @@ export class AuthController {
   ): Promise<void> {
     await this.sessions.logout(ctx.sessionId);
     clearAuthCookies(reply, this.secureCookies);
+    await this.audit.record({
+      workspaceId: ctx.workspaceId,
+      actor: "user",
+      actorId: ctx.userId,
+      action: "auth.signed_out",
+    });
   }
 
   @Post("logout-all")
@@ -115,6 +123,12 @@ export class AuthController {
   ): Promise<void> {
     await this.sessions.logoutAll(ctx.userId);
     clearAuthCookies(reply, this.secureCookies);
+    await this.audit.record({
+      workspaceId: ctx.workspaceId,
+      actor: "user",
+      actorId: ctx.userId,
+      action: "auth.signed_out_everywhere",
+    });
   }
 
   private deliver(

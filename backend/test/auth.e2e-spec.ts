@@ -142,6 +142,13 @@ describe("Auth flow", () => {
     });
     expect(me.statusCode).toBe(200);
     expect(me.body.user).toMatchObject({ phone: E164 });
+
+    const audit = await call(app, "GET", "/api/v1/audit-events?limit=5", {
+      cookies: { access_token: res.cookies.access_token! },
+    });
+    expect(audit.statusCode).toBe(200);
+    const events = audit.body.data as { action: string }[];
+    expect(events[0]?.action).toBe("auth.signed_up");
   });
 
   it("does not accept the same code twice", async () => {

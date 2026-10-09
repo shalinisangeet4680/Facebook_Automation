@@ -2,6 +2,7 @@ import { Module, ValidationPipe } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 
+import { AuditModule } from "@modules/audit/audit.module";
 import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
@@ -9,6 +10,7 @@ import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
 import { DatabaseModule } from "@shared/database/database.module";
 import { AllExceptionsFilter } from "@shared/errors/all-exceptions.filter";
+import { IdempotencyModule } from "@shared/idempotency/idempotency.module";
 import { LoggingModule } from "@shared/logging/logging.module";
 import { QueueModule } from "@shared/queue/queue.module";
 import { AppThrottlerGuard } from "@shared/security/app-throttler.guard";
@@ -32,6 +34,8 @@ import { SecurityModule } from "@shared/security/security.module";
         storage,
       }),
     }),
+    IdempotencyModule,
+    AuditModule,
     HealthModule,
     IamModule,
     AuthModule,

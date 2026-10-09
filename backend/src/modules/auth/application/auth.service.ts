@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
+import { AuditService } from "@modules/audit/application/audit.service";
 import { IdentityService } from "@modules/iam/application/identity.service";
 
 import { RequestMeta, SignInResult } from "../domain/auth.types";
@@ -12,6 +13,7 @@ export class AuthService {
     private readonly otp: OtpService,
     private readonly identity: IdentityService,
     private readonly sessions: SessionService,
+    private readonly audit: AuditService,
   ) {}
 
   async verifyAndSignIn(
@@ -26,6 +28,13 @@ export class AuthService {
       identity.workspace.id,
       meta,
     );
+    await this.audit.record({
+      workspaceId: identity.workspace.id,
+      actor: "user",
+      actorId: identity.user.id,
+      action: identity.isNewUser ? "auth.signed_up" : "auth.signed_in",
+      data: { ip: meta.ip, userAgent: meta.userAgent },
+    });
     return { ...identity, tokens };
   }
 }

@@ -1,0 +1,13 @@
+import { Global, Module } from "@nestjs/common";
+
+import { AuditService } from "./application/audit.service";
+import { AuditRepository } from "./infrastructure/audit.repository";
+import { AuditController } from "./interface/audit.controller";
+
+@Global()
+@Module({
+  controllers: [AuditController],
+  providers: [AuditService, AuditRepository],
+  exports: [AuditService],
+})
+export class AuditModule {}
