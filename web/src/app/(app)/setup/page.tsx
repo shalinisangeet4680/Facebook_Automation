@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+import { SetupOverview } from "@/features/onboarding/setup-overview";
+
+export const metadata: Metadata = { title: "Setup" };
+
 export default function SetupPage() {
-  return <main className="text-title p-10 font-semibold">Setup</main>;
+  return <SetupOverview />;
 }
