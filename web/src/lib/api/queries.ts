@@ -87,8 +87,7 @@ export function useConnectMeta() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (token: string) => unwrap(api.POST("/api/v1/meta/connection", { body: { token } })),
-    onSuccess: (connection: Connection) => {
-      client.setQueryData(keys.connection, connection);
+    onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.onboarding });
       void client.invalidateQueries({ queryKey: keys.assets });
     },
