@@ -50,6 +50,13 @@
       "when": 1791552867858,
       "tag": "0006_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791558894782,
+      "tag": "0007_profile_drafts",
+      "breakpoints": true
     }
   ]
 }

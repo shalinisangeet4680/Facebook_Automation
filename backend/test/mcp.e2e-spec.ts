@@ -351,12 +351,14 @@ describe("Claude connector (OAuth + MCP)", () => {
       .sort();
     expect(names).toEqual([
       "activate",
+      "apply_facebook_profile",
       "check_tracking",
       "create_campaign_draft",
       "get_account_overview",
       "get_campaign",
       "get_performance",
       "get_planning_context",
+      "get_profile_checkup",
       "get_suggestions",
       "list_campaign_plans",
       "list_campaigns",
@@ -366,6 +368,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "propose_campaign_plan",
       "publish_post",
       "save_ad_creative",
+      "save_profile_draft",
       "search_targeting",
       "update_campaign_plan",
       "update_daily_budget",
@@ -869,7 +872,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(11);
+    expect(names).toHaveLength(12);
     expect(names).not.toContain("activate");
   });
 

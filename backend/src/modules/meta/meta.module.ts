@@ -6,14 +6,17 @@ import { Env } from "@shared/config/env.validation";
 import { MetaConnectionService } from "./application/meta-connection.service";
 import { META_ADS } from "./domain/ports/meta-ads";
 import { META_GRAPH } from "./domain/ports/meta-graph";
+import { META_PROFILE } from "./domain/ports/meta-profile";
 import { META_PUBLISHING } from "./domain/ports/meta-publishing";
 import { GraphAdsClient } from "./infrastructure/graph-ads.client";
 import { GraphApiClient } from "./infrastructure/graph-api.client";
+import { GraphProfileClient } from "./infrastructure/graph-profile.client";
 import { GraphPublishingClient } from "./infrastructure/graph-publishing.client";
 import { MetaAssetRepository } from "./infrastructure/meta-asset.repository";
 import { MetaConnectionRepository } from "./infrastructure/meta-connection.repository";
 import { MockMetaAds } from "./infrastructure/mock-meta.ads";
 import { MockMetaGraph } from "./infrastructure/mock-meta.graph";
+import { MockMetaProfile } from "./infrastructure/mock-meta.profile";
 import { MockMetaPublishing } from "./infrastructure/mock-meta.publishing";
 import { MetaController } from "./interface/meta.controller";
 
@@ -47,12 +50,21 @@ import { MetaController } from "./interface/meta.controller";
           ? new MockMetaPublishing()
           : new GraphPublishingClient(config),
     },
+    {
+      provide: META_PROFILE,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) =>
+        config.get("META_MOCK", { infer: true })
+          ? new MockMetaProfile()
+          : new GraphProfileClient(config),
+    },
   ],
   exports: [
     MetaConnectionService,
     MetaConnectionRepository,
     META_ADS,
     META_PUBLISHING,
+    META_PROFILE,
   ],
 })
 export class MetaModule {}

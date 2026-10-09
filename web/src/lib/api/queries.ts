@@ -11,6 +11,8 @@ import type {
   Connection,
   Job,
   PlanDetail,
+  FacebookPart,
+  ProfileDraftInput,
   ProfileUpdate,
   ReportPreset,
   Settings,
@@ -30,6 +32,7 @@ export const keys = {
   settings: ["settings"] as const,
   creatives: ["creatives"] as const,
   inbox: ["inbox"] as const,
+  profile: ["profile"] as const,
   channels: ["social", "channels"] as const,
   posts: ["posts"] as const,
   library: (platform: string) => ["social", "library", platform] as const,
@@ -415,5 +418,26 @@ export function useSuggestionAction() {
       void client.invalidateQueries({ queryKey: keys.inbox });
       void client.invalidateQueries({ queryKey: ["reports"] });
     },
+  });
+}
+
+export function useProfile() {
+  return useQuery({ queryKey: keys.profile, queryFn: () => unwrap(api.GET("/api/v1/profile")) });
+}
+
+export function useSaveProfileDraft() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ProfileDraftInput) => unwrap(api.PUT("/api/v1/profile/draft", { body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.profile }),
+  });
+}
+
+export function useApplyFacebookProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (parts: FacebookPart[]) =>
+      unwrap(api.POST("/api/v1/profile/facebook/apply", { body: { parts } })),
+    onSuccess: (result) => client.setQueryData(keys.profile, result.checkup),
   });
 }

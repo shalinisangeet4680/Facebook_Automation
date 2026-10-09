@@ -564,6 +564,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProfileController_checkup_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ProfileController_saveDraft_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/facebook/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ProfileController_apply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -1085,6 +1133,110 @@ export interface components {
         RefreshResultDto: {
             created: number;
             open: number;
+        };
+        FacebookProfileDto: {
+            id: string;
+            name: string;
+            username: string | null;
+            link: string | null;
+            about: string | null;
+            description: string | null;
+            website: string | null;
+            phone: string | null;
+            email: string | null;
+            category: string | null;
+            pictureUrl: string | null;
+            pictureIsDefault: boolean;
+            coverUrl: string | null;
+            followers: number | null;
+        };
+        ProfileCheckDto: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            status: "done" | "missing" | "weak";
+            hint: string;
+        };
+        FacebookCheckupDto: {
+            profile: components["schemas"]["FacebookProfileDto"];
+            checks: components["schemas"]["ProfileCheckDto"][];
+            score: number;
+        };
+        InstagramProfileDto: {
+            id: string;
+            username: string;
+            name: string | null;
+            biography: string | null;
+            website: string | null;
+            pictureUrl: string | null;
+            followers: number | null;
+            posts: number | null;
+        };
+        InstagramCheckupDto: {
+            profile: components["schemas"]["InstagramProfileDto"];
+            checks: components["schemas"]["ProfileCheckDto"][];
+            score: number;
+        };
+        DraftImageDto: {
+            id: string;
+            name: string;
+            url: string;
+        };
+        FacebookDraftDto: {
+            about: string | null;
+            description: string | null;
+            website: string | null;
+            phone: string | null;
+            email: string | null;
+            picture: components["schemas"]["DraftImageDto"] | null;
+            cover: components["schemas"]["DraftImageDto"] | null;
+        };
+        InstagramDraftDto: {
+            name: string | null;
+            bio: string | null;
+            website: string | null;
+            picture: components["schemas"]["DraftImageDto"] | null;
+        };
+        ProfileDraftDto: {
+            facebook: components["schemas"]["FacebookDraftDto"];
+            instagram: components["schemas"]["InstagramDraftDto"];
+        };
+        ProfileCheckupDto: {
+            facebook: components["schemas"]["FacebookCheckupDto"] | null;
+            instagram: components["schemas"]["InstagramCheckupDto"] | null;
+            draft: components["schemas"]["ProfileDraftDto"];
+        };
+        FacebookDraftInputDto: {
+            about?: string | null;
+            description?: string | null;
+            website?: string | null;
+            phone?: string | null;
+            email?: string | null;
+            pictureCreativeId?: string | null;
+            coverCreativeId?: string | null;
+        };
+        InstagramDraftInputDto: {
+            name?: string | null;
+            bio?: string | null;
+            website?: string | null;
+            pictureCreativeId?: string | null;
+        };
+        SaveProfileDraftDto: {
+            facebook?: components["schemas"]["FacebookDraftInputDto"];
+            instagram?: components["schemas"]["InstagramDraftInputDto"];
+        };
+        ApplyFacebookDto: {
+            parts: ("about" | "description" | "website" | "phone" | "email" | "picture" | "cover")[];
+        };
+        ApplyResultDto: {
+            /** @enum {string} */
+            part: "phone" | "email" | "description" | "picture" | "about" | "website" | "cover";
+            ok: boolean;
+            error: string | null;
+        };
+        ApplyFacebookResponseDto: {
+            results: components["schemas"]["ApplyResultDto"][];
+            checkup: components["schemas"]["ProfileCheckupDto"];
         };
         PlanSummaryDto: {
             id: string;
@@ -2468,6 +2620,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_checkup_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCheckupDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_saveDraft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveProfileDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileDraftDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_apply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyFacebookDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyFacebookResponseDto"];
                 };
             };
             default: {

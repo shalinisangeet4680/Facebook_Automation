@@ -11,6 +11,7 @@ import { JobsModule } from "@modules/jobs/jobs.module";
 import { CreativesModule } from "@modules/creatives/creatives.module";
 import { InboxModule } from "@modules/inbox/inbox.module";
 import { McpModule } from "@modules/mcp/mcp.module";
+import { ProfileModule } from "@modules/profile/profile.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
 import { PlansModule } from "@modules/plans/plans.module";
@@ -61,6 +62,7 @@ import { SecurityModule } from "@shared/security/security.module";
     CreativesModule,
     SocialModule,
     InboxModule,
+    ProfileModule,
     PlansModule,
     McpModule,
   ],

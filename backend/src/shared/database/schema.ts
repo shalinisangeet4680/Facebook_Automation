@@ -10,3 +10,4 @@ export * from "../../modules/settings/infrastructure/settings.tables";
 export * from "../../modules/creatives/infrastructure/creatives.tables";
 export * from "../../modules/social/infrastructure/social.tables";
 export * from "../../modules/inbox/infrastructure/inbox.tables";
+export * from "../../modules/profile/infrastructure/profile.tables";

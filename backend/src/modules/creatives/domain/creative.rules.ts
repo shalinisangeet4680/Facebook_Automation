@@ -12,6 +12,8 @@ export const SVG_FORMATS = {
   portrait: { width: 1080, height: 1350 },
   story: { width: 1080, height: 1920 },
   landscape: { width: 1200, height: 628 },
+  logo: { width: 720, height: 720 },
+  facebook_cover: { width: 1640, height: 624 },
 } as const;
 
 export type SvgFormat = keyof typeof SVG_FORMATS;

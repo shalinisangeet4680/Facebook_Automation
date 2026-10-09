@@ -21,6 +21,8 @@ import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
 import { SocialService } from "@modules/social/application/social.service";
 import { InboxService } from "@modules/inbox/application/inbox.service";
+import { ProfileService } from "@modules/profile/application/profile.service";
+import { FACEBOOK_PARTS } from "@modules/profile/domain/profile.draft";
 import { DomainError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
@@ -36,6 +38,7 @@ How to work:
 - To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in Autopilot; do not call create_campaign_draft for a proposed plan unless the user asks.
 - To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
+- To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in Autopilot or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from Autopilot's Profile page into the Instagram app.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -64,6 +67,7 @@ export class McpServerFactory {
     private readonly social: SocialService,
     private readonly confirmations: ConfirmationService,
     private readonly inbox: InboxService,
+    private readonly profile: ProfileService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -262,7 +266,110 @@ export class McpServerFactory {
         }),
     );
 
+    server.registerTool(
+      "get_profile_checkup",
+      {
+        title: "Profile checkup",
+        description:
+          "Current Facebook Page and Instagram profile (picture, cover, description, bio, website, contact) with a checklist and score, plus the saved draft of proposed changes.",
+        annotations: readOnly,
+      },
+      () => run(() => this.profile.checkup(ws)),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "save_profile_draft",
+      {
+        title: "Save profile draft",
+        description:
+          "Save proposed profile changes for the owner to review in Autopilot. facebook: about (short description, max 255), description (longer), website, phone, email, pictureCreativeId, coverCreativeId. instagram: name (max 30), bio (max 150), website, pictureCreativeId. Creative ids come from save_ad_creative or list_creatives. Send the full draft each time.",
+        inputSchema: {
+          facebook: z
+            .object({
+              about: z.string().max(255).optional(),
+              description: z.string().max(2000).optional(),
+              website: z.string().url().optional(),
+              phone: z.string().max(30).optional(),
+              email: z.string().email().optional(),
+              pictureCreativeId: z.string().uuid().optional(),
+              coverCreativeId: z.string().uuid().optional(),
+            })
+            .optional(),
+          instagram: z
+            .object({
+              name: z.string().max(30).optional(),
+              bio: z.string().max(150).optional(),
+              website: z.string().url().optional(),
+              pictureCreativeId: z.string().uuid().optional(),
+            })
+            .optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(() =>
+          this.profile.saveDraft(actor, {
+            facebook: a.facebook ?? {},
+            instagram: a.instagram ?? {},
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "apply_facebook_profile",
+      {
+        title: "Apply profile to the Facebook Page (needs confirmation)",
+        description:
+          "Apply parts of the saved draft to the Facebook Page: about, description, website, phone, email, picture, cover. Two steps: call without confirm_token to get a summary, show it to the user, then call again with confirm_token after they agree.",
+        inputSchema: {
+          parts: z.array(z.enum(FACEBOOK_PARTS)).min(1),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const args = { parts: [...new Set(a.parts)].sort() };
+          if (!a.confirm_token) {
+            return {
+              status: "confirmation_required",
+              summary: `Update the Facebook Page: ${args.parts.join(", ")}. Visitors will see the changes right away.`,
+              confirmToken: await this.confirmations.issue(
+                ws,
+                "apply_facebook_profile",
+                args,
+              ),
+              expiresInSeconds: CONFIRM_TTL_SECONDS,
+            };
+          }
+          if (
+            !(await this.confirmations.consume(
+              ws,
+              "apply_facebook_profile",
+              args,
+              a.confirm_token,
+            ))
+          ) {
+            return {
+              status: "invalid_confirmation",
+              message: "Call again without confirm_token for a fresh summary.",
+            };
+          }
+          return this.profile.applyFacebook(actor, args.parts);
+        }),
+    );
 
     server.registerTool(
       "publish_post",

@@ -39,3 +39,6 @@ export type Channels = Schemas["ChannelsDto"];
 export type CreatePost = Schemas["CreatePostDto"];
 export type Inbox = Schemas["InboxDto"];
 export type Suggestion = Schemas["SuggestionDto"];
+export type ProfileCheckup = Schemas["ProfileCheckupDto"];
+export type ProfileDraftInput = Schemas["SaveProfileDraftDto"];
+export type FacebookPart = Schemas["ApplyFacebookDto"]["parts"][number];
