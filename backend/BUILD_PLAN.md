@@ -12,7 +12,7 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 - [x] 6. IAM: users, workspaces, workspace members, repositories, identity service, `GET /api/v1/me`
 - [x] 7. Auth: OTP challenges, `OtpSender` port with test-number sender, OTP request and verify, refresh token families with rotation and reuse detection, refresh, logout, logout-all, web cookies and mobile body tokens, rate limits
 - [x] 8. Audit and idempotency: `audit_events` writer, `idempotency_keys` interceptor
-- [ ] 9. Meta: requirements endpoint, `MetaGraph` port, Graph client with retry, backoff and usage headers, mock client, connection service (validate, encrypt, discover assets), connection and asset endpoints, primary asset selection, `meta.connected` event
+- [x] 9. Meta: requirements endpoint, `MetaGraph` port, Graph client with retry, backoff and usage headers, mock client, connection service (validate, encrypt, discover assets), connection and asset endpoints, primary asset selection, `meta.connected` event
 - [ ] 10. Onboarding: step catalogue, `onboarding_progress`, state machine, `GET /api/v1/onboarding`, event listeners
 - [ ] 11. Jobs: `maintenance` queue with token health check and cleanup schedules, `meta-sync` asset refresh job, `GET /api/v1/jobs/:jobId`
 - [ ] 12. Quality: unit tests for crypto, phone, OTP, token rotation; e2e tests for auth and Meta flows; oxlint, Prettier, typecheck scripts; GitHub Actions CI; Dockerfile

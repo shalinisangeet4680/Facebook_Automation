@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -10,6 +11,7 @@ import { SecurityModule } from "@shared/security/security.module";
 @Module({
   imports: [
     ConfigModule,
+    EventEmitterModule.forRoot(),
     LoggingModule.forRoot("worker"),
     DatabaseModule,
     CacheModule,

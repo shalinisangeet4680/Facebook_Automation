@@ -1,11 +1,13 @@
 import { Module, ValidationPipe } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerModule } from "@nestjs/throttler";
 
 import { AuditModule } from "@modules/audit/audit.module";
 import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
+import { MetaModule } from "@modules/meta/meta.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
 import { DatabaseModule } from "@shared/database/database.module";
@@ -22,6 +24,7 @@ import { SecurityModule } from "@shared/security/security.module";
 @Module({
   imports: [
     ConfigModule,
+    EventEmitterModule.forRoot(),
     LoggingModule.forRoot("api"),
     DatabaseModule,
     CacheModule,
@@ -39,6 +42,7 @@ import { SecurityModule } from "@shared/security/security.module";
     HealthModule,
     IamModule,
     AuthModule,
+    MetaModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
