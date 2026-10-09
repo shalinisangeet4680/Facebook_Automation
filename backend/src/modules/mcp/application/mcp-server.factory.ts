@@ -170,9 +170,17 @@ export class McpServerFactory {
       {
         title: "Search targeting options",
         description:
-          "Find Meta targeting keys for cities, regions, countries or interests. Use the returned key in create_campaign_draft.",
+          "Find Meta targeting keys for cities, regions, countries, interests, job titles (work_position), industries and behaviours (e.g. Small business owners). Plans put interests, job titles and industries in one OR group; behaviours are a second group people must also match.",
         inputSchema: {
-          type: z.enum(["city", "region", "country", "interest"]),
+          type: z.enum([
+            "city",
+            "region",
+            "country",
+            "interest",
+            "work_position",
+            "industry",
+            "behavior",
+          ]),
           query: z.string().min(2).max(100),
           country_code: z.string().length(2).optional(),
         },

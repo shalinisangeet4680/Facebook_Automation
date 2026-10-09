@@ -749,6 +749,66 @@ describe("Claude connector (OAuth + MCP)", () => {
     ).toEqual(["discarded", "launched"]);
   });
 
+  it("targets clinics with job titles and industries AND business owners", async () => {
+    const titles = await tool(accessToken, "search_targeting", {
+      type: "work_position",
+      query: "doc",
+    });
+    expect(titles.data.results[0]).toMatchObject({
+      key: "107402372623035",
+      type: "work_position",
+    });
+    const behaviors = await tool(accessToken, "search_targeting", {
+      type: "behavior",
+      query: "small business",
+    });
+    expect(behaviors.data.results[0].key).toBe("6002714898572");
+
+    const proposed = await tool(accessToken, "propose_campaign_plan", {
+      name: "Clinics – titles and owners",
+      summary: "Clinic owners.",
+      goal: "traffic",
+      dailyBudget: 300,
+      targeting: {
+        regions: [{ key: "1730", name: "Bihar" }],
+        ageMin: 26,
+        ageMax: 60,
+        workPositions: [{ id: "107402372623035", name: "Doctor" }],
+        industries: [
+          { id: "6012903159383", name: "Healthcare and medical services" },
+        ],
+        behaviors: [{ id: "6002714898572", name: "Small business owners" }],
+      },
+      creative: {
+        primaryText: "Run your clinic from one app.",
+        headline: "Free trial",
+        linkUrl: "https://arogyasystem.com/register",
+        imageUrl: "https://arogyasystem.com/og.png",
+        callToAction: "SIGN_UP",
+      },
+      reasons: { goal: "g", audience: "a", budget: "b", creative: "c" },
+    });
+    const created = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${proposed.data.planId as string}/create`,
+      { headers: session },
+    );
+    expect(created.statusCode).toBe(200);
+    const detail = await tool(accessToken, "get_campaign", {
+      campaign_id: (created.body.meta as { campaignId: string }).campaignId,
+    });
+    expect(detail.data.adSets[0].targeting.flexible_spec).toEqual([
+      {
+        work_positions: [{ id: "107402372623035", name: "Doctor" }],
+        industries: [
+          { id: "6012903159383", name: "Healthcare and medical services" },
+        ],
+      },
+      { behaviors: [{ id: "6002714898572", name: "Small business owners" }] },
+    ]);
+  });
+
   it("creates a plan's ad from an existing Instagram post without an image", async () => {
     const plan = {
       name: "Boost best Instagram post",

@@ -166,6 +166,9 @@ export class PlanService {
             ageMax: plan.targeting.ageMax,
             genders: plan.targeting.genders,
             interests: plan.targeting.interests,
+            workPositions: plan.targeting.workPositions,
+            industries: plan.targeting.industries,
+            behaviors: plan.targeting.behaviors,
           },
           creative: {
             primaryText: plan.creative.primaryText,

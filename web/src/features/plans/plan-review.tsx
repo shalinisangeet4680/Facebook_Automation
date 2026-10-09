@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, STATUS_LABELS, money, sourceLabel } from "./labels";
 import { CreativePicker } from "./creative-picker";
-import { AdPreview, InterestsEditor, LocationsEditor, Section } from "./plan-sections";
+import { AdPreview, BehaviorsEditor, LocationsEditor, Section, WhoEditor } from "./plan-sections";
 
 export function PlanReview() {
   const { id } = useParams<{ id: string }>();
@@ -299,8 +299,21 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               </Field>
             </div>
             <div className="grid gap-2">
-              <p className="text-[14px] font-medium">Interests</p>
-              <InterestsEditor
+              <p className="text-[14px] font-medium">Who they are</p>
+              <p className="text-caption text-muted -mt-1">People matching any of these.</p>
+              <WhoEditor
+                targeting={draft.targeting}
+                onChange={(t) => set("targeting", t)}
+                disabled={!editable}
+              />
+            </div>
+            <div className="grid gap-2">
+              <p className="text-[14px] font-medium">And also</p>
+              <p className="text-caption text-muted -mt-1">
+                People must also match one of these, e.g. small business owners, to reach clinic
+                owners.
+              </p>
+              <BehaviorsEditor
                 targeting={draft.targeting}
                 onChange={(t) => set("targeting", t)}
                 disabled={!editable}

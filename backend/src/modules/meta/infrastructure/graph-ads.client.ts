@@ -300,25 +300,53 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
     query: string,
     countryCode: string | null,
   ): Promise<TargetingOption[]> {
+    if (type === "industry" || type === "behavior") {
+      const res = await this.get<{ data?: Record<string, unknown>[] }>(
+        token,
+        "/search",
+        {
+          type: "adTargetingCategory",
+          class: type === "industry" ? "industries" : "behaviors",
+          limit: 500,
+        },
+      );
+      const q = query.toLowerCase();
+      return (res.data ?? [])
+        .filter((r) => str(r.name).toLowerCase().includes(q))
+        .slice(0, 15)
+        .map((r) => ({
+          key: str(r.id),
+          name: str(r.name),
+          type,
+          region: null,
+          countryCode: null,
+          audienceSize: optNum(r.audience_size_upper_bound ?? r.audience_size),
+        }));
+    }
     const params: GraphParams =
       type === "interest"
         ? { type: "adinterest", q: query, limit: 15 }
-        : {
-            type: "adgeolocation",
-            q: query,
-            location_types: [type],
-            limit: 15,
-            ...(countryCode ? { country_code: countryCode } : {}),
-          };
+        : type === "work_position"
+          ? { type: "adworkposition", q: query, limit: 15 }
+          : {
+              type: "adgeolocation",
+              q: query,
+              location_types: [type],
+              limit: 15,
+              ...(countryCode ? { country_code: countryCode } : {}),
+            };
     const res = await this.get<{ data?: Record<string, unknown>[] }>(
       token,
       "/search",
       params,
     );
     return (res.data ?? [])
-      .filter((r) => type === "interest" || r.type === type)
+      .filter(
+        (r) =>
+          type === "interest" || type === "work_position" || r.type === type,
+      )
       .map((r) => ({
-        key: String(r.key ?? r.id),
+        key: str(r.key ?? r.id),
         name: str(r.name),
         type: str(r.type, type),
         region: optStr(r.region),

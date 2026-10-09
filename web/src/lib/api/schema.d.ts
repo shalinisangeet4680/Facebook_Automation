@@ -1294,6 +1294,9 @@ export interface components {
             /** @enum {string} */
             genders: "all" | "male" | "female";
             interests: components["schemas"]["InterestOptionDto"][];
+            workPositions: components["schemas"]["InterestOptionDto"][];
+            industries: components["schemas"]["InterestOptionDto"][];
+            behaviors: components["schemas"]["InterestOptionDto"][];
         };
         PlanPostDto: {
             /** @enum {string} */
@@ -2252,7 +2255,7 @@ export interface operations {
     AdsController_targeting_v1: {
         parameters: {
             query: {
-                type: "city" | "region" | "country" | "interest";
+                type: "city" | "region" | "country" | "interest" | "work_position" | "industry" | "behavior";
                 q: string;
                 country?: string;
             };

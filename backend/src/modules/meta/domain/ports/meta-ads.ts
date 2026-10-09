@@ -96,7 +96,14 @@ export interface PixelEventCount {
   count: number;
 }
 
-export type TargetingSearchType = "city" | "region" | "country" | "interest";
+export type TargetingSearchType =
+  | "city"
+  | "region"
+  | "country"
+  | "interest"
+  | "work_position"
+  | "industry"
+  | "behavior";
 
 export interface TargetingOption {
   key: string;

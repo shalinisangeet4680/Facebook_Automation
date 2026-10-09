@@ -252,7 +252,10 @@ export function useDiscardPlan(id: string) {
   );
 }
 
-export function useTargetingSearch(type: "city" | "region" | "interest", q: string) {
+export type TargetingType =
+  "city" | "region" | "interest" | "work_position" | "industry" | "behavior";
+
+export function useTargetingSearch(type: TargetingType, q: string) {
   return useQuery({
     queryKey: keys.targeting(type, q),
     queryFn: () => unwrap(api.GET("/api/v1/ads/targeting", { params: { query: { type, q } } })),

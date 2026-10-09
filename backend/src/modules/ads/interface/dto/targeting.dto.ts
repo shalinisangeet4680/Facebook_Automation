@@ -1,8 +1,23 @@
 import { IsIn, IsOptional, IsString, Length } from "class-validator";
 
 export class TargetingQueryDto {
-  @IsIn(["city", "region", "country", "interest"])
-  type: "city" | "region" | "country" | "interest";
+  @IsIn([
+    "city",
+    "region",
+    "country",
+    "interest",
+    "work_position",
+    "industry",
+    "behavior",
+  ])
+  type:
+    | "city"
+    | "region"
+    | "country"
+    | "interest"
+    | "work_position"
+    | "industry"
+    | "behavior";
 
   @IsString()
   @Length(2, 100)

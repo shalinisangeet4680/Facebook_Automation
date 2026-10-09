@@ -24,6 +24,9 @@ export interface TargetingInput {
   ageMax?: number;
   genders?: "all" | "male" | "female";
   interests?: { id: string; name?: string }[];
+  workPositions?: { id: string; name?: string }[];
+  industries?: { id: string; name?: string }[];
+  behaviors?: { id: string; name?: string }[];
 }
 
 export interface DraftInput {

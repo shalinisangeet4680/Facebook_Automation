@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { inputClass } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { errorMessage } from "@/lib/api/errors";
-import { useTargetingSearch } from "@/lib/api/queries";
+import { type TargetingType, useTargetingSearch } from "@/lib/api/queries";
 import type { CampaignPlan, TargetingOption } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -173,7 +173,24 @@ export function LocationsEditor({
   );
 }
 
-export function InterestsEditor({
+const TYPE_LABELS: Record<TargetingType, string> = {
+  city: "City",
+  region: "State",
+  interest: "Interest",
+  work_position: "Job title",
+  industry: "Industry",
+  behavior: "Behaviour",
+};
+
+type Named = { id: string; name: string };
+type WhoKey = "interests" | "workPositions" | "industries";
+const WHO_FIELDS: { field: WhoKey; type: TargetingType; label: string }[] = [
+  { field: "workPositions", type: "work_position", label: "Job title" },
+  { field: "industries", type: "industry", label: "Industry" },
+  { field: "interests", type: "interest", label: "Interest" },
+];
+
+export function WhoEditor({
   targeting,
   onChange,
   disabled,
@@ -182,45 +199,91 @@ export function InterestsEditor({
   onChange: (next: Targeting) => void;
   disabled: boolean;
 }) {
+  const chips = WHO_FIELDS.flatMap(({ field, label }) =>
+    ((targeting[field] ?? []) as Named[]).map((item) => ({ field, label, item })),
+  );
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-2">
-        {targeting.interests.map((i) => (
+        {chips.map(({ field, label, item }) => (
           <Chip
-            key={i.id}
-            label={i.name}
+            key={`${field}${item.id}`}
+            label={item.name}
             onRemove={
               disabled
                 ? undefined
                 : () =>
                     onChange({
                       ...targeting,
-                      interests: targeting.interests.filter((x) => x.id !== i.id),
+                      [field]: ((targeting[field] ?? []) as Named[]).filter(
+                        (x) => x.id !== item.id,
+                      ),
                     })
             }
           >
             <Tag className="text-muted size-3.5" aria-hidden />
-            {i.name}
+            <span className="text-muted">{label}:</span> {item.name}
           </Chip>
         ))}
-        {!targeting.interests.length ? (
-          <p className="text-small text-muted">
-            No interests: Meta finds people within the age and location.
-          </p>
+        {!chips.length ? (
+          <p className="text-small text-muted">Anyone in the locations and ages above.</p>
         ) : null}
       </div>
       {disabled ? null : (
         <Search
-          types={["interest"]}
-          placeholder="Add an interest"
-          onPick={(o) =>
-            onChange({
-              ...targeting,
-              interests: targeting.interests.some((x) => x.id === o.key)
-                ? targeting.interests
-                : [...targeting.interests, { id: o.key, name: o.name }],
-            })
-          }
+          types={["work_position", "industry", "interest"]}
+          placeholder="Add a job title, industry or interest"
+          onPick={(o) => {
+            const target =
+              WHO_FIELDS.find((w) => w.type === o.type) ??
+              WHO_FIELDS.find((w) => w.field === "interests")!;
+            const list = (targeting[target.field] ?? []) as Named[];
+            if (list.some((x) => x.id === o.key)) return;
+            onChange({ ...targeting, [target.field]: [...list, { id: o.key, name: o.name }] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+export function BehaviorsEditor({
+  targeting,
+  onChange,
+  disabled,
+}: {
+  targeting: Targeting;
+  onChange: (next: Targeting) => void;
+  disabled: boolean;
+}) {
+  const behaviors = (targeting.behaviors ?? []) as Named[];
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap gap-2">
+        {behaviors.map((b) => (
+          <Chip
+            key={b.id}
+            label={b.name}
+            onRemove={
+              disabled
+                ? undefined
+                : () =>
+                    onChange({ ...targeting, behaviors: behaviors.filter((x) => x.id !== b.id) })
+            }
+          >
+            {b.name}
+          </Chip>
+        ))}
+        {!behaviors.length ? <p className="text-small text-muted">No extra condition.</p> : null}
+      </div>
+      {disabled ? null : (
+        <Search
+          types={["behavior"]}
+          placeholder="Add a behaviour, e.g. Small business owners"
+          onPick={(o) => {
+            if (behaviors.some((x) => x.id === o.key)) return;
+            onChange({ ...targeting, behaviors: [...behaviors, { id: o.key, name: o.name }] });
+          }}
         />
       )}
     </div>
@@ -236,7 +299,7 @@ function Search({
   placeholder,
   onPick,
 }: {
-  types: ("city" | "region" | "interest")[];
+  types: TargetingType[];
   placeholder: string;
   onPick: (option: TargetingOption) => void;
 }) {
@@ -256,7 +319,7 @@ function Search({
           >
             {types.map((t) => (
               <option key={t} value={t}>
-                {t === "city" ? "City" : t === "region" ? "State" : "Interest"}
+                {TYPE_LABELS[t]}
               </option>
             ))}
           </select>

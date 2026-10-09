@@ -546,6 +546,38 @@ export class MockMetaAds implements MetaAds {
         countryCode: null,
         audienceSize: 150_000_000,
       },
+      {
+        key: "107402372623035",
+        name: "Doctor",
+        type: "work_position",
+        region: null,
+        countryCode: null,
+        audienceSize: null,
+      },
+      {
+        key: "108768179146852",
+        name: "Dentist",
+        type: "work_position",
+        region: null,
+        countryCode: null,
+        audienceSize: null,
+      },
+      {
+        key: "6012903159383",
+        name: "Healthcare and medical services",
+        type: "industry",
+        region: null,
+        countryCode: null,
+        audienceSize: 12_959_406,
+      },
+      {
+        key: "6002714898572",
+        name: "Small business owners",
+        type: "behavior",
+        region: null,
+        countryCode: null,
+        audienceSize: null,
+      },
     ];
     return Promise.resolve(
       catalog.filter(

@@ -22,6 +22,9 @@ export class PlanTargetingDto {
   ageMax: number;
   genders: "all" | "male" | "female";
   interests: InterestOptionDto[];
+  workPositions: InterestOptionDto[];
+  industries: InterestOptionDto[];
+  behaviors: InterestOptionDto[];
 }
 
 export class PlanPostDto {

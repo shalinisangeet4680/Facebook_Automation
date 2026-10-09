@@ -6,6 +6,10 @@ import {
   GOAL_NAMES,
 } from "@modules/ads/domain/goals";
 
+const named = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(200),
+});
 const reason = z.string().trim().min(1).max(1200);
 const keyed = z.object({
   key: z.string().min(1).max(40),
@@ -42,6 +46,9 @@ export const planSchema = z
         )
         .max(25)
         .default([]),
+      workPositions: z.array(named).max(25).default([]),
+      industries: z.array(named).max(25).default([]),
+      behaviors: z.array(named).max(25).default([]),
     }),
     creative: z.object({
       primaryText: z.string().trim().min(1).max(2000),

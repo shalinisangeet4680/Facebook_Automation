@@ -742,16 +742,24 @@ export class AdsService {
     };
     if (input.genders === "male") out.genders = [1];
     if (input.genders === "female") out.genders = [2];
-    if (input.interests?.length) {
-      out.flexible_spec = [
-        {
-          interests: input.interests.map((i) => ({
-            id: i.id,
-            ...(i.name ? { name: i.name } : {}),
-          })),
-        },
-      ];
-    }
+    const named = (items?: { id: string; name?: string }[]) =>
+      items?.length
+        ? items.map((i) => ({ id: i.id, ...(i.name ? { name: i.name } : {}) }))
+        : undefined;
+    const who = {
+      ...(named(input.interests) ? { interests: named(input.interests) } : {}),
+      ...(named(input.workPositions)
+        ? { work_positions: named(input.workPositions) }
+        : {}),
+      ...(named(input.industries)
+        ? { industries: named(input.industries) }
+        : {}),
+    };
+    const flexible: Record<string, unknown>[] = [];
+    if (Object.keys(who).length) flexible.push(who);
+    if (named(input.behaviors))
+      flexible.push({ behaviors: named(input.behaviors) });
+    if (flexible.length) out.flexible_spec = flexible;
     return out;
   }
 
