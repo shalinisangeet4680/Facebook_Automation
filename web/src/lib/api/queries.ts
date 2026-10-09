@@ -7,6 +7,7 @@ import type {
   AssetSelection,
   AuthorizationQuery,
   CampaignPlan,
+  CreatePost,
   Connection,
   Job,
   PlanDetail,
@@ -28,6 +29,9 @@ export const keys = {
   connectedApps: ["connected-apps"] as const,
   settings: ["settings"] as const,
   creatives: ["creatives"] as const,
+  channels: ["social", "channels"] as const,
+  posts: ["posts"] as const,
+  library: (platform: string) => ["social", "library", platform] as const,
   report: (preset: string) => ["reports", preset] as const,
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
@@ -330,5 +334,55 @@ export function useDeleteCreative() {
     mutationFn: (id: string) =>
       unwrap(api.DELETE("/api/v1/creatives/{id}", { params: { path: { id } } })),
     onSuccess: () => void client.invalidateQueries({ queryKey: keys.creatives }),
+  });
+}
+
+export function useChannels() {
+  return useQuery({
+    queryKey: keys.channels,
+    queryFn: () => unwrap(api.GET("/api/v1/social/channels")),
+  });
+}
+
+export function usePosts() {
+  return useQuery({
+    queryKey: keys.posts,
+    queryFn: () => unwrap(api.GET("/api/v1/posts")),
+    refetchInterval: (query) =>
+      query.state.data?.data.some(
+        (p) =>
+          p.status === "publishing" ||
+          (p.status === "scheduled" && Date.parse(p.scheduledAt) < Date.now() + 60_000),
+      )
+        ? 2_000
+        : false,
+  });
+}
+
+export function useLibrary(platform: "facebook" | "instagram", enabled = true) {
+  return useQuery({
+    queryKey: keys.library(platform),
+    queryFn: () => unwrap(api.GET("/api/v1/social/library", { params: { query: { platform } } })),
+    enabled,
+  });
+}
+
+export function useCreatePost() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreatePost) => unwrap(api.POST("/api/v1/posts", { body })),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.posts });
+      void client.invalidateQueries({ queryKey: ["social", "library"] });
+    },
+  });
+}
+
+export function useCancelPost() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.POST("/api/v1/posts/{id}/cancel", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.posts }),
   });
 }

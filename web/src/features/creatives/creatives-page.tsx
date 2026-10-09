@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Link2, Sparkles, Trash2, Upload } from "lucide-react";
+import { ImagePlus, Link2, Send, Sparkles, Trash2, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +15,9 @@ import { errorMessage } from "@/lib/api/errors";
 import { useCreatives, useDeleteCreative, useUploadCreative } from "@/lib/api/queries";
 import type { Creative } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+import { PostsPanel } from "./posts-panel";
+import { PublishDialog } from "./publish-dialog";
 
 const ACCEPT = "image/png,image/jpeg,image/webp";
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
@@ -38,6 +41,7 @@ export function CreativesPage() {
   const upload = useUploadCreative();
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [tab, setTab] = useState<"images" | "posts">("images");
 
   const send = (files: FileList | null) => {
     const file = files?.[0];
@@ -89,49 +93,78 @@ export function CreativesPage() {
         }
       />
 
-      {creatives.isPending ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="aspect-[4/5]" />
-          ))}
-        </div>
-      ) : creatives.isError ? (
-        <ErrorState
-          message={errorMessage(creatives.error)}
-          onRetry={() => void creatives.refetch()}
-        />
-      ) : creatives.data.data.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => input.current?.click()}
-          className={cn(
-            "border-border-strong hover:border-accent hover:bg-accent-soft/30 flex w-full flex-col items-center rounded-[var(--radius-card)] border-2 border-dashed px-6 py-16 text-center transition-colors outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-            dragging && "border-accent bg-accent-soft/40",
-          )}
-        >
-          <span className="bg-accent-soft text-accent grid size-12 place-items-center rounded-full">
-            <ImagePlus className="size-5" />
-          </span>
-          <span className="mt-4 text-[15px] font-semibold">
-            Drop an image here or choose a file
-          </span>
-          <span className="text-small text-muted mt-1 max-w-md">
-            PNG, JPEG or WebP up to 8 MB. Square 1080 × 1080 works everywhere. Or ask Claude:
-            “Design a square ad image for my clinic app and save it to Autopilot.”
-          </span>
-        </button>
+      <div
+        role="tablist"
+        aria-label="Creatives sections"
+        className="border-border mb-6 flex gap-6 border-b"
+      >
+        {(["images", "posts"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={cn(
+              "-mb-px border-b-2 px-1 pb-2.5 text-[14px] font-medium outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
+              tab === t
+                ? "border-accent text-foreground"
+                : "text-muted hover:text-foreground border-transparent",
+            )}
+          >
+            {t === "images" ? "Images" : "Posts"}
+          </button>
+        ))}
+      </div>
+      {tab === "posts" ? (
+        <PostsPanel />
       ) : (
         <>
-          {dragging ? (
-            <div className="border-accent bg-accent-soft/40 text-accent mb-4 rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center font-medium">
-              Drop to upload
+          {creatives.isPending ? (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="aspect-[4/5]" />
+              ))}
             </div>
-          ) : null}
-          <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-            {creatives.data.data.map((c) => (
-              <CreativeCard key={c.id} creative={c} />
-            ))}
-          </ul>
+          ) : creatives.isError ? (
+            <ErrorState
+              message={errorMessage(creatives.error)}
+              onRetry={() => void creatives.refetch()}
+            />
+          ) : creatives.data.data.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => input.current?.click()}
+              className={cn(
+                "border-border-strong hover:border-accent hover:bg-accent-soft/30 flex w-full flex-col items-center rounded-[var(--radius-card)] border-2 border-dashed px-6 py-16 text-center transition-colors outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
+                dragging && "border-accent bg-accent-soft/40",
+              )}
+            >
+              <span className="bg-accent-soft text-accent grid size-12 place-items-center rounded-full">
+                <ImagePlus className="size-5" />
+              </span>
+              <span className="mt-4 text-[15px] font-semibold">
+                Drop an image here or choose a file
+              </span>
+              <span className="text-small text-muted mt-1 max-w-md">
+                PNG, JPEG or WebP up to 8 MB. Square 1080 × 1080 works everywhere. Or ask Claude:
+                “Design a square ad image for my clinic app and save it to Autopilot.”
+              </span>
+            </button>
+          ) : (
+            <>
+              {dragging ? (
+                <div className="border-accent bg-accent-soft/40 text-accent mb-4 rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center font-medium">
+                  Drop to upload
+                </div>
+              ) : null}
+              <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                {creatives.data.data.map((c) => (
+                  <CreativeCard key={c.id} creative={c} />
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
     </div>
@@ -140,6 +173,7 @@ export function CreativesPage() {
 
 function CreativeCard({ creative }: { creative: Creative }) {
   const [confirm, setConfirm] = useState(false);
+  const [publish, setPublish] = useState(false);
   const remove = useDeleteCreative();
   return (
     <li>
@@ -167,6 +201,9 @@ function CreativeCard({ creative }: { creative: Creative }) {
             </p>
           </div>
           <div className="mt-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setPublish(true)}>
+              <Send /> Post
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -190,6 +227,7 @@ function CreativeCard({ creative }: { creative: Creative }) {
           </div>
         </div>
       </Card>
+      <PublishDialog creative={creative} open={publish} onOpenChange={setPublish} />
       <Dialog open={confirm} onOpenChange={setConfirm}>
         <DialogContent
           title={`Delete ${creative.name}?`}

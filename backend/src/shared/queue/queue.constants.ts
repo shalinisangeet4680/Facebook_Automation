@@ -3,6 +3,7 @@ export const QUEUES = {
   AUTOPILOT: "autopilot",
   AI: "ai",
   MEDIA: "media",
+  SOCIAL: "social",
   NOTIFICATIONS: "notifications",
   MAINTENANCE: "maintenance",
 } as const;

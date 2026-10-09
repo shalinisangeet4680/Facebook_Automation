@@ -88,6 +88,6 @@ export class CreativesController {
     @CurrentUser() ctx: TenantContext,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<void> {
-    return this.creatives.remove(actor(ctx), id, () => Promise.resolve(false));
+    return this.creatives.remove(actor(ctx), id);
   }
 }

@@ -11,6 +11,6 @@ import { AdsController } from "./interface/ads.controller";
   imports: [MetaModule, SettingsModule],
   controllers: [AdsController],
   providers: [AdsService, ConfirmationService],
-  exports: [AdsService],
+  exports: [AdsService, ConfirmationService],
 })
 export class AdsModule {}

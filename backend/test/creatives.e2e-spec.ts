@@ -8,7 +8,7 @@ import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
-import { call } from "./helpers";
+import { call, multipart } from "./helpers";
 
 const PHONE = "9000000006";
 const E164 = `+91${PHONE}`;
@@ -19,34 +19,6 @@ function png(width: number, height: number): Buffer {
   )
     .render()
     .asPng();
-}
-
-function multipart(
-  file: Buffer,
-  mime: string,
-  filename: string,
-  name?: string,
-) {
-  const boundary = "----autopilot";
-  const parts: Buffer[] = [];
-  if (name) {
-    parts.push(
-      Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="name"\r\n\r\n${name}\r\n`,
-      ),
-    );
-  }
-  parts.push(
-    Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime}\r\n\r\n`,
-    ),
-    file,
-    Buffer.from(`\r\n--${boundary}--\r\n`),
-  );
-  return {
-    payload: Buffer.concat(parts),
-    contentType: `multipart/form-data; boundary=${boundary}`,
-  };
 }
 
 describe("Creatives", () => {

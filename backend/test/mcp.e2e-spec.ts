@@ -360,8 +360,10 @@ describe("Claude connector (OAuth + MCP)", () => {
       "list_campaign_plans",
       "list_campaigns",
       "list_creatives",
+      "list_social_posts",
       "pause",
       "propose_campaign_plan",
+      "publish_post",
       "save_ad_creative",
       "search_targeting",
       "update_campaign_plan",
@@ -828,7 +830,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(9);
+    expect(names).toHaveLength(10);
     expect(names).not.toContain("activate");
   });
 

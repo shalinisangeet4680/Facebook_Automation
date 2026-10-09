@@ -33,3 +33,31 @@ export async function call(
     headers: res.headers,
   };
 }
+
+export function multipart(
+  file: Buffer,
+  mime: string,
+  filename: string,
+  name?: string,
+) {
+  const boundary = "----autopilot";
+  const parts: Buffer[] = [];
+  if (name) {
+    parts.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="name"\r\n\r\n${name}\r\n`,
+      ),
+    );
+  }
+  parts.push(
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime}\r\n\r\n`,
+    ),
+    file,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  );
+  return {
+    payload: Buffer.concat(parts),
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}

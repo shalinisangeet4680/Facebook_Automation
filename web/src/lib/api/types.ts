@@ -33,3 +33,7 @@ export type ProfileUpdate = Schemas["UpdateProfileDto"];
 export type ReportOverview = Schemas["ReportOverviewDto"];
 export type ReportPreset = ReportOverview["preset"];
 export type Creative = Schemas["CreativeDto"];
+export type SocialPost = Schemas["SocialPostDto"];
+export type LibraryPost = Schemas["LibraryPostDto"];
+export type Channels = Schemas["ChannelsDto"];
+export type CreatePost = Schemas["CreatePostDto"];

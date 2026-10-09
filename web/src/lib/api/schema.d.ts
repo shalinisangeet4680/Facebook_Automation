@@ -420,6 +420,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_channels_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_library_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_list_v1"];
+        put?: never;
+        post: operations["SocialController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/posts/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SocialController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -532,7 +596,7 @@ export interface components {
             jobId: string;
             name: string;
             /** @enum {string} */
-            status: "completed" | "queued" | "running" | "failed";
+            status: "completed" | "failed" | "queued" | "running";
             progress: number;
             result: {
                 [key: string]: unknown;
@@ -838,6 +902,64 @@ export interface components {
         };
         CreativeListDto: {
             data: components["schemas"]["CreativeDto"][];
+        };
+        ChannelDto: {
+            id: string;
+            name?: string;
+            username?: string;
+        };
+        ChannelsDto: {
+            facebook: components["schemas"]["ChannelDto"] | null;
+            instagram: components["schemas"]["ChannelDto"] | null;
+        };
+        LibraryPostDto: {
+            id: string;
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            text: string | null;
+            imageUrl: string | null;
+            permalink: string | null;
+            createdAt: string;
+            likes: number | null;
+            comments: number | null;
+            mediaType: string | null;
+        };
+        LibraryDto: {
+            connected: boolean;
+            data: components["schemas"]["LibraryPostDto"][];
+        };
+        PlatformResultDto: {
+            postId?: string | null;
+            mediaId?: string | null;
+            permalink: string | null;
+            error: string | null;
+        };
+        SocialPostDto: {
+            id: string;
+            creativeId: string | null;
+            imageUrl: string;
+            platforms: ("instagram" | "facebook")[];
+            facebookCaption: string | null;
+            instagramCaption: string | null;
+            /** @enum {string} */
+            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
+            scheduledAt: string;
+            publishedAt: string | null;
+            facebook: components["schemas"]["PlatformResultDto"] | null;
+            instagram: components["schemas"]["PlatformResultDto"] | null;
+            source: string;
+            createdAt: string;
+        };
+        SocialPostListDto: {
+            data: components["schemas"]["SocialPostDto"][];
+        };
+        CreatePostDto: {
+            /** Format: uuid */
+            creativeId: string;
+            platforms: ("facebook" | "instagram")[];
+            facebookCaption?: string | null;
+            instagramCaption?: string | null;
+            scheduledAt?: string | null;
         };
         PlanSummaryDto: {
             id: string;
@@ -1929,6 +2051,149 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_channels_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_library_v1: {
+        parameters: {
+            query: {
+                platform: "facebook" | "instagram";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostDto"];
+                };
             };
             default: {
                 headers: {

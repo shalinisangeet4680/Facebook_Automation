@@ -15,6 +15,7 @@ import { OAuthModule } from "@modules/oauth/oauth.module";
 import { PlansModule } from "@modules/plans/plans.module";
 import { ReportsModule } from "@modules/reports/reports.module";
 import { SettingsModule } from "@modules/settings/settings.module";
+import { SocialModule } from "@modules/social/social.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -57,6 +58,7 @@ import { SecurityModule } from "@shared/security/security.module";
     SettingsModule,
     ReportsModule,
     CreativesModule,
+    SocialModule,
     PlansModule,
     McpModule,
   ],

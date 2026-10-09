@@ -40,7 +40,7 @@ Design in `docs/14-phase-1b.md`.
 - [x] 2. Settings: `workspace_settings`, profile, workspace guardrails used by ads, `/settings` page
 - [x] 3. Reports: overview endpoint with KPIs, daily series, campaigns, top ads; `/reports` page with charts
 - [x] 4. Creatives: media storage, upload, SVG render, library API, MCP tools, `/creatives` page
-- [ ] 5. Publishing: `social_posts`, publish job (Facebook, Instagram), schedule, cancel, library sync, MCP publish tool, publish screen
+- [x] 5. Publishing: `social_posts`, publish job (Facebook, Instagram), schedule, cancel, library sync, MCP publish tool, publish screen
 - [ ] 6. Ads from posts: plan creative from a Facebook or Instagram post, picker on the plan page
 - [ ] 7. Inbox: rules engine, suggestions, daily job, apply/dismiss/snooze, MCP tool, `/inbox` page
 - [ ] 8. Verification: all suites, screenshots, docs

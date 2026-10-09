@@ -1,7 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { imageSize } from "image-size";
 import { randomBytes } from "crypto";
 
@@ -20,6 +20,7 @@ import {
   sanitizeSvg,
 } from "../domain/creative.rules";
 import { MEDIA_STORAGE, MediaStorage } from "../domain/ports/media-storage";
+import { socialPosts } from "../../social/infrastructure/social.tables";
 import { CreativeRow, creatives } from "../infrastructure/creatives.tables";
 
 export interface CreativeActor {
@@ -171,16 +172,23 @@ export class CreativesService {
     return row;
   }
 
-  async remove(
-    actor: CreativeActor,
-    id: string,
-    inUse: (id: string) => Promise<boolean>,
-  ): Promise<void> {
+  async remove(actor: CreativeActor, id: string): Promise<void> {
     const row = await this.get(actor.workspaceId, id);
-    if (await inUse(id))
+    const pending = await this.db
+      .select({ id: socialPosts.id })
+      .from(socialPosts)
+      .where(
+        and(
+          eq(socialPosts.creativeId, id),
+          inArray(socialPosts.status, ["scheduled", "publishing"]),
+        ),
+      )
+      .limit(1);
+    if (pending.length) {
       throw new ValidationError(
         "A scheduled post uses this image. Cancel the post first.",
       );
+    }
     await this.db.delete(creatives).where(eq(creatives.id, row.id));
     await this.storage.remove(row.storageKey);
     await this.record(actor, "creative.deleted", row.id, { name: row.name });

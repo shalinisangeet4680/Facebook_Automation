@@ -5,6 +5,7 @@ import { AuditModule } from "@modules/audit/audit.module";
 import { JobsModule } from "@modules/jobs/jobs.module";
 import { MaintenanceModule } from "@modules/maintenance/maintenance.module";
 import { MetaWorkerModule } from "@modules/meta/meta-worker.module";
+import { SocialWorkerModule } from "@modules/social/social-worker.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
 import { DatabaseModule } from "@shared/database/database.module";
@@ -26,6 +27,7 @@ import { SecurityModule } from "@shared/security/security.module";
     AuditModule,
     JobsModule,
     MetaWorkerModule,
+    SocialWorkerModule,
     MaintenanceModule,
   ],
 })

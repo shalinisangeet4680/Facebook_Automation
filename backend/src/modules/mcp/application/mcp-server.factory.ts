@@ -4,6 +4,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { z } from "zod";
 
 import { AdsService } from "@modules/ads/application/ads.service";
+import {
+  CONFIRM_TTL_SECONDS,
+  ConfirmationService,
+} from "@modules/ads/application/confirmation.service";
 import { AdsActor } from "@modules/ads/domain/ads.types";
 import {
   CALLS_TO_ACTION,
@@ -15,6 +19,7 @@ import { SVG_FORMATS } from "@modules/creatives/domain/creative.rules";
 import { SCOPES } from "@modules/oauth/domain/oauth.policy";
 import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
+import { SocialService } from "@modules/social/application/social.service";
 import { DomainError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
@@ -29,6 +34,7 @@ How to work:
 - Use search_targeting to find city, region and interest keys before drafting.
 - To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in Autopilot; do not call create_campaign_draft for a proposed plan unless the user asks.
 - To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
+- To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -54,6 +60,8 @@ export class McpServerFactory {
     private readonly ads: AdsService,
     private readonly plans: PlanService,
     private readonly creatives: CreativesService,
+    private readonly social: SocialService,
+    private readonly confirmations: ConfirmationService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -217,7 +225,101 @@ export class McpServerFactory {
       () => run(() => this.creatives.list(ws)),
     );
 
+    server.registerTool(
+      "list_social_posts",
+      {
+        title: "List Page and Instagram posts",
+        description:
+          "Recent posts on the connected Facebook Page and Instagram account with likes and comments, plus posts scheduled or published through Autopilot.",
+        annotations: readOnly,
+      },
+      () =>
+        run(async () => {
+          const [facebook, instagram, scheduled] = await Promise.all([
+            this.social.library(ws, "facebook"),
+            this.social.library(ws, "instagram"),
+            this.social.list(ws),
+          ]);
+          return { facebook, instagram, autopilotPosts: scheduled.data };
+        }),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "publish_post",
+      {
+        title: "Publish to Facebook and Instagram (needs confirmation)",
+        description:
+          "Post a creative from the library to the Facebook Page and/or Instagram, now or at scheduled_at (ISO 8601, 2 minutes to 60 days ahead). Two steps: call without confirm_token to validate and get a summary, show it to the user, then call again with the same arguments and confirm_token after the user explicitly agrees.",
+        inputSchema: {
+          creative_id: z.string().uuid(),
+          platforms: z
+            .array(z.enum(["facebook", "instagram"]))
+            .min(1)
+            .max(2),
+          facebook_caption: z.string().max(5000).optional(),
+          instagram_caption: z.string().max(2200).optional(),
+          scheduled_at: z.string().datetime({ offset: true }).optional(),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const input = {
+            creativeId: a.creative_id,
+            platforms: a.platforms,
+            facebookCaption: a.facebook_caption ?? null,
+            instagramCaption: a.instagram_caption ?? null,
+            scheduledAt: a.scheduled_at ?? null,
+          };
+          const args = {
+            ...input,
+            platforms: [...new Set(a.platforms)].sort(),
+          };
+          if (!a.confirm_token) {
+            const { creative, channels, scheduledAt } =
+              await this.social.validate(actor, input);
+            const where = args.platforms
+              .map((p) =>
+                p === "facebook"
+                  ? `Facebook Page "${channels.facebook?.name}"`
+                  : `Instagram ${channels.instagram?.username}`,
+              )
+              .join(" and ");
+            return {
+              status: "confirmation_required",
+              summary: `Post "${creative.name}" to ${where} ${scheduledAt ? `on ${scheduledAt.toISOString()}` : "right now"}. It will be public.`,
+              confirmToken: await this.confirmations.issue(
+                ws,
+                "publish_post",
+                args,
+              ),
+              expiresInSeconds: CONFIRM_TTL_SECONDS,
+            };
+          }
+          const ok = await this.confirmations.consume(
+            ws,
+            "publish_post",
+            args,
+            a.confirm_token,
+          );
+          if (!ok) {
+            return {
+              status: "invalid_confirmation",
+              message:
+                "This confirmation is invalid, expired, used, or for different settings. Call again without confirm_token.",
+            };
+          }
+          return this.social.create(actor, input);
+        }),
+    );
 
     server.registerTool(
       "save_ad_creative",
