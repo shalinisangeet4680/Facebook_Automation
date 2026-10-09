@@ -31,3 +31,16 @@ Design in `docs/12-mcp-connector.md`.
 - [x] 7. Tests: unit and e2e for OAuth, MCP and tools
 - [x] 8. Web: consent screen, Claude settings page, proxy and rewrites, typed client
 - [x] 9. Verification: tunnel, end-to-end with a real MCP client, docs
+
+## Phase 1B — Settings, Reports, Creatives & Publishing, Inbox
+
+Design in `docs/14-phase-1b.md`.
+
+- [ ] 1. Test isolation: `adpilot_test` for backend e2e; Playwright on its own backend (4100, mock) and web (3300)
+- [ ] 2. Settings: `workspace_settings`, profile, workspace guardrails used by ads, `/settings` page
+- [ ] 3. Reports: overview endpoint with KPIs, daily series, campaigns, top ads; `/reports` page with charts
+- [ ] 4. Creatives: media storage, upload, SVG render, library API, MCP tools, `/creatives` page
+- [ ] 5. Publishing: `social_posts`, publish job (Facebook, Instagram), schedule, cancel, library sync, MCP publish tool, publish screen
+- [ ] 6. Ads from posts: plan creative from a Facebook or Instagram post, picker on the plan page
+- [ ] 7. Inbox: rules engine, suggestions, daily job, apply/dismiss/snooze, MCP tool, `/inbox` page
+- [ ] 8. Verification: all suites, screenshots, docs
