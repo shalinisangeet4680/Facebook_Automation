@@ -8,7 +8,7 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 - [x] 2. Database: shared database module, UUID v7 ids, per-module tables, schema index, fresh initial migration, base repository helpers, transactions
 - [x] 3. Redis: Redis module, cache service, BullMQ queue registration, worker process (`worker.ts`), Redis-backed throttler
 - [x] 4. Health: Terminus checks for Postgres and Redis at `/health`
-- [ ] 5. Security: JWT `TokenService`, global `AuthGuard` (Bearer or cookie), `@Public`, `@CurrentUser`, `TenantContext`, `X-Client` CSRF guard, crypto service
+- [x] 5. Security: JWT `TokenService`, global `AuthGuard` (Bearer or cookie), `@Public`, `@CurrentUser`, `TenantContext`, `X-Client` CSRF guard, crypto service
 - [ ] 6. IAM: users, workspaces, workspace members, repositories, identity service, `GET /api/v1/me`
 - [ ] 7. Auth: OTP challenges, `OtpSender` port with test-number sender, OTP request and verify, refresh token families with rotation and reuse detection, refresh, logout, logout-all, web cookies and mobile body tokens, rate limits
 - [ ] 8. Audit and idempotency: `audit_events` writer, `idempotency_keys` interceptor

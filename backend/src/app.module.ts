@@ -1,6 +1,6 @@
 import { Module, ValidationPipe } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 import { HealthModule } from "@modules/health/health.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -9,6 +9,9 @@ import { DatabaseModule } from "@shared/database/database.module";
 import { AllExceptionsFilter } from "@shared/errors/all-exceptions.filter";
 import { LoggingModule } from "@shared/logging/logging.module";
 import { QueueModule } from "@shared/queue/queue.module";
+import { AppThrottlerGuard } from "@shared/security/app-throttler.guard";
+import { AuthGuard } from "@shared/security/auth.guard";
+import { ClientGuard } from "@shared/security/client.guard";
 import { RedisThrottlerStorage } from "@shared/security/redis-throttler.storage";
 import { SecurityModule } from "@shared/security/security.module";
 
@@ -31,7 +34,9 @@ import { SecurityModule } from "@shared/security/security.module";
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ClientGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: AppThrottlerGuard },
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({

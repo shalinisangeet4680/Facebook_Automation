@@ -2,8 +2,11 @@ import { Controller, Get, VERSION_NEUTRAL } from "@nestjs/common";
 import { HealthCheck, HealthCheckService } from "@nestjs/terminus";
 import { SkipThrottle } from "@nestjs/throttler";
 
+import { Public } from "@shared/security/public.decorator";
+
 import { DependencyHealth } from "./infrastructure/dependency.health";
 
+@Public()
 @SkipThrottle()
 @Controller({ path: "health", version: VERSION_NEUTRAL })
 export class HealthController {
