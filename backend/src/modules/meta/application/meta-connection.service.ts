@@ -278,6 +278,18 @@ export class MetaConnectionService {
       ...new Map(datasets.map((d) => [d.id, d])).values(),
     ];
 
+    const knownBusinesses = new Set(businesses.map((b) => b.id));
+    for (const account of adAccounts) {
+      if (account.businessId && !knownBusinesses.has(account.businessId)) {
+        knownBusinesses.add(account.businessId);
+        businesses.push({
+          id: account.businessId,
+          name: account.businessName ?? "Business",
+          verificationStatus: null,
+        });
+      }
+    }
+
     return [
       ...businesses.map((b) =>
         asset("business", b.id, b.name, {

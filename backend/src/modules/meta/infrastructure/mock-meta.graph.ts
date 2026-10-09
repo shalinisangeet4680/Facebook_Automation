@@ -31,7 +31,8 @@ export class MockMetaGraph implements MetaGraph {
     return Promise.resolve(all);
   }
 
-  businesses(): Promise<GraphBusiness[]> {
+  businesses(token: string): Promise<GraphBusiness[]> {
+    if (token.includes("nobusiness")) return Promise.resolve([]);
     return Promise.resolve([
       {
         id: "1101000000000001",

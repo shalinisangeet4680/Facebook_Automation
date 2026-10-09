@@ -122,6 +122,18 @@ describe("Meta connection", () => {
     expect(res.body.code).toBe("META_ASSETS_MISSING");
   });
 
+  it("finds the business through the ad account when the token can't list businesses", async () => {
+    const res = await call(app, "POST", "/api/v1/meta/connection", {
+      headers,
+      body: { token: token("nobusiness") },
+    });
+    expect(res.statusCode).toBe(200);
+    const business = (res.body.assets as { kind: string; name: string }[]).find(
+      (a) => a.kind === "business",
+    );
+    expect(business?.name).toBe("Arogya System");
+  });
+
   it("connects, encrypts the token, discovers and auto-selects assets", async () => {
     const res = await call(app, "POST", "/api/v1/meta/connection", {
       headers,
