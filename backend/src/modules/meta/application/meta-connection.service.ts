@@ -201,6 +201,20 @@ export class MetaConnectionService {
     } satisfies MetaConnectedEvent);
   }
 
+  async setupState(
+    workspaceId: string,
+  ): Promise<{ connected: boolean; primaryKinds: MetaAssetKind[] }> {
+    const connection = await this.connections.find(workspaceId);
+    if (!connection || connection.status !== "active") {
+      return { connected: false, primaryKinds: [] };
+    }
+    const rows = await this.assets.list(workspaceId);
+    return {
+      connected: true,
+      primaryKinds: rows.filter((r) => r.isPrimary).map((r) => r.kind),
+    };
+  }
+
   async accessToken(workspaceId: string): Promise<string> {
     const connection = await this.connections.find(workspaceId);
     if (!connection || connection.status !== "active") throw metaNotConnected();

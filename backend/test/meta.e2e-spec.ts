@@ -73,6 +73,10 @@ describe("Meta connection", () => {
   it("starts disconnected", async () => {
     const res = await call(app, "GET", "/api/v1/meta/connection", { headers });
     expect(res.body.status).toBe("not_connected");
+    const onboarding = await call(app, "GET", "/api/v1/onboarding", {
+      headers,
+    });
+    expect(onboarding.body.currentStep).toBe("connect_meta");
   });
 
   it("rejects text that is not a Meta token", async () => {
@@ -151,6 +155,13 @@ describe("Meta connection", () => {
     expect(stored!.tokenCiphertext).not.toContain(token());
   });
 
+  it("advances onboarding past Meta and account selection", async () => {
+    const res = await call(app, "GET", "/api/v1/onboarding", { headers });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.currentStep).toBe("business_profile");
+    expect(res.body.completedCount).toBe(3);
+  });
+
   it("never returns the token itself", async () => {
     const res = await call(app, "GET", "/api/v1/meta/connection", { headers });
     expect(JSON.stringify(res.body)).not.toContain(token());
@@ -192,5 +203,9 @@ describe("Meta connection", () => {
     expect(after.body.status).toBe("not_connected");
     const assets = await call(app, "GET", "/api/v1/meta/assets", { headers });
     expect(assets.body.data).toEqual([]);
+    const onboarding = await call(app, "GET", "/api/v1/onboarding", {
+      headers,
+    });
+    expect(onboarding.body.currentStep).toBe("connect_meta");
   });
 });
