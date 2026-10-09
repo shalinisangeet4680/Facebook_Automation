@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
@@ -24,15 +24,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
   const router = useRouter();
-  const pathname = usePathname();
   useEffect(
     () =>
       onSessionExpired(() => {
-        if (pathname.startsWith("/login")) return;
+        if (window.location.pathname.startsWith("/login")) return;
         client.clear();
         router.replace("/login?expired=1");
       }),
-    [client, router, pathname],
+    [client, router],
   );
   return (
     <QueryClientProvider client={client}>

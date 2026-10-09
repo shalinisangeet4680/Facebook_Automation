@@ -36,7 +36,7 @@ Design in `docs/12-mcp-connector.md`.
 
 Design in `docs/14-phase-1b.md`.
 
-- [ ] 1. Test isolation: `adpilot_test` for backend e2e; Playwright on its own backend (4100, mock) and web (3300)
+- [x] 1. Test isolation: `adpilot_test` for backend e2e; Playwright on its own backend (4100, mock) and web (3300)
 - [ ] 2. Settings: `workspace_settings`, profile, workspace guardrails used by ads, `/settings` page
 - [ ] 3. Reports: overview endpoint with KPIs, daily series, campaigns, top ads; `/reports` page with charts
 - [ ] 4. Creatives: media storage, upload, SVG render, library API, MCP tools, `/creatives` page

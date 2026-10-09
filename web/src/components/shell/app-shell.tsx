@@ -3,7 +3,7 @@
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Dialog as Radix } from "radix-ui";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,9 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const section = sectionFor(pathname);
 
   return (
     <div className="min-h-dvh lg:pl-[264px]">
@@ -43,7 +41,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <Menu />
         </Button>
-        <p className="text-[15px] font-semibold">{section?.label ?? ""}</p>
+        <p className="text-[15px] font-semibold">
+          <Suspense>
+            <SectionTitle />
+          </Suspense>
+        </p>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <UserMenu />
@@ -53,4 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-8 sm:py-10">{children}</main>
     </div>
   );
+}
+
+function SectionTitle() {
+  const pathname = usePathname();
+  return sectionFor(pathname)?.label ?? "";
 }
