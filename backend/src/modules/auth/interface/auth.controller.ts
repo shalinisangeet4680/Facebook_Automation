@@ -8,13 +8,14 @@ import {
   Res,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { ApiTags } from "@nestjs/swagger";
+import { ApiDefaultResponse, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { FastifyReply, FastifyRequest } from "fastify";
 
 import { AuditService } from "@modules/audit/application/audit.service";
 import { isProduction } from "@shared/config/app-config";
 import { Env } from "@shared/config/env.validation";
+import { ErrorResponseDto } from "@shared/errors/error-response.dto";
 import { CurrentUser } from "@shared/security/current-user.decorator";
 import { Public } from "@shared/security/public.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
@@ -23,7 +24,7 @@ import { AuthService } from "../application/auth.service";
 import { OtpService } from "../application/otp.service";
 import { SessionService } from "../application/session.service";
 import { sessionEnded } from "../domain/auth.errors";
-import { IssuedTokens, OtpRequested } from "../domain/auth.types";
+import { DeliveredTokens, IssuedTokens } from "../domain/auth.types";
 import {
   clearAuthCookies,
   clientKind,
@@ -31,6 +32,11 @@ import {
   requestMeta,
   setAuthCookies,
 } from "./auth-cookies";
+import {
+  OtpRequestedDto,
+  SignInResponseDto,
+  TokensResponseDto,
+} from "./dto/auth-response.dto";
 import { RefreshDto } from "./dto/refresh.dto";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
@@ -38,6 +44,7 @@ import { VerifyOtpDto } from "./dto/verify-otp.dto";
 const HOUR = 3_600_000;
 
 @ApiTags("Auth")
+@ApiDefaultResponse({ type: ErrorResponseDto })
 @Controller("auth")
 export class AuthController {
   private readonly secureCookies: boolean;
@@ -59,7 +66,7 @@ export class AuthController {
   requestOtp(
     @Body() body: RequestOtpDto,
     @Req() request: FastifyRequest,
-  ): Promise<OtpRequested> {
+  ): Promise<OtpRequestedDto> {
     return this.otp.request(body.phone, requestMeta(request));
   }
 
@@ -71,7 +78,7 @@ export class AuthController {
     @Body() body: VerifyOtpDto,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
+  ): Promise<SignInResponseDto> {
     const result = await this.auth.verifyAndSignIn(
       body.phone,
       body.code,
@@ -89,7 +96,7 @@ export class AuthController {
     @Body() body: RefreshDto,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
+  ): Promise<TokensResponseDto> {
     const raw =
       clientKind(request) === "mobile"
         ? body.refreshToken
@@ -135,7 +142,7 @@ export class AuthController {
     request: FastifyRequest,
     reply: FastifyReply,
     tokens: IssuedTokens,
-  ) {
+  ): DeliveredTokens {
     if (clientKind(request) === "mobile") {
       return {
         accessToken: tokens.accessToken,

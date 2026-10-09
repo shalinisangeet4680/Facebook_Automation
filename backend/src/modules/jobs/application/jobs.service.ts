@@ -51,7 +51,10 @@ export class JobsService {
       name: job.name,
       status: toStatus(state),
       progress: typeof job.progress === "number" ? job.progress : 0,
-      result: state === "completed" ? job.returnvalue : null,
+      result:
+        state === "completed"
+          ? ((job.returnvalue as Record<string, unknown> | null) ?? null)
+          : null,
       error:
         state === "failed"
           ? "This task failed. Please try again or contact support."

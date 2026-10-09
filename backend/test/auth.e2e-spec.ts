@@ -133,6 +133,7 @@ describe("Auth flow", () => {
     });
     expect(res.cookies.access_token).toBeTruthy();
     expect(res.cookies.refresh_token).toBeTruthy();
+    expect(res.cookies.has_session).toBe("1");
     const setCookie = String(res.headers["set-cookie"]);
     expect(setCookie).toContain("HttpOnly");
     expect(setCookie).toContain("SameSite=Lax");
@@ -262,6 +263,7 @@ describe("Auth flow", () => {
       cookies: { access_token: signIn.cookies.access_token! },
     });
     expect(out.statusCode).toBe(204);
+    expect(out.cookies.has_session).toBe("");
     const refresh = await call(app, "POST", "/api/v1/auth/refresh", {
       headers: web,
       cookies: { refresh_token: signIn.cookies.refresh_token! },

@@ -5,6 +5,7 @@ import {
   CLIENT_HEADER,
   ClientKind,
   REFRESH_COOKIE,
+  SESSION_HINT_COOKIE,
 } from "@shared/security/auth-cookies";
 
 import { IssuedTokens, RequestMeta } from "../domain/auth.types";
@@ -40,12 +41,18 @@ export function setAuthCookies(
     path: REFRESH_PATH,
     maxAge: tokens.refreshTokenExpiresIn,
   });
+  void reply.setCookie(SESSION_HINT_COOKIE, "1", {
+    ...base,
+    path: "/",
+    maxAge: tokens.refreshTokenExpiresIn,
+  });
 }
 
 export function clearAuthCookies(reply: FastifyReply, secure: boolean): void {
   const base = { httpOnly: true, secure, sameSite: "lax" as const };
   void reply.clearCookie(ACCESS_COOKIE, { ...base, path: ACCESS_PATH });
   void reply.clearCookie(REFRESH_COOKIE, { ...base, path: REFRESH_PATH });
+  void reply.clearCookie(SESSION_HINT_COOKIE, { ...base, path: "/" });
 }
 
 export function readRefreshCookie(request: FastifyRequest): string | null {

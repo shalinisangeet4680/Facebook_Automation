@@ -22,3 +22,10 @@ export interface OtpRequested {
   expiresInSeconds: number;
   resendInSeconds: number;
 }
+
+export interface DeliveredTokens {
+  accessTokenExpiresIn: number;
+  accessToken?: string;
+  refreshToken?: string;
+  refreshTokenExpiresIn?: number;
+}
