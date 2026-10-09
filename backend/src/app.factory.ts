@@ -1,5 +1,6 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyFormbody from "@fastify/formbody";
+import fastifyMultipart from "@fastify/multipart";
 import fastifyHelmet from "@fastify/helmet";
 import { BadRequestException, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -26,6 +27,7 @@ const ROOT_ROUTES = [
   "oauth/token",
   "oauth/register",
   "oauth/revoke",
+  "media/:key",
 ];
 
 export async function createApp(): Promise<NestFastifyApplication> {
@@ -54,6 +56,9 @@ export async function createApp(): Promise<NestFastifyApplication> {
   });
   await app.register(fastifyCookie);
   await app.register(fastifyFormbody);
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: 8 * 1024 * 1024 + 1, files: 1, fields: 5 },
+  });
 
   app.enableCors({
     origin: webOrigins(config),

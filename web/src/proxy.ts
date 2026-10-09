@@ -30,6 +30,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|mcp|\\.well-known|oauth/token|oauth/register|oauth/revoke|_next/static|_next/image|kit|favicon.ico|.*\\.[a-z0-9]+$).*)",
+    "/((?!api|mcp|media|\\.well-known|oauth/token|oauth/register|oauth/revoke|_next/static|_next/image|kit|favicon.ico|.*\\.[a-z0-9]+$).*)",
   ],
 };

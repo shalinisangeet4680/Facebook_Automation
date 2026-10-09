@@ -7,3 +7,4 @@ export * from "../idempotency/idempotency.tables";
 export * from "../../modules/oauth/infrastructure/oauth.tables";
 export * from "../../modules/plans/infrastructure/plans.tables";
 export * from "../../modules/settings/infrastructure/settings.tables";
+export * from "../../modules/creatives/infrastructure/creatives.tables";

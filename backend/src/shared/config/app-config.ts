@@ -16,6 +16,10 @@ export function appUrl(config: AppConfig): string {
   return config.get("APP_URL", { infer: true });
 }
 
+export function mediaUrl(config: AppConfig, key: string): string {
+  return `${appUrl(config)}/media/${key}`;
+}
+
 export function mcpResourceUrl(config: AppConfig): string {
   return `${appUrl(config)}/mcp`;
 }

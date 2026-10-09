@@ -8,6 +8,7 @@ import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
 import { JobsModule } from "@modules/jobs/jobs.module";
+import { CreativesModule } from "@modules/creatives/creatives.module";
 import { McpModule } from "@modules/mcp/mcp.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
@@ -55,6 +56,7 @@ import { SecurityModule } from "@shared/security/security.module";
     OAuthModule,
     SettingsModule,
     ReportsModule,
+    CreativesModule,
     PlansModule,
     McpModule,
   ],

@@ -359,8 +359,10 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_planning_context",
       "list_campaign_plans",
       "list_campaigns",
+      "list_creatives",
       "pause",
       "propose_campaign_plan",
+      "save_ad_creative",
       "search_targeting",
       "update_campaign_plan",
       "update_daily_budget",
@@ -741,6 +743,43 @@ describe("Claude connector (OAuth + MCP)", () => {
     ).toEqual(["discarded", "launched"]);
   });
 
+  it("renders Claude's SVG design into a creative served publicly", async () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080"><rect width="1080" height="1080" fill="#0C4A41"/><text x="80" y="540" font-size="96" fill="#fff" font-family="Helvetica">Run your clinic</text></svg>`;
+    const saved = await tool(accessToken, "save_ad_creative", {
+      name: "Clinic banner",
+      svg,
+      format: "square",
+    });
+    expect(saved.isError).toBe(false);
+    expect(saved.data).toMatchObject({
+      name: "Clinic banner",
+      source: "claude",
+      width: 1080,
+      height: 1080,
+      mime: "image/png",
+    });
+    const path = new URL(saved.data.url as string).pathname;
+    const image = await app.inject({ method: "GET", url: path });
+    expect(image.statusCode).toBe(200);
+    expect(image.headers["content-type"]).toBe("image/png");
+    expect(image.rawPayload.subarray(1, 4).toString()).toBe("PNG");
+
+    const wrongShape = await tool(accessToken, "save_ad_creative", {
+      name: "Wide",
+      svg,
+      format: "story",
+    });
+    expect(wrongShape.isError).toBe(true);
+    expect(wrongShape.text).toContain("viewBox");
+    const unsafe = await tool(accessToken, "save_ad_creative", {
+      name: "Bad",
+      svg: '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/x.png"/></svg>',
+    });
+    expect(unsafe.isError).toBe(true);
+    const listed = await tool(accessToken, "list_creatives");
+    expect(listed.data.data[0].name).toBe("Clinic banner");
+  });
+
   it("refuses objects outside the selected ad account", async () => {
     const res = await tool(accessToken, "pause", { id: "999999999" });
     expect(res.isError).toBe(true);
@@ -789,7 +828,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(8);
+    expect(names).toHaveLength(9);
     expect(names).not.toContain("activate");
   });
 

@@ -32,3 +32,4 @@ export type WorkspaceUpdate = Schemas["UpdateWorkspaceDto"];
 export type ProfileUpdate = Schemas["UpdateProfileDto"];
 export type ReportOverview = Schemas["ReportOverviewDto"];
 export type ReportPreset = ReportOverview["preset"];
+export type Creative = Schemas["CreativeDto"];

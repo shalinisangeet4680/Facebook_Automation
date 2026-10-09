@@ -1,3 +1,6 @@
+import { tmpdir } from "os";
+import { join } from "path";
+
 import { testDatabaseUrl } from "./test-database";
 
 const databaseUrl = testDatabaseUrl();
@@ -8,3 +11,4 @@ process.env.OTP_TEST_NUMBERS =
 process.env.LOG_LEVEL = "error";
 process.env.META_MOCK = "true";
 process.env.APP_URL = "http://localhost:3200";
+process.env.MEDIA_DIR = join(tmpdir(), "adpilot-test-media");

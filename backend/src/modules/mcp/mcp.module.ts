@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AdsModule } from "@modules/ads/ads.module";
+import { CreativesModule } from "@modules/creatives/creatives.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
 import { PlansModule } from "@modules/plans/plans.module";
 
@@ -9,7 +10,7 @@ import { McpAuthGuard } from "./interface/mcp-auth.guard";
 import { McpController } from "./interface/mcp.controller";
 
 @Module({
-  imports: [AdsModule, OAuthModule, PlansModule],
+  imports: [AdsModule, OAuthModule, PlansModule, CreativesModule],
   controllers: [McpController],
   providers: [McpServerFactory, McpAuthGuard],
 })

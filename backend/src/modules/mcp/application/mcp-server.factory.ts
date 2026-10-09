@@ -10,6 +10,8 @@ import {
   CONVERSION_EVENTS,
   GOAL_NAMES,
 } from "@modules/ads/domain/goals";
+import { CreativesService } from "@modules/creatives/application/creatives.service";
+import { SVG_FORMATS } from "@modules/creatives/domain/creative.rules";
 import { SCOPES } from "@modules/oauth/domain/oauth.policy";
 import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
@@ -26,6 +28,7 @@ How to work:
 - pause takes effect immediately and is always safe.
 - Use search_targeting to find city, region and interest keys before drafting.
 - To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in Autopilot; do not call create_campaign_draft for a proposed plan unless the user asks.
+- To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -50,6 +53,7 @@ export class McpServerFactory {
   constructor(
     private readonly ads: AdsService,
     private readonly plans: PlanService,
+    private readonly creatives: CreativesService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -202,7 +206,58 @@ export class McpServerFactory {
         }),
     );
 
+    server.registerTool(
+      "list_creatives",
+      {
+        title: "List creatives",
+        description:
+          "Images in the Autopilot creatives library with their public url, size and source.",
+        annotations: readOnly,
+      },
+      () => run(() => this.creatives.list(ws)),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "save_ad_creative",
+      {
+        title: "Save an ad image",
+        description: `Render an SVG design to a PNG and save it in the Autopilot creatives library. Formats: ${Object.entries(
+          SVG_FORMATS,
+        )
+          .map(([k, v]) => `${k} ${v.width}x${v.height}`)
+          .join(
+            ", ",
+          )}. The SVG viewBox must match the format's aspect ratio. Use common fonts (Helvetica, Arial, sans-serif). Returns the creative id and public image url.`,
+        inputSchema: {
+          name: z.string().min(1).max(120),
+          svg: z.string().min(20),
+          format: z
+            .enum(
+              Object.keys(SVG_FORMATS) as [
+                keyof typeof SVG_FORMATS,
+                ...(keyof typeof SVG_FORMATS)[],
+              ],
+            )
+            .default("square"),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(() =>
+          this.creatives.fromSvg(actor, {
+            name: a.name,
+            svg: a.svg,
+            format: a.format,
+          }),
+        ),
+    );
 
     server.registerTool(
       "propose_campaign_plan",

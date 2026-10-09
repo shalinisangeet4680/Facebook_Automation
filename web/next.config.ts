@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/:path*", destination: `${backendUrl}/api/:path*` },
       { source: "/mcp", destination: `${backendUrl}/mcp` },
+      { source: "/media/:key", destination: `${backendUrl}/media/:key` },
       { source: "/.well-known/:path*", destination: `${backendUrl}/.well-known/:path*` },
       { source: "/oauth/token", destination: `${backendUrl}/oauth/token` },
       { source: "/oauth/register", destination: `${backendUrl}/oauth/register` },

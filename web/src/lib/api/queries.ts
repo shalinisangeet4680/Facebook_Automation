@@ -27,6 +27,7 @@ export const keys = {
   connector: ["connector"] as const,
   connectedApps: ["connected-apps"] as const,
   settings: ["settings"] as const,
+  creatives: ["creatives"] as const,
   report: (preset: string) => ["reports", preset] as const,
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
@@ -295,5 +296,39 @@ export function useReport(preset: ReportPreset) {
     queryKey: keys.report(preset),
     queryFn: () => unwrap(api.GET("/api/v1/reports/overview", { params: { query: { preset } } })),
     placeholderData: (previous) => previous,
+  });
+}
+
+export function useCreatives() {
+  return useQuery({
+    queryKey: keys.creatives,
+    queryFn: () => unwrap(api.GET("/api/v1/creatives")),
+  });
+}
+
+export function useUploadCreative() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, name }: { file: File; name?: string }) => {
+      const form = new FormData();
+      if (name) form.append("name", name);
+      form.append("file", file);
+      return unwrap(
+        api.POST("/api/v1/creatives", {
+          body: form as unknown as { file: string; name?: string },
+          bodySerializer: (body) => body as unknown as FormData,
+        }),
+      );
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.creatives }),
+  });
+}
+
+export function useDeleteCreative() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/creatives/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.creatives }),
   });
 }
