@@ -3,7 +3,7 @@
 ## 1. Basics
 
 - Base path: `/api/v1`. Health and docs are unversioned: `/health`, `/api/docs` (development only).
-- JSON only, UTF-8, `camelCase` fields.
+- JSON only, UTF-8, `camelCase` fields. An empty body with `Content-Type: application/json` is treated as `{}`.
 - Resources are nouns; actions that are not CRUD use a verb sub-resource: `POST /api/v1/campaigns/:id/launch`.
 - The backend decides state. Clients never compute "what's next", eligibility, or permissions; they read it from the API.
 
@@ -82,3 +82,6 @@ Operations that call Meta at scale, run AI, or render media return `202` with `{
 | DELETE | `/api/v1/meta/connection` | access token | Disconnect and delete the stored token |
 | GET | `/api/v1/meta/assets` | access token | Discovered businesses, ad accounts, Pages, Instagram accounts, datasets |
 | PUT | `/api/v1/meta/assets/selection` | access token | Choose the primary ad account, Page, Instagram account, and dataset |
+| POST | `/api/v1/meta/assets/refresh` | access token | Re-read assets from Meta in the background; returns `202 { jobId }` |
+| GET | `/api/v1/jobs/:jobId` | access token | Status, progress, and result of a background job in the caller's workspace |
+| GET | `/api/v1/audit-events` | access token | The workspace audit log, newest first, cursor-paginated |

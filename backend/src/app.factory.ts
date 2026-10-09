@@ -1,6 +1,6 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyHelmet from "@fastify/helmet";
-import { VersioningType } from "@nestjs/common";
+import { BadRequestException, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import {
@@ -30,9 +30,10 @@ export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
-    { bufferLogs: true },
+    { bufferLogs: true, bodyParser: false },
   );
   app.useLogger(app.get(Logger));
+  acceptEmptyJsonBodies(app);
   const config = app.get<AppConfig>(ConfigService);
   const production = isProduction(config);
 
@@ -74,4 +75,28 @@ export async function createApp(): Promise<NestFastifyApplication> {
   }
 
   return app;
+}
+
+function acceptEmptyJsonBodies(app: NestFastifyApplication): void {
+  const fastify = app.getHttpAdapter().getInstance();
+  fastify.removeContentTypeParser("application/json");
+  fastify.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_req, body, done) => {
+      const text = typeof body === "string" ? body.trim() : "";
+      if (!text) {
+        done(null, {});
+        return;
+      }
+      try {
+        done(null, JSON.parse(text) as unknown);
+      } catch {
+        done(
+          new BadRequestException("The request body is not valid JSON."),
+          undefined,
+        );
+      }
+    },
+  );
 }

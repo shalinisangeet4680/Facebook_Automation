@@ -160,6 +160,26 @@ describe("Auth flow", () => {
     expect(res.body.code).toBe("OTP_EXPIRED");
   });
 
+  it("accepts an empty JSON body and rejects malformed JSON", async () => {
+    const empty = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/refresh",
+      headers: { "x-client": "web", "content-type": "application/json" },
+    });
+    expect(empty.statusCode).toBe(401);
+    const broken = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/otp/request",
+      headers: { "x-client": "web", "content-type": "application/json" },
+      payload: "{not json",
+    });
+    expect(broken.statusCode).toBe(400);
+    expect(JSON.parse(broken.body)).toMatchObject({
+      code: "VALIDATION",
+      message: "The request body is not valid JSON.",
+    });
+  });
+
   it("rejects /me without a session", async () => {
     const res = await call(app, "GET", "/api/v1/me");
     expect(res.statusCode).toBe(401);
