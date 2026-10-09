@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 
 import { HealthModule } from "@modules/health/health.module";
+import { IamModule } from "@modules/iam/iam.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
 import { DatabaseModule } from "@shared/database/database.module";
@@ -31,6 +32,7 @@ import { SecurityModule } from "@shared/security/security.module";
       }),
     }),
     HealthModule,
+    IamModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
