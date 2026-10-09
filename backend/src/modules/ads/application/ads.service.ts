@@ -24,7 +24,12 @@ import {
   PerformanceInput,
   TargetingInput,
 } from "../domain/ads.types";
-import { GOALS, resultFor } from "../domain/goals";
+import {
+  CALLS_TO_ACTION,
+  CONVERSION_EVENTS,
+  GOALS,
+  resultFor,
+} from "../domain/goals";
 import { formatMoney, toMajor, toMinor } from "../domain/money";
 import {
   CONFIRM_TTL_SECONDS,
@@ -33,6 +38,19 @@ import {
 
 const DAY_SECONDS = 86_400;
 const DRAFT_DEDUPE_SECONDS = 600;
+
+export interface DraftResult {
+  status: "created_paused";
+  campaignId: string;
+  adSetId: string;
+  creativeId: string;
+  adId: string;
+  dailyBudget: number;
+  currency: string;
+  adsManagerUrl: string;
+  next: string;
+  duplicate?: boolean;
+}
 
 const text = (v: unknown, fallback: string): string =>
   typeof v === "string" || typeof v === "number" ? String(v) : fallback;
@@ -303,7 +321,7 @@ export class AdsService {
     }
 
     const dedupeKey = `ads:draft:${actor.workspaceId}:${this.crypto.hash(JSON.stringify(input))}`;
-    const previous = await this.cache.get<Record<string, unknown>>(dedupeKey);
+    const previous = await this.cache.get<DraftResult>(dedupeKey);
     if (previous) return { ...previous, duplicate: true };
 
     const event =
@@ -342,7 +360,7 @@ export class AdsService {
       currency: ws.currency,
       ...result,
     });
-    const response = {
+    const response: DraftResult = {
       status: "created_paused",
       ...result,
       dailyBudget: input.dailyBudget,
@@ -371,6 +389,57 @@ export class AdsService {
       name: object.name,
     });
     return { status: "paused", id, type: object.type, name: object.name };
+  }
+
+  async launchNow(actor: AdsActor, campaignId: string) {
+    const ws = await this.workspace(actor.workspaceId);
+    const object = await this.owned(ws, campaignId);
+    const children = await this.pausedChildren(ws, object);
+    const targets = [
+      ...(object.status === "PAUSED"
+        ? [{ id: object.id, type: object.type, name: object.name }]
+        : []),
+      ...children,
+    ];
+    for (const target of [...targets].reverse()) {
+      await this.ads.setStatus(ws.token, target.id, "ACTIVE");
+    }
+    await this.record(actor, "ads.activated", campaignId, {
+      type: object.type,
+      name: object.name,
+      targets: targets.map((t) => t.id),
+    });
+    return { activated: targets };
+  }
+
+  async planningContext(workspaceId: string) {
+    const [overview, history, tracking] = await Promise.all([
+      this.overview(workspaceId),
+      this.performance(workspaceId, {
+        level: "campaign",
+        datePreset: "last_90d",
+        limit: 50,
+      }),
+      this.tracking(workspaceId),
+    ]);
+    const campaigns = await this.campaigns(workspaceId, "all");
+    return {
+      account: overview,
+      campaigns: campaigns.campaigns,
+      last90Days: { totals: history.totals, byCampaign: history.rows },
+      tracking,
+      options: {
+        goals: Object.entries(GOALS).map(([name, g]) => ({
+          name,
+          metaObjective: g.objective,
+          needsPixel: g.needsPixel,
+        })),
+        conversionEvents: CONVERSION_EVENTS,
+        callsToAction: CALLS_TO_ACTION,
+        maxDailyBudget: this.maxDailyBudget(),
+        currency: overview.adAccount?.currency ?? "INR",
+      },
+    };
   }
 
   async activate(

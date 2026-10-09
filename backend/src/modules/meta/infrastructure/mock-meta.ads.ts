@@ -194,6 +194,8 @@ function range(query: InsightQuery): { from: Date; to: Date } {
       return { from: back(14), to: back(1) };
     case "last_30d":
       return { from: back(30), to: back(1) };
+    case "last_90d":
+      return { from: back(90), to: back(1) };
     case "this_month":
       return {
         from: new Date(

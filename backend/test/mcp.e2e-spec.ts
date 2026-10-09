@@ -356,9 +356,13 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_account_overview",
       "get_campaign",
       "get_performance",
+      "get_planning_context",
+      "list_campaign_plans",
       "list_campaigns",
       "pause",
+      "propose_campaign_plan",
       "search_targeting",
+      "update_campaign_plan",
       "update_daily_budget",
     ]);
   });
@@ -552,6 +556,191 @@ describe("Claude connector (OAuth + MCP)", () => {
     expect(onAd.text).toContain("Ads don't have budgets");
   });
 
+  it("lets Claude propose a plan that the owner edits, creates and launches in the app", async () => {
+    const context = await tool(accessToken, "get_planning_context");
+    expect(context.data.options.currency).toBe("INR");
+    expect(context.data.last90Days.byCampaign.length).toBeGreaterThan(0);
+    expect(context.data.tracking.pixel.id).toBe("2519233968487265");
+
+    const plan = {
+      name: "Clinic owners – Bihar – Demo sign-ups",
+      summary: "Bihar clinics convert best; focus on demo sign-ups.",
+      goal: "leads",
+      conversionEvent: "COMPLETE_REGISTRATION",
+      dailyBudget: 500,
+      targeting: {
+        regions: [{ key: "1730", name: "Bihar" }],
+        cities: [],
+        ageMin: 28,
+        ageMax: 55,
+        genders: "all",
+        interests: [{ id: "6003107902433", name: "Physician" }],
+      },
+      creative: {
+        primaryText: "Run your clinic from one app.",
+        alternatives: ["Save 2 hours a day at the front desk."],
+        headline: "Free demo clinic",
+        linkUrl: "https://arogyasystem.com/demo",
+        imageIdea: "Doctor using the app at the front desk",
+        callToAction: "SIGN_UP",
+      },
+      reasons: {
+        goal: "Demo sign-ups fire CompleteRegistration.",
+        audience: "Past leads came from Bihar.",
+        budget: "About 20 sign-ups a week.",
+        creative: "Time saved is the strongest angle.",
+      },
+      expectedResults: "15–25 sign-ups a week",
+    };
+
+    const bad = await tool(accessToken, "propose_campaign_plan", {
+      ...plan,
+      dailyBudget: 50_000,
+    });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain("BUDGET_LIMIT");
+
+    const proposed = await tool(accessToken, "propose_campaign_plan", plan);
+    expect(proposed.isError).toBe(false);
+    const planId = proposed.data.planId as string;
+    expect(proposed.data.reviewUrl).toBe(
+      `${APP_URL}/campaigns/plans/${planId}`,
+    );
+
+    const listed = await tool(accessToken, "list_campaign_plans");
+    expect(listed.data.plans[0].id).toBe(planId);
+
+    const detail = await call(app, "GET", `/api/v1/campaign-plans/${planId}`, {
+      headers: session,
+    });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.body).toMatchObject({
+      status: "draft",
+      source: "mcp:Claude",
+      options: { currency: "INR", maxDailyBudget: 10000 },
+    });
+
+    const noImage = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/create`,
+      { headers: session },
+    );
+    expect(noImage.statusCode).toBe(400);
+
+    const edited = {
+      ...plan,
+      dailyBudget: 450,
+      creative: {
+        ...plan.creative,
+        imageUrl: "https://arogyasystem.com/og.png",
+      },
+    };
+    const saved = await call(app, "PUT", `/api/v1/campaign-plans/${planId}`, {
+      headers: session,
+      body: { plan: edited },
+    });
+    expect(saved.statusCode).toBe(200);
+    expect((saved.body.plan as { dailyBudget: number }).dailyBudget).toBe(450);
+
+    const invalid = await call(app, "PUT", `/api/v1/campaign-plans/${planId}`, {
+      headers: session,
+      body: {
+        plan: {
+          ...edited,
+          targeting: { ...edited.targeting, ageMin: 60, ageMax: 30 },
+        },
+      },
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const early = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/launch`,
+      { headers: session, body: { confirm: true } },
+    );
+    expect(early.statusCode).toBe(409);
+
+    const created = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/create`,
+      { headers: session },
+    );
+    expect(created.statusCode).toBe(200);
+    expect(created.body.status).toBe("created");
+    const meta = created.body.meta as { campaignId: string };
+    const again = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/create`,
+      { headers: session },
+    );
+    expect(again.statusCode).toBe(409);
+
+    const inMeta = await tool(accessToken, "get_campaign", {
+      campaign_id: meta.campaignId,
+    });
+    expect(inMeta.data.campaign.status).toBe("PAUSED");
+    expect(inMeta.data.adSets[0]).toMatchObject({
+      dailyBudget: 450,
+      status: "PAUSED",
+    });
+    expect(inMeta.data.adSets[0].targeting.geo_locations).toEqual({
+      regions: [{ key: "1730" }],
+    });
+    expect(inMeta.data.adSets[0].promotedObject.custom_event_type).toBe(
+      "COMPLETE_REGISTRATION",
+    );
+
+    const locked = await tool(accessToken, "update_campaign_plan", {
+      plan_id: planId,
+      plan,
+    });
+    expect(locked.isError).toBe(true);
+
+    const unconfirmed = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/launch`,
+      { headers: session, body: { confirm: false } },
+    );
+    expect(unconfirmed.statusCode).toBe(400);
+    const launched = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${planId}/launch`,
+      { headers: session, body: { confirm: true } },
+    );
+    expect(launched.statusCode).toBe(200);
+    expect(launched.body.status).toBe("launched");
+    const live = await tool(accessToken, "get_campaign", {
+      campaign_id: meta.campaignId,
+    });
+    expect(live.data.campaign.status).toBe("ACTIVE");
+    expect(live.data.ads[0].status).toBe("ACTIVE");
+
+    const second = await tool(accessToken, "propose_campaign_plan", {
+      ...plan,
+      name: "Second idea",
+    });
+    const discarded = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${second.data.planId as string}/discard`,
+      { headers: session },
+    );
+    expect(discarded.body.status).toBe("discarded");
+
+    const list = await call(app, "GET", "/api/v1/campaign-plans", {
+      headers: session,
+    });
+    expect(
+      (list.body.data as { status: string }[]).map((p) => p.status),
+    ).toEqual(["discarded", "launched"]);
+  });
+
   it("refuses objects outside the selected ad account", async () => {
     const res = await tool(accessToken, "pause", { id: "999999999" });
     expect(res.isError).toBe(true);
@@ -576,9 +765,11 @@ describe("Claude connector (OAuth + MCP)", () => {
         "ads.budget_changed",
       ]),
     );
-    expect(events.find((e) => e.action === "ads.draft_created")?.data.via).toBe(
-      "mcp:Claude",
-    );
+    expect(
+      events.some(
+        (e) => e.action === "ads.draft_created" && e.data.via === "mcp:Claude",
+      ),
+    ).toBe(true);
   });
 
   it("gives read-only tools when the user doesn't allow changes", async () => {
@@ -598,7 +789,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(6);
+    expect(names).toHaveLength(8);
     expect(names).not.toContain("activate");
   });
 

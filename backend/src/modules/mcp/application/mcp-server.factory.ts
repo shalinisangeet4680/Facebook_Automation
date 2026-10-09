@@ -11,6 +11,8 @@ import {
   GOAL_NAMES,
 } from "@modules/ads/domain/goals";
 import { SCOPES } from "@modules/oauth/domain/oauth.policy";
+import { PlanService } from "@modules/plans/application/plan.service";
+import { planSchema } from "@modules/plans/domain/plan.schema";
 import { DomainError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
@@ -23,6 +25,7 @@ How to work:
 - activate and update_daily_budget are two-step. The first call returns a summary and a confirm_token. Show the summary to the user, wait for an explicit yes in this conversation, then call again with the same arguments plus confirm_token. Never confirm on the user's behalf.
 - pause takes effect immediately and is always safe.
 - Use search_targeting to find city, region and interest keys before drafting.
+- To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in Autopilot; do not call create_campaign_draft for a proposed plan unless the user asks.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -31,6 +34,7 @@ const DATE_PRESETS = [
   "last_7d",
   "last_14d",
   "last_30d",
+  "last_90d",
   "this_month",
   "last_month",
   "maximum",
@@ -43,7 +47,10 @@ const id = z.string().regex(/^\d{5,30}$/, "Use the numeric Meta id");
 export class McpServerFactory {
   private readonly logger = new Logger(McpServerFactory.name);
 
-  constructor(private readonly ads: AdsService) {}
+  constructor(
+    private readonly ads: AdsService,
+    private readonly plans: PlanService,
+  ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
     const server = new McpServer(
@@ -164,7 +171,88 @@ export class McpServerFactory {
         ),
     );
 
+    server.registerTool(
+      "get_planning_context",
+      {
+        title: "Planning context",
+        description:
+          "Everything needed to plan a new campaign: ad account, Page, Pixel and its recent events, past campaigns with 90-day results, guardrails and the allowed goals, conversion events and calls to action.",
+        annotations: readOnly,
+      },
+      () => run(() => this.ads.planningContext(ws)),
+    );
+
+    server.registerTool(
+      "list_campaign_plans",
+      {
+        title: "List campaign plans",
+        description:
+          "Campaign plans proposed so far with their status (draft, created, launched, discarded) and review links.",
+        annotations: readOnly,
+      },
+      () =>
+        run(async () => {
+          const { data } = await this.plans.list(ws);
+          return {
+            plans: data.map((p) => ({
+              ...p,
+              reviewUrl: this.plans.reviewUrl(p.id),
+            })),
+          };
+        }),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "propose_campaign_plan",
+      {
+        title: "Propose a campaign plan",
+        description:
+          "Save a complete campaign plan for the owner to review in Autopilot. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Leave imageUrl empty unless the user gave a public https image; describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
+        inputSchema: planSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      (plan) =>
+        run(async () => {
+          const view = await this.plans.propose(actor, plan);
+          return {
+            planId: view.id,
+            status: view.status,
+            reviewUrl: this.plans.reviewUrl(view.id),
+          };
+        }),
+    );
+
+    server.registerTool(
+      "update_campaign_plan",
+      {
+        title: "Revise a campaign plan",
+        description:
+          "Replace a draft plan with a revised version, for example after the user asks for changes. Send the complete plan.",
+        inputSchema: { plan_id: z.string().uuid(), plan: planSchema },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const view = await this.plans.replace(actor, a.plan_id, a.plan);
+          return {
+            planId: view.id,
+            status: view.status,
+            reviewUrl: this.plans.reviewUrl(view.id),
+          };
+        }),
+    );
 
     server.registerTool(
       "create_campaign_draft",

@@ -11,6 +11,7 @@ import { JobsModule } from "@modules/jobs/jobs.module";
 import { McpModule } from "@modules/mcp/mcp.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
+import { PlansModule } from "@modules/plans/plans.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -50,6 +51,7 @@ import { SecurityModule } from "@shared/security/security.module";
     MetaModule,
     OnboardingModule,
     OAuthModule,
+    PlansModule,
     McpModule,
   ],
   providers: [
