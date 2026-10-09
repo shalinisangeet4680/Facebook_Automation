@@ -33,7 +33,7 @@ function SetupView({
     .map((p) => p.name);
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <div className="grid content-start gap-6">
+      <div className="grid min-w-0 content-start gap-6">
         <GuidePlayer
           steps={requirements.steps}
           permissions={permissions}
@@ -42,7 +42,7 @@ function SetupView({
         />
         <PermissionsCard permissions={requirements.permissions} />
       </div>
-      <div className="grid content-start gap-6 xl:sticky xl:top-24 xl:self-start">
+      <div className="grid min-w-0 content-start gap-6 xl:sticky xl:top-24 xl:self-start">
         <Card className="p-5">
           <StepInstructions
             step={requirements.steps[index]!}

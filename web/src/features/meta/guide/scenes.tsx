@@ -138,8 +138,8 @@ export function SceneOpenSettings() {
       <div
         className={`absolute inset-y-0 left-0 w-[22%] border-r ${line} ${panel} p-[2.5%] text-[10px]`}
       >
-        <p className="mb-3 text-[11px] font-bold">Meta Business Suite</p>
-        {["Home", "Notifications", "Ads", "Insights", "Content", "Inbox"].map((i, n) => (
+        <p className="mb-3 text-[11px] font-bold">Business Suite</p>
+        {["Home", "Notifications", "Ads", "Insights"].map((i, n) => (
           <p
             key={i}
             className={`rounded-[4px] px-1.5 py-[3px] ${n === 0 ? "bg-[#e7f0ff] font-semibold text-[#0050c8] dark:bg-[#263951] dark:text-[#9fc4ff]" : ""}`}
@@ -147,7 +147,7 @@ export function SceneOpenSettings() {
             {i}
           </p>
         ))}
-        <p className="absolute bottom-[10%] left-[10%] flex items-center gap-1 font-semibold">
+        <p className="mt-auto mb-[8%] flex items-center gap-1 px-1.5 font-semibold">
           <Settings className="size-3" /> Settings
         </p>
       </div>

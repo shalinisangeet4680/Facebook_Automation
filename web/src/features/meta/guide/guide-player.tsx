@@ -71,11 +71,11 @@ export function GuidePlayer({
   return (
     <MotionConfig reducedMotion="user">
       <div
-        className="grid gap-4"
+        className="grid min-w-0 gap-4"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <div className="relative">
+        <div className="relative min-w-0">
           <BrowserFrame url={URLS[step.id] ?? "business.facebook.com"}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -105,7 +105,7 @@ export function GuidePlayer({
         <div
           role="tablist"
           aria-label="Guide steps"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+          className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3"
           onKeyDown={(e) => {
             if (e.key === "ArrowRight") onIndexChange(Math.min(steps.length - 1, index + 1));
             if (e.key === "ArrowLeft") onIndexChange(Math.max(0, index - 1));

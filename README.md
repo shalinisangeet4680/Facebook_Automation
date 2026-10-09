@@ -1,14 +1,19 @@
 # facebook_automation
 
-Meta marketing automation for Arogya System (arogyasystem.com): ads, Page and Instagram publishing, comment replies, and daily performance reports via the Meta Marketing and Graph APIs.
+An AI marketing manager for small businesses: it connects to a business's Meta account, plans and runs Facebook and Instagram ads, and asks the owner to approve every launch and budget change.
 
-## Setup
+| Folder | What it is | Docs |
+|---|---|---|
+| `backend/` | NestJS API and worker: auth, data, Meta integration, background jobs | [backend/README.md](backend/README.md) |
+| `web/` | Next.js web app: every screen, no business logic | [web/README.md](web/README.md) |
 
-1. Copy `.env.example` to `.env` and fill in the system user token, ad account, Page and Instagram IDs.
-2. `.env` is git-ignored; never commit tokens.
+## Run locally
 
-## Guardrails
+```bash
+brew services start postgresql@17 && brew services start redis
+cd backend && npm install && npm run db:migrate && npm run start:dev
+cd backend && npm run worker:dev
+cd web && npm install && npm run dev
+```
 
-- Campaigns are created paused; launching or raising spend needs explicit approval.
-- Pausing or reducing spend can be automated.
-- Account spending limit is set in Ads Manager, not here.
+Open `http://localhost:3200` and sign in with `8434230999`, code `963101`.
