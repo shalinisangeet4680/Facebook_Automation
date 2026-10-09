@@ -1,6 +1,7 @@
 name: backend
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ["backend/**", ".github/workflows/backend.yml"]
@@ -38,8 +39,8 @@ jobs:
       TOKEN_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       META_MOCK: "true"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
