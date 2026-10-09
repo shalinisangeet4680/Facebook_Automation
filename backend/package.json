@@ -23,7 +23,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:prod": "node dist/shared/database/migrate.js",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "worker:dev": "nest start --watch --entryFile worker",
+    "worker:prod": "node dist/worker.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.3",
