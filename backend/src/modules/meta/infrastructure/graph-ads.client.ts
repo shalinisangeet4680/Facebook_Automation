@@ -315,14 +315,16 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
       "/search",
       params,
     );
-    return (res.data ?? []).map((r) => ({
-      key: String(r.key ?? r.id),
-      name: str(r.name),
-      type: str(r.type, type),
-      region: optStr(r.region),
-      countryCode: optStr(r.country_code),
-      audienceSize: optNum(r.audience_size_upper_bound ?? r.audience_size),
-    }));
+    return (res.data ?? [])
+      .filter((r) => type === "interest" || r.type === type)
+      .map((r) => ({
+        key: String(r.key ?? r.id),
+        name: str(r.name),
+        type: str(r.type, type),
+        region: optStr(r.region),
+        countryCode: optStr(r.country_code),
+        audienceSize: optNum(r.audience_size_upper_bound ?? r.audience_size),
+      }));
   }
 
   async createDraft(
