@@ -14,7 +14,9 @@ export function webOrigins(config: AppConfig): string[] {
 
 export function otpTestNumbers(config: AppConfig): Map<string, string> {
   const map = new Map<string, string>();
-  for (const pair of config.get("OTP_TEST_NUMBERS", { infer: true }).split(",")) {
+  for (const pair of config
+    .get("OTP_TEST_NUMBERS", { infer: true })
+    .split(",")) {
     const [phone, code] = pair.split(":").map((s) => s.trim());
     if (phone && code) map.set(phone.replace(/\D/g, "").slice(-10), code);
   }

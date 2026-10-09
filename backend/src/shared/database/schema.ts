@@ -1,0 +1,6 @@
+export * from "../../modules/iam/infrastructure/iam.tables";
+export * from "../../modules/auth/infrastructure/auth.tables";
+export * from "../../modules/meta/infrastructure/meta.tables";
+export * from "../../modules/onboarding/infrastructure/onboarding.tables";
+export * from "../../modules/audit/infrastructure/audit.tables";
+export * from "../idempotency/idempotency.tables";

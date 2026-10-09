@@ -62,7 +62,7 @@ backend/
 
 1. **No code comments.** No inline, block, JSDoc, or commented-out code. Names and small functions carry the meaning.
 2. Strict TypeScript; no `any`. Use `unknown` and narrow.
-3. Imports use path aliases `@shared/*` and `@modules/*`; relative imports only within the same module.
+3. Imports use path aliases `@shared/*` and `@modules/*`; relative imports only within the same module. Exception: `*.tables.ts`, `shared/database/columns.ts`, and `shared/database/schema.ts` use relative imports because `drizzle-kit` loads them outside the Nest build.
 4. Validate every input at the edge with a DTO. Validate every external response (Meta, AI) before trusting it.
 5. Throw `DomainError` subclasses or `CodedError` with an `ErrorCode`. Never throw plain strings; never leak stack traces to clients.
 6. All times are stored and returned in UTC ISO 8601. All money is stored as integer minor units (paise) with a currency code.

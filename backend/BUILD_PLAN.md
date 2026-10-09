@@ -5,7 +5,7 @@ Phase 0 builds the foundation described in `docs/`. Tasks run in order; each end
 ## Phase 0 — Foundation
 
 - [x] 1. Platform: Fastify adapter, helmet, cookies, CORS, pino logging with request IDs, global exception filter, validation pipe, Swagger at `/api/docs`, `/api/v1` prefix, env validation for all variables
-- [ ] 2. Database: shared database module, UUID v7 ids, per-module tables, schema index, fresh initial migration, base repository helpers, transactions
+- [x] 2. Database: shared database module, UUID v7 ids, per-module tables, schema index, fresh initial migration, base repository helpers, transactions
 - [ ] 3. Redis: Redis module, cache service, BullMQ queue registration, worker process (`worker.ts`), Redis-backed throttler
 - [ ] 4. Health: Terminus checks for Postgres and Redis at `/health`
 - [ ] 5. Security: JWT `TokenService`, global `AuthGuard` (Bearer or cookie), `@Public`, `@CurrentUser`, `TenantContext`, `X-Client` CSRF guard, crypto service

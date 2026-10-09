@@ -84,7 +84,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? res
           : Array.isArray((res as { message?: unknown }).message)
             ? String((res as { message: string[] }).message[0])
-            : String((res as { message?: unknown }).message ?? exception.message);
+            : String(
+                (res as { message?: unknown }).message ?? exception.message,
+              );
       return {
         status,
         body: {

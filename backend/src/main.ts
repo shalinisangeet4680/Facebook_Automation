@@ -12,11 +12,7 @@ import { randomUUID } from "crypto";
 import { IncomingMessage } from "http";
 import { Logger } from "nestjs-pino";
 
-import {
-  AppConfig,
-  isProduction,
-  webOrigins,
-} from "@shared/config/app-config";
+import { AppConfig, isProduction, webOrigins } from "@shared/config/app-config";
 
 import { AppModule } from "./app.module";
 
