@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -43,6 +43,9 @@ export function UserMenu() {
           <p className="text-small text-muted">{formatPhone(me.data.user.phone)}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => router.push("/settings")}>
+          <Settings /> Settings
+        </DropdownMenuItem>
         <DropdownMenuItem
           destructive
           onSelect={() =>

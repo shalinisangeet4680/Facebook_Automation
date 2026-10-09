@@ -10,6 +10,9 @@ import type {
   Connection,
   Job,
   PlanDetail,
+  ProfileUpdate,
+  Settings,
+  WorkspaceUpdate,
 } from "./types";
 
 export const keys = {
@@ -22,6 +25,7 @@ export const keys = {
   authorization: (query: AuthorizationQuery) => ["oauth", "authorization", query] as const,
   connector: ["connector"] as const,
   connectedApps: ["connected-apps"] as const,
+  settings: ["settings"] as const,
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
@@ -243,5 +247,43 @@ export function useTargetingSearch(type: "city" | "region" | "interest", q: stri
     queryFn: () => unwrap(api.GET("/api/v1/ads/targeting", { params: { query: { type, q } } })),
     enabled: q.trim().length >= 2,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useSettings() {
+  return useQuery({ queryKey: keys.settings, queryFn: () => unwrap(api.GET("/api/v1/settings")) });
+}
+
+export function useUpdateWorkspace() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: WorkspaceUpdate) => unwrap(api.PUT("/api/v1/settings/workspace", { body })),
+    onSuccess: (settings: Settings) => {
+      client.setQueryData(keys.settings, settings);
+      void client.invalidateQueries({ queryKey: keys.me });
+      void client.invalidateQueries({ queryKey: keys.connector });
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ProfileUpdate) => unwrap(api.PUT("/api/v1/settings/profile", { body })),
+    onSuccess: (settings: Settings) => {
+      client.setQueryData(keys.settings, settings);
+      void client.invalidateQueries({ queryKey: keys.me });
+    },
+  });
+}
+
+export function useSignOutEverywhere() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      setSigningOut(true);
+      return unwrap(api.POST("/api/v1/auth/logout-all"));
+    },
+    onSettled: () => client.clear(),
   });
 }

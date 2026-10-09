@@ -12,12 +12,17 @@ export default async function setup(): Promise<void> {
     const admin = new URL(url);
     const name = admin.pathname.slice(1);
     admin.pathname = "/postgres";
-    const sql = postgres(admin.toString(), { max: 1, onnotice: () => undefined });
+    const sql = postgres(admin.toString(), {
+      max: 1,
+      onnotice: () => undefined,
+    });
     const exists = await sql`select 1 from pg_database where datname = ${name}`;
     if (!exists.length) await sql.unsafe(`create database "${name}"`);
     await sql.end();
   }
   const client = postgres(url, { max: 1, onnotice: () => undefined });
-  await migrate(drizzle(client), { migrationsFolder: join(__dirname, "..", "drizzle") });
+  await migrate(drizzle(client), {
+    migrationsFolder: join(__dirname, "..", "drizzle"),
+  });
   await client.end();
 }

@@ -14,6 +14,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { ApiDefaultResponse, ApiTags } from "@nestjs/swagger";
 
+import { SettingsService } from "@modules/settings/application/settings.service";
 import { AppConfig, mcpResourceUrl } from "@shared/config/app-config";
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
 import { CurrentUser } from "@shared/security/current-user.decorator";
@@ -39,6 +40,7 @@ export class AuthorizationController {
   constructor(
     private readonly authorization: AuthorizationService,
     private readonly grants: GrantService,
+    private readonly settings: SettingsService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -64,10 +66,13 @@ export class AuthorizationController {
   }
 
   @Get("connector")
-  connector(): ConnectorInfoDto {
+  async connector(
+    @CurrentUser() ctx: TenantContext,
+  ): Promise<ConnectorInfoDto> {
     return {
       mcpUrl: mcpResourceUrl(this.config),
-      maxDailyBudget: this.config.get("ADS_MAX_DAILY_BUDGET", { infer: true }),
+      maxDailyBudget: (await this.settings.targets(ctx.workspaceId))
+        .maxDailyBudget,
     };
   }
 

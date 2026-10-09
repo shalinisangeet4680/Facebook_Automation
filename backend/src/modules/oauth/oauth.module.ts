@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { IamModule } from "@modules/iam/iam.module";
 import { MetaModule } from "@modules/meta/meta.module";
+import { SettingsModule } from "@modules/settings/settings.module";
 
 import { AuthorizationService } from "./application/authorization.service";
 import { ClientRegistryService } from "./application/client-registry.service";
@@ -14,7 +15,7 @@ import { AuthorizationController } from "./interface/authorization.controller";
 import { OAuthServerController } from "./interface/oauth-server.controller";
 
 @Module({
-  imports: [IamModule, MetaModule],
+  imports: [IamModule, MetaModule, SettingsModule],
   controllers: [OAuthServerController, AuthorizationController],
   providers: [
     AuthorizationService,

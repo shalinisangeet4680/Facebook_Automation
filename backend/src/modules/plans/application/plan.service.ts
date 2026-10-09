@@ -10,6 +10,7 @@ import {
 } from "@modules/ads/domain/goals";
 import { AuditService } from "@modules/audit/application/audit.service";
 import { MetaConnectionService } from "@modules/meta/application/meta-connection.service";
+import { SettingsService } from "@modules/settings/application/settings.service";
 import { AppConfig, appUrl } from "@shared/config/app-config";
 import {
   CodedError,
@@ -49,6 +50,7 @@ export class PlanService {
     private readonly ads: AdsService,
     private readonly connections: MetaConnectionService,
     private readonly audit: AuditService,
+    private readonly settings: SettingsService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -57,7 +59,7 @@ export class PlanService {
   }
 
   async propose(actor: AdsActor, input: unknown): Promise<PlanView> {
-    const plan = this.validate(input);
+    const plan = await this.validate(input, actor.workspaceId);
     const row = await this.plans.insert({
       workspaceId: actor.workspaceId,
       createdBy: actor.userId,
@@ -73,7 +75,7 @@ export class PlanService {
     id: string,
     input: unknown,
   ): Promise<PlanView> {
-    const plan = this.validate(input);
+    const plan = await this.validate(input, actor.workspaceId);
     return this.plans.transaction(async (tx) => {
       const row = await this.plans.find(actor.workspaceId, id, tx, true);
       if (!row) throw new NotFoundError("This plan doesn't exist.");
@@ -101,9 +103,8 @@ export class PlanService {
       ...toView(row),
       options: {
         currency,
-        maxDailyBudget: this.config.get("ADS_MAX_DAILY_BUDGET", {
-          infer: true,
-        }),
+        maxDailyBudget: (await this.settings.targets(workspaceId))
+          .maxDailyBudget,
         goals: Object.entries(GOALS).map(([name, g]) => ({
           name,
           needsPixel: g.needsPixel,
@@ -141,7 +142,7 @@ export class PlanService {
         "draft",
         "This plan was already created in Meta.",
       );
-      const plan = this.validate(row.plan);
+      const plan = await this.validate(row.plan, actor.workspaceId);
       if (!plan.creative.imageUrl) {
         throw new ValidationError(
           "Add an image to the ad before creating it in Meta.",
@@ -246,11 +247,14 @@ export class PlanService {
     });
   }
 
-  private validate(input: unknown): CampaignPlan {
+  private async validate(
+    input: unknown,
+    workspaceId: string,
+  ): Promise<CampaignPlan> {
     const parsed = parsePlan(input);
     if (!parsed.ok)
       throw new ValidationError(`The plan is not valid: ${parsed.message}`);
-    const max = this.config.get("ADS_MAX_DAILY_BUDGET", { infer: true });
+    const max = (await this.settings.targets(workspaceId)).maxDailyBudget;
     if (parsed.plan.dailyBudget > max) {
       throw new CodedError(
         ErrorCode.BUDGET_LIMIT,

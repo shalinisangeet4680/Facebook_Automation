@@ -308,6 +308,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SettingsController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SettingsController_workspace_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SettingsController_profile_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -631,6 +679,38 @@ export interface components {
         };
         ConnectedAppListDto: {
             data: components["schemas"]["ConnectedAppDto"][];
+        };
+        SettingsWorkspaceDto: {
+            id: string;
+            name: string;
+        };
+        SettingsProfileDto: {
+            name: string | null;
+            email: string | null;
+            phone: string;
+        };
+        SettingsBudgetDto: {
+            currency: string;
+            maxDailyBudget: number;
+            platformMaxDailyBudget: number;
+            monthlyBudget: number | null;
+            targetCostPerResult: number | null;
+        };
+        SettingsResponseDto: {
+            workspace: components["schemas"]["SettingsWorkspaceDto"];
+            profile: components["schemas"]["SettingsProfileDto"];
+            budget: components["schemas"]["SettingsBudgetDto"];
+        };
+        UpdateWorkspaceDto: {
+            name: string;
+            maxDailyBudget: number;
+            monthlyBudget: number | null;
+            targetCostPerResult: number | null;
+        };
+        UpdateProfileDto: {
+            name: string | null;
+            /** Format: email */
+            email: string | null;
         };
         PlanSummaryDto: {
             id: string;
@@ -1495,6 +1575,95 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SettingsController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SettingsController_workspace_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorkspaceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SettingsController_profile_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponseDto"];
+                };
             };
             default: {
                 headers: {

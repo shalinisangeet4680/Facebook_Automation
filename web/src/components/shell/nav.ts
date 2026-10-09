@@ -23,7 +23,7 @@ export const NAV: NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/creatives", label: "Creatives", icon: LayoutGrid, soon: true },
   { href: "/reports", label: "Reports", icon: BarChart3, soon: true },
-  { href: "/settings", label: "Settings", icon: Settings, soon: true },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function sectionFor(pathname: string): NavItem | undefined {

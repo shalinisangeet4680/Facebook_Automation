@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 
 import { AuditService } from "@modules/audit/application/audit.service";
+import { SettingsService } from "@modules/settings/application/settings.service";
 import { MetaConnectionService } from "@modules/meta/application/meta-connection.service";
 import { AssetView } from "@modules/meta/domain/meta.types";
 import {
@@ -12,7 +12,6 @@ import {
   TargetingSearchType,
 } from "@modules/meta/domain/ports/meta-ads";
 import { CacheService } from "@shared/cache/cache.service";
-import { AppConfig } from "@shared/config/app-config";
 import { CodedError } from "@shared/errors/domain-error";
 import { ErrorCode } from "@shared/errors/error-codes";
 import { CryptoService } from "@shared/security/crypto.service";
@@ -77,7 +76,7 @@ export class AdsService {
     private readonly audit: AuditService,
     private readonly cache: CacheService,
     private readonly crypto: CryptoService,
-    @Inject(ConfigService) private readonly config: AppConfig,
+    private readonly settings: SettingsService,
   ) {}
 
   async overview(workspaceId: string) {
@@ -115,7 +114,8 @@ export class AdsService {
         ? { id: primary("dataset")!.externalId, name: primary("dataset")!.name }
         : null,
       guardrails: {
-        maxDailyBudget: this.maxDailyBudget(),
+        maxDailyBudget: (await this.settings.targets(workspaceId))
+          .maxDailyBudget,
         newCampaignsStartPaused: true,
         launchAndBudgetChangesNeedConfirmation: true,
       },
@@ -300,7 +300,7 @@ export class AdsService {
 
   async createDraft(actor: AdsActor, input: DraftInput) {
     const ws = await this.workspace(actor.workspaceId);
-    this.assertBudget(input.dailyBudget, ws.currency);
+    await this.assertBudget(input.dailyBudget, ws.currency, actor.workspaceId);
     if (!ws.page)
       throw rejected(
         ErrorCode.META_ASSETS_MISSING,
@@ -436,7 +436,8 @@ export class AdsService {
         })),
         conversionEvents: CONVERSION_EVENTS,
         callsToAction: CALLS_TO_ACTION,
-        maxDailyBudget: this.maxDailyBudget(),
+        maxDailyBudget: (await this.settings.targets(workspaceId))
+          .maxDailyBudget,
         currency: overview.adAccount?.currency ?? "INR",
       },
     };
@@ -522,7 +523,7 @@ export class AdsService {
           : `This ${object.type} doesn't use a daily budget. Change the budget where it is set (campaign or ad set).`,
       );
     }
-    this.assertBudget(dailyBudget, ws.currency);
+    await this.assertBudget(dailyBudget, ws.currency, actor.workspaceId);
     const current = toMajor(object.dailyBudget, ws.currency)!;
     const args = { id, dailyBudget };
     if (!confirmToken) {
@@ -670,18 +671,18 @@ export class AdsService {
     }
   }
 
-  private assertBudget(amount: number, currency: string) {
-    const max = this.maxDailyBudget();
+  private async assertBudget(
+    amount: number,
+    currency: string,
+    workspaceId: string,
+  ) {
+    const max = (await this.settings.targets(workspaceId)).maxDailyBudget;
     if (amount > max) {
       throw rejected(
         ErrorCode.BUDGET_LIMIT,
         `Daily budget ${formatMoney(amount, currency)} is above this workspace's limit of ${formatMoney(max, currency)}.`,
       );
     }
-  }
-
-  private maxDailyBudget(): number {
-    return this.config.get("ADS_MAX_DAILY_BUDGET", { infer: true });
   }
 
   private targeting(input: TargetingInput): Record<string, unknown> {

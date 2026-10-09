@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   id: primaryId(),
   phone: text("phone").notNull().unique(),
   name: text("name"),
+  email: text("email"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

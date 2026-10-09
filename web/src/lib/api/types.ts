@@ -27,3 +27,6 @@ export type PlanDetail = Schemas["PlanDetailResponseDto"];
 export type PlanSummary = Schemas["PlanSummaryDto"];
 export type PlanStatus = PlanSummary["status"];
 export type TargetingOption = Schemas["TargetingOptionDto"];
+export type Settings = Schemas["SettingsResponseDto"];
+export type WorkspaceUpdate = Schemas["UpdateWorkspaceDto"];
+export type ProfileUpdate = Schemas["UpdateProfileDto"];
