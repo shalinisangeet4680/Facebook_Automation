@@ -356,6 +356,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportsController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/targeting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdsController_targeting_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -430,22 +462,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["PlansController_discard_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ads/targeting": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AdsController_targeting_v1"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -712,6 +728,70 @@ export interface components {
             /** Format: email */
             email: string | null;
         };
+        ReportPeriodDto: {
+            since: string;
+            until: string;
+        };
+        ReportKpisDto: {
+            spend: number;
+            results: number;
+            costPerResult: number | null;
+            impressions: number;
+            reach: number;
+            linkClicks: number;
+            ctr: number | null;
+            cpm: number | null;
+        };
+        ReportDayDto: {
+            date: string;
+            spend: number;
+            results: number;
+            linkClicks: number;
+        };
+        ReportCampaignDto: {
+            id: string;
+            name: string;
+            objective: string | null;
+            status: string;
+            spend: number;
+            results: number;
+            resultType: string | null;
+            costPerResult: number | null;
+            impressions: number;
+            ctr: number | null;
+        };
+        ReportAdDto: {
+            id: string;
+            name: string;
+            spend: number;
+            results: number;
+            costPerResult: number | null;
+            ctr: number;
+        };
+        ReportOverviewDto: {
+            currency: string;
+            /** @enum {string} */
+            preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            period: components["schemas"]["ReportPeriodDto"];
+            previousPeriod: components["schemas"]["ReportPeriodDto"];
+            kpis: components["schemas"]["ReportKpisDto"];
+            previousKpis: components["schemas"]["ReportKpisDto"];
+            daily: components["schemas"]["ReportDayDto"][];
+            campaigns: components["schemas"]["ReportCampaignDto"][];
+            topAds: components["schemas"]["ReportAdDto"][];
+            targetCostPerResult: number | null;
+        };
+        TargetingOptionDto: {
+            key: string;
+            name: string;
+            type: string;
+            region: string | null;
+            countryCode: string | null;
+            audienceSize: number | null;
+        };
+        TargetingResultsDto: {
+            results: components["schemas"]["TargetingOptionDto"][];
+        };
         PlanSummaryDto: {
             id: string;
             /** @enum {string} */
@@ -821,17 +901,6 @@ export interface components {
         };
         LaunchPlanDto: {
             confirm: boolean;
-        };
-        TargetingOptionDto: {
-            key: string;
-            name: string;
-            type: string;
-            region: string | null;
-            countryCode: string | null;
-            audienceSize: number | null;
-        };
-        TargetingResultsDto: {
-            results: components["schemas"]["TargetingOptionDto"][];
         };
     };
     responses: never;
@@ -1675,6 +1744,66 @@ export interface operations {
             };
         };
     };
+    ReportsController_overview_v1: {
+        parameters: {
+            query?: {
+                preset?: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOverviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdsController_targeting_v1: {
+        parameters: {
+            query: {
+                type: "city" | "region" | "country" | "interest";
+                q: string;
+                country?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetingResultsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     PlansController_list_v1: {
         parameters: {
             query?: never;
@@ -1843,37 +1972,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanResponseDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AdsController_targeting_v1: {
-        parameters: {
-            query: {
-                type: "city" | "region" | "country" | "interest";
-                q: string;
-                country?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TargetingResultsDto"];
                 };
             };
             default: {

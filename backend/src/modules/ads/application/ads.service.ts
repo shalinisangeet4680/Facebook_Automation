@@ -57,7 +57,7 @@ const text = (v: unknown, fallback: string): string =>
 const rejected = (code: ErrorCode, message: string) =>
   new CodedError(code, 422, message);
 
-interface Workspace {
+export interface Workspace {
   token: string;
   adAccount: AssetView;
   currency: string;
@@ -564,6 +564,10 @@ export class AdsService {
       to: dailyBudget,
       currency: ws.currency,
     };
+  }
+
+  account(workspaceId: string): Promise<Workspace> {
+    return this.workspace(workspaceId);
   }
 
   private async workspace(workspaceId: string): Promise<Workspace> {

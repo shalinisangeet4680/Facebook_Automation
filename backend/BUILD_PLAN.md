@@ -38,7 +38,7 @@ Design in `docs/14-phase-1b.md`.
 
 - [x] 1. Test isolation: `adpilot_test` for backend e2e; Playwright on its own backend (4100, mock) and web (3300)
 - [x] 2. Settings: `workspace_settings`, profile, workspace guardrails used by ads, `/settings` page
-- [ ] 3. Reports: overview endpoint with KPIs, daily series, campaigns, top ads; `/reports` page with charts
+- [x] 3. Reports: overview endpoint with KPIs, daily series, campaigns, top ads; `/reports` page with charts
 - [ ] 4. Creatives: media storage, upload, SVG render, library API, MCP tools, `/creatives` page
 - [ ] 5. Publishing: `social_posts`, publish job (Facebook, Instagram), schedule, cancel, library sync, MCP publish tool, publish screen
 - [ ] 6. Ads from posts: plan creative from a Facebook or Instagram post, picker on the plan page

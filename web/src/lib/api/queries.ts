@@ -11,6 +11,7 @@ import type {
   Job,
   PlanDetail,
   ProfileUpdate,
+  ReportPreset,
   Settings,
   WorkspaceUpdate,
 } from "./types";
@@ -26,6 +27,7 @@ export const keys = {
   connector: ["connector"] as const,
   connectedApps: ["connected-apps"] as const,
   settings: ["settings"] as const,
+  report: (preset: string) => ["reports", preset] as const,
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
@@ -285,5 +287,13 @@ export function useSignOutEverywhere() {
       return unwrap(api.POST("/api/v1/auth/logout-all"));
     },
     onSettled: () => client.clear(),
+  });
+}
+
+export function useReport(preset: ReportPreset) {
+  return useQuery({
+    queryKey: keys.report(preset),
+    queryFn: () => unwrap(api.GET("/api/v1/reports/overview", { params: { query: { preset } } })),
+    placeholderData: (previous) => previous,
   });
 }

@@ -12,6 +12,7 @@ import { McpModule } from "@modules/mcp/mcp.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
 import { PlansModule } from "@modules/plans/plans.module";
+import { ReportsModule } from "@modules/reports/reports.module";
 import { SettingsModule } from "@modules/settings/settings.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -53,6 +54,7 @@ import { SecurityModule } from "@shared/security/security.module";
     OnboardingModule,
     OAuthModule,
     SettingsModule,
+    ReportsModule,
     PlansModule,
     McpModule,
   ],
