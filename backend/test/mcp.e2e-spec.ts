@@ -745,6 +745,44 @@ describe("Claude connector (OAuth + MCP)", () => {
     ).toEqual(["discarded", "launched"]);
   });
 
+  it("creates a plan's ad from an existing Instagram post without an image", async () => {
+    const plan = {
+      name: "Boost best Instagram post",
+      summary: "Boost the post that already has engagement.",
+      goal: "traffic",
+      dailyBudget: 300,
+      targeting: { countries: ["IN"], ageMin: 25, ageMax: 60 },
+      creative: {
+        primaryText: "From the post",
+        headline: "Try the demo",
+        linkUrl: "https://arogyasystem.com/",
+        callToAction: "LEARN_MORE",
+        post: {
+          platform: "instagram",
+          id: "17900000000000001",
+          imageUrl: "https://arogyasystem.com/og.png",
+        },
+      },
+      reasons: { goal: "g", audience: "a", budget: "b", creative: "c" },
+    };
+    const proposed = await tool(accessToken, "propose_campaign_plan", plan);
+    expect(proposed.isError).toBe(false);
+    const created = await call(
+      app,
+      "POST",
+      `/api/v1/campaign-plans/${proposed.data.planId as string}/create`,
+      { headers: session },
+    );
+    expect(created.statusCode).toBe(200);
+    const meta = created.body.meta as { campaignId: string };
+    const detail = await tool(accessToken, "get_campaign", {
+      campaign_id: meta.campaignId,
+    });
+    expect(detail.data.ads[0].creative.body).toContain(
+      "Existing instagram post 17900000000000001",
+    );
+  });
+
   it("renders Claude's SVG design into a creative served publicly", async () => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080"><rect width="1080" height="1080" fill="#0C4A41"/><text x="80" y="540" font-size="96" fill="#fff" font-family="Helvetica">Run your clinic</text></svg>`;
     const saved = await tool(accessToken, "save_ad_creative", {

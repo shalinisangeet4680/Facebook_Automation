@@ -366,7 +366,7 @@ export class McpServerFactory {
       {
         title: "Propose a campaign plan",
         description:
-          "Save a complete campaign plan for the owner to review in Autopilot. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Leave imageUrl empty unless the user gave a public https image; describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
+          "Save a complete campaign plan for the owner to review in Autopilot. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
         inputSchema: planSchema,
         annotations: {
           readOnlyHint: false,

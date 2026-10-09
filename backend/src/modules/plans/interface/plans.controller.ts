@@ -44,6 +44,15 @@ export class PlansController {
     return this.plans.list(ctx.workspaceId);
   }
 
+  @Throttle({ default: { limit: 60, ttl: 3_600_000 } })
+  @Post()
+  propose(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: ReplacePlanDto,
+  ): Promise<PlanResponseDto> {
+    return this.plans.propose(actor(ctx), body.plan);
+  }
+
   @Get(":id")
   get(
     @CurrentUser() ctx: TenantContext,

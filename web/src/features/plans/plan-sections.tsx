@@ -11,6 +11,7 @@ import { useTargetingSearch } from "@/lib/api/queries";
 import type { CampaignPlan, TargetingOption } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+import { displaySrc } from "./creative-picker";
 import { CTA_LABELS } from "./labels";
 
 export function Section({
@@ -349,11 +350,15 @@ export function AdPreview({
           <p className="text-caption text-muted">Sponsored</p>
         </div>
       </div>
-      <p className="px-3 pb-3 whitespace-pre-line">{creative.primaryText}</p>
+      <p className="px-3 pb-3 whitespace-pre-line">{creative.post?.text ?? creative.primaryText}</p>
       <div className="bg-surface-muted aspect-[1.91/1] w-full">
-        {creative.imageUrl ? (
+        {displaySrc(creative.post?.imageUrl ?? creative.imageUrl) ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={creative.imageUrl} alt="" className="size-full object-cover" />
+          <img
+            src={displaySrc(creative.post?.imageUrl ?? creative.imageUrl)!}
+            alt=""
+            className="size-full object-cover"
+          />
         ) : (
           <div className="text-muted grid size-full place-items-center p-6 text-center text-[13px]">
             {creative.imageIdea ? `Image idea: ${creative.imageIdea}` : "Add an image"}

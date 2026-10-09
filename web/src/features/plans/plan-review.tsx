@@ -38,6 +38,7 @@ import type { CampaignPlan, PlanDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, STATUS_LABELS, money, sourceLabel } from "./labels";
+import { CreativePicker } from "./creative-picker";
 import { AdPreview, InterestsEditor, LocationsEditor, Section } from "./plan-sections";
 
 export function PlanReview() {
@@ -60,6 +61,8 @@ export function PlanReview() {
 function PlanEditor({ detail }: { detail: PlanDetail }) {
   const [draft, setDraft] = useState<CampaignPlan>(detail.plan);
   const [launchOpen, setLaunchOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const hasVisual = Boolean(draft.creative.imageUrl || draft.creative.post);
   const save = useSavePlan(detail.id);
   const create = useCreatePlanInMeta(detail.id);
   const launch = useLaunchPlan(detail.id);
@@ -338,6 +341,53 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
             reason={draft.reasons.creative}
           >
             <AdPreview pageName={pageName} creative={draft.creative} />
+            <div className="border-border flex flex-wrap items-center gap-3 rounded-lg border p-3">
+              <p className="text-small min-w-0 flex-1">
+                {draft.creative.post ? (
+                  <>
+                    Using your existing{" "}
+                    <strong className="font-medium">
+                      {draft.creative.post.platform === "facebook" ? "Facebook" : "Instagram"} post
+                    </strong>
+                    {draft.creative.post.platform === "facebook"
+                      ? ". Its own text and image are used."
+                      : ". Its image and caption are used, with the link and button below."}
+                  </>
+                ) : draft.creative.imageUrl ? (
+                  "Using an image from your library or link."
+                ) : (
+                  "No image yet. Pick one from your library or use a post."
+                )}
+              </p>
+              {editable ? (
+                <div className="flex gap-2">
+                  {draft.creative.post ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCreative({ post: null })}
+                    >
+                      Remove post
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    Choose image or post
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+            <CreativePicker
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              creative={draft.creative}
+              onPick={setCreative}
+            />
             <Field label="Primary text">
               {(p) => (
                 <Textarea
@@ -476,10 +526,10 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                   Save changes
                 </Button>
                 <Button
-                  disabled={busy || Boolean(budgetError) || !draft.creative.imageUrl}
+                  disabled={busy || Boolean(budgetError) || !hasVisual}
                   loading={create.isPending}
                   onClick={onCreate}
-                  title={!draft.creative.imageUrl ? "Add an image link first" : undefined}
+                  title={!hasVisual ? "Choose an image or post first" : undefined}
                 >
                   Create in Meta (paused)
                 </Button>

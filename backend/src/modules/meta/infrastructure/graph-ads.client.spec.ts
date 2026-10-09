@@ -40,6 +40,10 @@ const draft = {
     imageUrl: "https://example.com/a.png",
     imageHash: null,
     callToAction: "LEARN_MORE",
+    existingPost: null as {
+      platform: "facebook" | "instagram";
+      id: string;
+    } | null,
   },
 };
 
@@ -119,5 +123,39 @@ describe("GraphAdsClient", () => {
       },
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs an ad on an existing Facebook post", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(json({ id: "x1" })));
+    await client.createDraft("tok", {
+      ...draft,
+      creative: {
+        ...draft.creative,
+        existingPost: { platform: "facebook", id: "p1_123" },
+      },
+    });
+    const body = fetchMock.mock.calls[2]![1]?.body as URLSearchParams;
+    expect(body.get("object_story_id")).toBe("p1_123");
+    expect(body.get("object_story_spec")).toBeNull();
+  });
+
+  it("runs an ad on an existing Instagram post with a call to action", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(json({ id: "x1" })));
+    await client.createDraft("tok", {
+      ...draft,
+      creative: {
+        ...draft.creative,
+        instagramId: "ig1",
+        existingPost: { platform: "instagram", id: "m1" },
+      },
+    });
+    const body = fetchMock.mock.calls[2]![1]?.body as URLSearchParams;
+    expect(body.get("source_instagram_media_id")).toBe("m1");
+    expect(body.get("instagram_user_id")).toBe("ig1");
+    expect(body.get("object_id")).toBe("p1");
+    expect(JSON.parse(body.get("call_to_action")!)).toEqual({
+      type: "LEARN_MORE",
+      value: { link: "https://example.com/" },
+    });
   });
 });

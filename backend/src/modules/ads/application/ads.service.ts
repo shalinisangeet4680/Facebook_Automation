@@ -313,7 +313,14 @@ export class AdsService {
         "This goal needs a Pixel. Select one in Setup first.",
       );
     }
-    if (!input.creative.imageUrl && !input.creative.imageHash) {
+    const post = input.creative.post ?? null;
+    if (post?.platform === "instagram" && !ws.instagram) {
+      throw rejected(
+        ErrorCode.META_ASSETS_MISSING,
+        "No Instagram account is connected, so an Instagram post can't be used.",
+      );
+    }
+    if (!post && !input.creative.imageUrl && !input.creative.imageHash) {
       throw rejected(
         ErrorCode.VALIDATION,
         "Add an image: pass image_url (a public https link) or image_hash.",
@@ -349,6 +356,7 @@ export class AdsService {
         link: input.creative.linkUrl,
         imageUrl: input.creative.imageUrl ?? null,
         imageHash: input.creative.imageHash ?? null,
+        existingPost: post,
         callToAction: input.creative.callToAction,
       },
     });

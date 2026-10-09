@@ -40,6 +40,7 @@ export interface DraftInput {
     imageUrl?: string;
     imageHash?: string;
     callToAction: CallToAction;
+    post?: { platform: "facebook" | "instagram"; id: string };
   };
 }
 

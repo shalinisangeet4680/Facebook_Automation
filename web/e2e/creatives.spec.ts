@@ -50,6 +50,8 @@ test("posts an image to Facebook and Instagram and shows it under Posts", async 
   const row = page.getByRole("listitem").filter({ hasText: tag }).first();
   await expect(row.getByText("Published")).toBeVisible({ timeout: 20_000 });
   await expect(row.getByRole("link", { name: "View on Instagram" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "On Instagram" }).getByRole("listitem").first()).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "On Instagram" }).getByRole("listitem").first(),
+  ).toBeVisible();
   await page.screenshot({ path: info.outputPath("posts.png"), fullPage: true });
 });

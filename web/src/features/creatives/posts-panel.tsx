@@ -54,7 +54,8 @@ function AutopilotPosts() {
   const busy = posts.data?.data.some((p) => p.status === "publishing") ?? false;
   const wasBusy = useRef(busy);
   useEffect(() => {
-    if (wasBusy.current && !busy) void client.invalidateQueries({ queryKey: ["social", "library"] });
+    if (wasBusy.current && !busy)
+      void client.invalidateQueries({ queryKey: ["social", "library"] });
     wasBusy.current = busy;
   }, [busy, client]);
   return (

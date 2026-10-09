@@ -55,6 +55,16 @@ export const planSchema = z
       imageUrl: z.string().url().startsWith("https://").nullable().optional(),
       imageIdea: z.string().trim().max(500).nullable().optional(),
       callToAction: z.enum(CALLS_TO_ACTION),
+      post: z
+        .object({
+          platform: z.enum(["facebook", "instagram"]),
+          id: z.string().min(1).max(80),
+          permalink: z.string().url().nullable().optional(),
+          imageUrl: z.string().url().nullable().optional(),
+          text: z.string().max(5000).nullable().optional(),
+        })
+        .nullable()
+        .optional(),
     }),
     reasons: z.object({
       goal: reason,

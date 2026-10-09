@@ -493,7 +493,7 @@ export interface paths {
         };
         get: operations["PlansController_list_v1"];
         put?: never;
-        post?: never;
+        post: operations["PlansController_propose_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -974,17 +974,6 @@ export interface components {
         PlanListResponseDto: {
             data: components["schemas"]["PlanSummaryDto"][];
         };
-        GoalOptionDto: {
-            name: string;
-            needsPixel: boolean;
-        };
-        PlanOptionsDto: {
-            currency: string;
-            maxDailyBudget: number;
-            goals: components["schemas"]["GoalOptionDto"][];
-            conversionEvents: string[];
-            callsToAction: string[];
-        };
         KeyedOptionDto: {
             key: string;
             name: string;
@@ -1008,6 +997,14 @@ export interface components {
             genders: "all" | "male" | "female";
             interests: components["schemas"]["InterestOptionDto"][];
         };
+        PlanPostDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            id: string;
+            permalink?: string | null;
+            imageUrl?: string | null;
+            text?: string | null;
+        };
         PlanCreativeDto: {
             primaryText: string;
             alternatives: string[];
@@ -1017,6 +1014,7 @@ export interface components {
             imageUrl?: string | null;
             imageIdea?: string | null;
             callToAction: string;
+            post?: components["schemas"]["PlanPostDto"] | null;
         };
         PlanReasonsDto: {
             goal: string;
@@ -1035,27 +1033,15 @@ export interface components {
             reasons: components["schemas"]["PlanReasonsDto"];
             expectedResults?: string | null;
         };
+        ReplacePlanDto: {
+            plan: components["schemas"]["CampaignPlanDto"];
+        };
         PlanMetaDto: {
             campaignId: string;
             adSetId: string;
             creativeId: string;
             adId: string;
             adsManagerUrl: string;
-        };
-        PlanDetailResponseDto: {
-            options: components["schemas"]["PlanOptionsDto"];
-            id: string;
-            /** @enum {string} */
-            status: "draft" | "created" | "launched" | "discarded";
-            source: string;
-            plan: components["schemas"]["CampaignPlanDto"];
-            meta: components["schemas"]["PlanMetaDto"] | null;
-            error: string | null;
-            createdAt: string;
-            updatedAt: string;
-        };
-        ReplacePlanDto: {
-            plan: components["schemas"]["CampaignPlanDto"];
         };
         PlanResponseDto: {
             id: string;
@@ -1067,6 +1053,29 @@ export interface components {
             error: string | null;
             createdAt: string;
             updatedAt: string;
+        };
+        GoalOptionDto: {
+            name: string;
+            needsPixel: boolean;
+        };
+        PlanOptionsDto: {
+            currency: string;
+            maxDailyBudget: number;
+            goals: components["schemas"]["GoalOptionDto"][];
+            conversionEvents: string[];
+            callsToAction: string[];
+        };
+        PlanDetailResponseDto: {
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "created" | "launched" | "discarded";
+            source: string;
+            plan: components["schemas"]["CampaignPlanDto"];
+            meta: components["schemas"]["PlanMetaDto"] | null;
+            error: string | null;
+            createdAt: string;
+            updatedAt: string;
+            options: components["schemas"]["PlanOptionsDto"];
         };
         LaunchPlanDto: {
             confirm: boolean;
@@ -2220,6 +2229,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanListResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_propose_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplacePlanDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponseDto"];
                 };
             };
             default: {

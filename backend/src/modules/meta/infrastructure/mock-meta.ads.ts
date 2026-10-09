@@ -600,8 +600,10 @@ export class MockMetaAds implements MetaAds {
       effectiveStatus: "CAMPAIGN_PAUSED",
       creative: {
         id: `${adId}9`,
-        title: input.creative.headline,
-        body: input.creative.message,
+        title: input.creative.existingPost ? null : input.creative.headline,
+        body: input.creative.existingPost
+          ? `Existing ${input.creative.existingPost.platform} post ${input.creative.existingPost.id}`
+          : input.creative.message,
         linkUrl: input.creative.link,
         imageUrl: input.creative.imageUrl,
         callToAction: input.creative.callToAction,

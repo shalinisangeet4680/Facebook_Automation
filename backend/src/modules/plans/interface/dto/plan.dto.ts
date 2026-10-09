@@ -24,6 +24,14 @@ export class PlanTargetingDto {
   interests: InterestOptionDto[];
 }
 
+export class PlanPostDto {
+  platform: "facebook" | "instagram";
+  id: string;
+  permalink?: string | null;
+  imageUrl?: string | null;
+  text?: string | null;
+}
+
 export class PlanCreativeDto {
   primaryText: string;
   alternatives: string[];
@@ -33,6 +41,7 @@ export class PlanCreativeDto {
   imageUrl?: string | null;
   imageIdea?: string | null;
   callToAction: string;
+  post?: PlanPostDto | null;
 }
 
 export class PlanReasonsDto {

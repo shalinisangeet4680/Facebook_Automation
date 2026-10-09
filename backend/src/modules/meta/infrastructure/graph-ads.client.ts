@@ -369,22 +369,7 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
       const creative = await this.post<{ id: string }>(
         token,
         `/${account}/adcreatives`,
-        {
-          name: `${input.name} – Creative`,
-          object_story_spec: {
-            page_id: c.pageId,
-            ...(c.instagramId ? { instagram_user_id: c.instagramId } : {}),
-            link_data: {
-              link: c.link,
-              message: c.message,
-              name: c.headline,
-              ...(c.description ? { description: c.description } : {}),
-              ...(c.imageHash ? { image_hash: c.imageHash } : {}),
-              ...(c.imageUrl && !c.imageHash ? { picture: c.imageUrl } : {}),
-              call_to_action: { type: c.callToAction, value: { link: c.link } },
-            },
-          },
-        },
+        { name: `${input.name} – Creative`, ...this.creativeSpec(c) },
       );
       const ad = await this.post<{ id: string }>(token, `/${account}/ads`, {
         name: `${input.name} – Ad`,
@@ -404,6 +389,35 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
       );
       throw err;
     }
+  }
+
+  private creativeSpec(c: CampaignDraftInput["creative"]): GraphParams {
+    if (c.existingPost?.platform === "facebook") {
+      return { object_story_id: c.existingPost.id };
+    }
+    if (c.existingPost?.platform === "instagram") {
+      return {
+        object_id: c.pageId,
+        ...(c.instagramId ? { instagram_user_id: c.instagramId } : {}),
+        source_instagram_media_id: c.existingPost.id,
+        call_to_action: { type: c.callToAction, value: { link: c.link } },
+      };
+    }
+    return {
+      object_story_spec: {
+        page_id: c.pageId,
+        ...(c.instagramId ? { instagram_user_id: c.instagramId } : {}),
+        link_data: {
+          link: c.link,
+          message: c.message,
+          name: c.headline,
+          ...(c.description ? { description: c.description } : {}),
+          ...(c.imageHash ? { image_hash: c.imageHash } : {}),
+          ...(c.imageUrl && !c.imageHash ? { picture: c.imageUrl } : {}),
+          call_to_action: { type: c.callToAction, value: { link: c.link } },
+        },
+      },
+    };
   }
 
   async setStatus(token: string, id: string, status: AdStatus): Promise<void> {

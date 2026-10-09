@@ -143,7 +143,7 @@ export class PlanService {
         "This plan was already created in Meta.",
       );
       const plan = await this.validate(row.plan, actor.workspaceId);
-      if (!plan.creative.imageUrl) {
+      if (!plan.creative.imageUrl && !plan.creative.post) {
         throw new ValidationError(
           "Add an image to the ad before creating it in Meta.",
         );
@@ -172,8 +172,14 @@ export class PlanService {
             headline: plan.creative.headline,
             description: plan.creative.description ?? undefined,
             linkUrl: plan.creative.linkUrl,
-            imageUrl: plan.creative.imageUrl,
+            imageUrl: plan.creative.imageUrl ?? undefined,
             callToAction: plan.creative.callToAction,
+            post: plan.creative.post
+              ? {
+                  platform: plan.creative.post.platform,
+                  id: plan.creative.post.id,
+                }
+              : undefined,
           },
         });
       } catch (err) {

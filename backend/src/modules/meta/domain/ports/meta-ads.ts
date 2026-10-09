@@ -129,6 +129,7 @@ export interface CampaignDraftInput {
     imageUrl: string | null;
     imageHash: string | null;
     callToAction: string;
+    existingPost: { platform: "facebook" | "instagram"; id: string } | null;
   };
 }
 
