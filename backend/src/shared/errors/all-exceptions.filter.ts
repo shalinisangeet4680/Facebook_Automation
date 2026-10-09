@@ -19,6 +19,7 @@ const STATUS_CODES: Record<number, ErrorCode> = {
   404: ErrorCode.NOT_FOUND,
   409: ErrorCode.CONFLICT,
   429: ErrorCode.TOO_MANY_REQUESTS,
+  503: ErrorCode.SERVICE_UNAVAILABLE,
 };
 
 interface ErrorBody {
@@ -87,6 +88,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
             : String(
                 (res as { message?: unknown }).message ?? exception.message,
               );
+      if (status === HttpStatus.SERVICE_UNAVAILABLE) {
+        return {
+          status,
+          body: {
+            code: ErrorCode.SERVICE_UNAVAILABLE,
+            message: "A required service is unavailable.",
+            traceId,
+            details: (res as { error?: unknown }).error,
+          },
+        };
+      }
       return {
         status,
         body: {
