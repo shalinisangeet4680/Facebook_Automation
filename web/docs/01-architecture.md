@@ -10,7 +10,7 @@
 ## 2. Request flow
 
 ```
-Browser ──► Next.js (localhost:3000)
+Browser ──► Next.js (localhost:3200)
               │  pages, layouts, assets
               │  /api/*  ──rewrite──►  NestJS backend (localhost:4000)
               ▼

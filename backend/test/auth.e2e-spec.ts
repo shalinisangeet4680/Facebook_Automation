@@ -269,5 +269,6 @@ describe("Auth flow", () => {
       cookies: { refresh_token: signIn.cookies.refresh_token! },
     });
     expect(refresh.statusCode).toBe(401);
+    expect(refresh.cookies.has_session).toBe("");
   });
 });

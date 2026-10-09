@@ -5,7 +5,7 @@ Each task ends with typecheck, lint, tests where relevant, a visual check in lig
 - [x] 1. Backend contract: response schemas in OpenAPI for every endpoint, `has_session` cookie on sign-in, refresh, and logout
 - [x] 2. Foundation: dependencies, Next config with `/api` rewrite, fonts, design tokens, light and dark themes without flash, providers (TanStack Query, toasts), generated API types and typed client with refresh handling
 - [x] 3. UI kit: button, input, OTP input, phone input, card, badge, check row, radio card, skeleton, spinner, dialog, menu, tooltip, progress ring, empty and error states, copy button
-- [ ] 4. Auth gate and login: `proxy.ts`, login layout with animated brand panel, phone step, code step, errors, redirect
+- [x] 4. Auth gate and login: `proxy.ts`, login layout with animated brand panel, phone step, code step, errors, redirect
 - [ ] 5. App shell: sidebar, top bar, theme toggle, user menu with sign-out, responsive drawer
 - [ ] 6. Setup overview: progress ring, step list, current-step card
 - [ ] 7. Connect Meta: animated guide, instructions, permissions card, token form, verification sequence, success and failure states

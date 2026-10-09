@@ -14,6 +14,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 
 import { AuditService } from "@modules/audit/application/audit.service";
 import { isProduction } from "@shared/config/app-config";
+import { DomainError } from "@shared/errors/domain-error";
 import { Env } from "@shared/config/env.validation";
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
 import { CurrentUser } from "@shared/security/current-user.decorator";
@@ -101,9 +102,19 @@ export class AuthController {
       clientKind(request) === "mobile"
         ? body.refreshToken
         : readRefreshCookie(request);
-    if (!raw) throw sessionEnded();
-    const tokens = await this.sessions.refresh(raw, requestMeta(request));
-    return this.deliver(request, reply, tokens);
+    if (!raw) {
+      clearAuthCookies(reply, this.secureCookies);
+      throw sessionEnded();
+    }
+    try {
+      const tokens = await this.sessions.refresh(raw, requestMeta(request));
+      return this.deliver(request, reply, tokens);
+    } catch (err) {
+      if (err instanceof DomainError && err.httpStatus === 401) {
+        clearAuthCookies(reply, this.secureCookies);
+      }
+      throw err;
+    }
   }
 
   @Post("logout")
