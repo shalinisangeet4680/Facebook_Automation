@@ -12,7 +12,7 @@ function resetLocalState() {
       stdio: "ignore",
     });
     execSync(
-      `psql -d ${process.env.E2E_DATABASE ?? "adpilot_e2e"} -qc "delete from otp_challenges where phone in (${phones})"`,
+      `psql -d ${process.env.E2E_DATABASE ?? "adpilot_e2e"} -qc "delete from otp_challenges where phone in (${phones}); delete from suggestions"`,
       {
         stdio: "ignore",
         env: { ...process.env, PATH: `/opt/homebrew/opt/postgresql@17/bin:${process.env.PATH}` },

@@ -484,6 +484,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InboxController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_refresh_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_apply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_dismiss_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_snooze_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -960,6 +1040,51 @@ export interface components {
             facebookCaption?: string | null;
             instagramCaption?: string | null;
             scheduledAt?: string | null;
+        };
+        SuggestionDto: {
+            id: string;
+            rule: string;
+            /** @enum {string} */
+            severity: "critical" | "warning" | "opportunity";
+            entityType: string;
+            entityId: string;
+            entityName: string;
+            title: string;
+            body: string;
+            evidence: {
+                [key: string]: unknown;
+            };
+            action: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            status: "open" | "applied" | "dismissed" | "snoozed" | "expired";
+            snoozedUntil: string | null;
+            createdAt: string;
+        };
+        PlanToReviewDto: {
+            id: string;
+            name: string;
+            source: string;
+            createdAt: string;
+        };
+        FailedPostDto: {
+            id: string;
+            /** @enum {string} */
+            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
+            facebookError: string | null;
+            instagramError: string | null;
+            caption: string;
+            updatedAt: string;
+        };
+        InboxDto: {
+            suggestions: components["schemas"]["SuggestionDto"][];
+            plansToReview: components["schemas"]["PlanToReviewDto"][];
+            failedPosts: components["schemas"]["FailedPostDto"][];
+        };
+        RefreshResultDto: {
+            created: number;
+            open: number;
         };
         PlanSummaryDto: {
             id: string;
@@ -2202,6 +2327,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SocialPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_refresh_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_apply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_dismiss_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_snooze_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
                 };
             };
             default: {

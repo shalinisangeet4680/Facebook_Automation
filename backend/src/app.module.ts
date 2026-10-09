@@ -9,6 +9,7 @@ import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
 import { JobsModule } from "@modules/jobs/jobs.module";
 import { CreativesModule } from "@modules/creatives/creatives.module";
+import { InboxModule } from "@modules/inbox/inbox.module";
 import { McpModule } from "@modules/mcp/mcp.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
@@ -59,6 +60,7 @@ import { SecurityModule } from "@shared/security/security.module";
     ReportsModule,
     CreativesModule,
     SocialModule,
+    InboxModule,
     PlansModule,
     McpModule,
   ],

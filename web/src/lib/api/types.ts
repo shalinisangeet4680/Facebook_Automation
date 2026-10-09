@@ -37,3 +37,5 @@ export type SocialPost = Schemas["SocialPostDto"];
 export type LibraryPost = Schemas["LibraryPostDto"];
 export type Channels = Schemas["ChannelsDto"];
 export type CreatePost = Schemas["CreatePostDto"];
+export type Inbox = Schemas["InboxDto"];
+export type Suggestion = Schemas["SuggestionDto"];

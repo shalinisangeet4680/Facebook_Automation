@@ -20,6 +20,7 @@ import { SCOPES } from "@modules/oauth/domain/oauth.policy";
 import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
 import { SocialService } from "@modules/social/application/social.service";
+import { InboxService } from "@modules/inbox/application/inbox.service";
 import { DomainError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
@@ -62,6 +63,7 @@ export class McpServerFactory {
     private readonly creatives: CreativesService,
     private readonly social: SocialService,
     private readonly confirmations: ConfirmationService,
+    private readonly inbox: InboxService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -241,6 +243,22 @@ export class McpServerFactory {
             this.social.list(ws),
           ]);
           return { facebook, instagram, autopilotPosts: scheduled.data };
+        }),
+    );
+
+    server.registerTool(
+      "get_suggestions",
+      {
+        title: "Autopilot suggestions",
+        description:
+          "Open suggestions from Autopilot's daily checks (ads to pause, ad sets to scale, creative fatigue, landing page drop-off, silent Pixel, budget pacing) with evidence, plus plans waiting for review and failed posts. Use refresh=true to re-run the checks now.",
+        inputSchema: { refresh: z.boolean().default(false) },
+        annotations: readOnly,
+      },
+      (a) =>
+        run(async () => {
+          if (a.refresh) await this.inbox.refresh(ws);
+          return this.inbox.inbox(ws);
         }),
     );
 

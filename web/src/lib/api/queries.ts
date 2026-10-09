@@ -29,6 +29,7 @@ export const keys = {
   connectedApps: ["connected-apps"] as const,
   settings: ["settings"] as const,
   creatives: ["creatives"] as const,
+  inbox: ["inbox"] as const,
   channels: ["social", "channels"] as const,
   posts: ["posts"] as const,
   library: (platform: string) => ["social", "library", platform] as const,
@@ -384,5 +385,35 @@ export function useCancelPost() {
     mutationFn: (id: string) =>
       unwrap(api.POST("/api/v1/posts/{id}/cancel", { params: { path: { id } } })),
     onSuccess: () => void client.invalidateQueries({ queryKey: keys.posts }),
+  });
+}
+
+export function useInbox() {
+  return useQuery({ queryKey: keys.inbox, queryFn: () => unwrap(api.GET("/api/v1/inbox")) });
+}
+
+export function useRefreshInbox() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(api.POST("/api/v1/inbox/refresh")),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.inbox }),
+  });
+}
+
+export function useSuggestionAction() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "apply" | "dismiss" | "snooze" }) =>
+      unwrap(
+        action === "apply"
+          ? api.POST("/api/v1/inbox/suggestions/{id}/apply", { params: { path: { id } } })
+          : action === "dismiss"
+            ? api.POST("/api/v1/inbox/suggestions/{id}/dismiss", { params: { path: { id } } })
+            : api.POST("/api/v1/inbox/suggestions/{id}/snooze", { params: { path: { id } } }),
+      ),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.inbox });
+      void client.invalidateQueries({ queryKey: ["reports"] });
+    },
   });
 }

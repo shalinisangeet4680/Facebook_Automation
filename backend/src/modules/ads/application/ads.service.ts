@@ -420,6 +420,32 @@ export class AdsService {
     return { activated: targets };
   }
 
+  async setDailyBudgetNow(actor: AdsActor, id: string, dailyBudget: number) {
+    const ws = await this.workspace(actor.workspaceId);
+    const object = await this.owned(ws, id);
+    if (object.type === "ad" || object.dailyBudget === null) {
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "This item doesn't use a daily budget.",
+      );
+    }
+    await this.assertBudget(dailyBudget, ws.currency, actor.workspaceId);
+    const from = toMajor(object.dailyBudget, ws.currency);
+    await this.ads.setDailyBudget(
+      ws.token,
+      id,
+      toMinor(dailyBudget, ws.currency),
+    );
+    await this.record(actor, "ads.budget_changed", id, {
+      type: object.type,
+      name: object.name,
+      from,
+      to: dailyBudget,
+      currency: ws.currency,
+    });
+    return { id, from, to: dailyBudget };
+  }
+
   async planningContext(workspaceId: string) {
     const [overview, history, tracking] = await Promise.all([
       this.overview(workspaceId),
