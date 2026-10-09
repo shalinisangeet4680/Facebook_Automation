@@ -65,6 +65,45 @@ The review page shows the name, summary and expected results, then a section eac
 
 A sticky footer holds Discard, Save, Create in Meta (paused) and Launch. Launch opens a confirmation dialog that shows the daily and monthly spend. After a plan is created, its fields are read-only and the page links to Ads Manager.
 
-## 9. States everywhere
+## 9. Inbox (`/inbox`)
+
+The Inbox has three parts:
+- **Waiting for you:** plans to review and failed posts.
+- **Suggestions:** grouped by severity (urgent, needs attention, opportunity). Each shows its evidence and Apply, Snooze or Dismiss. The page explains the 7:30 daily check.
+- **Check now:** runs the rules immediately.
+
+## 10. Creatives (`/creatives`)
+
+The **Images** tab:
+- grid of uploaded and Claude-designed images
+- drag and drop upload
+- Post, copy link and delete on each image
+
+**Post** opens a dialog:
+- choose Facebook and/or Instagram (an unavailable platform says why)
+- write a caption per platform, with counters
+- post now or schedule
+- a review step before anything goes public
+
+The **Posts** tab shows posts from Autopilot with their status, links and errors, and lets you cancel scheduled posts. It also lists recent posts from the Page and Instagram with likes and comments.
+
+## 11. Reports (`/reports`)
+
+The page shows:
+- **Period selector:** 7, 14 or 30 days, this month or last month.
+- **KPI tiles:** spend, results, cost per result with the target badge, and link CTR, each with the change against the previous period.
+- **Secondary metrics:** reach, impressions, clicks and CPM.
+- **Charts:** daily spend and daily results, as bar charts with tooltips and a table for screen readers.
+- **Tables:** campaigns, with an "above / within target" mark, and the five best ads.
+
+## 12. Settings (`/settings`)
+
+Settings has four sections:
+- **Workspace name, daily limit and targets:** the daily limit per campaign (capped by the platform limit), the monthly budget and the target cost per result.
+- **Profile:** name and email.
+- **Connections:** Meta and Claude.
+- **Sign out everywhere.**
+
+## 13. States everywhere
 
 Loading uses skeletons shaped like the content. Errors show the backend message with a Retry action. Empty states explain what to do next.

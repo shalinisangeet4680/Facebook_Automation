@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { STORAGE_STATE, VALID_TOKEN } from "./fixtures";
+import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
 
 test.use({ storageState: STORAGE_STATE });
 
 test("shows KPIs, daily charts and campaigns, and switches periods", async ({ page }, info) => {
-  await page.request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
+  await ensureMetaConnected(page.request);
   await page.goto("/reports");
   await expect(page.getByText("Cost per result")).toBeVisible();
   await expect(page.getByRole("img", { name: "Spend per day" })).toBeVisible();

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { STORAGE_STATE, VALID_TOKEN } from "./fixtures";
+import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
 
 test.use({ storageState: STORAGE_STATE });
 
 test("shows suggestions from a check and applies one", async ({ page }, info) => {
-  await page.request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
+  await ensureMetaConnected(page.request);
   await page.request.put("/api/v1/settings/workspace", {
     data: {
       name: "Arogya Clinic Group",

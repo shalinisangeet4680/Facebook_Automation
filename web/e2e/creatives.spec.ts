@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { STORAGE_STATE } from "./fixtures";
+import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
 
 test.use({ storageState: STORAGE_STATE });
 
@@ -29,7 +29,7 @@ test("posts an image to Facebook and Instagram and shows it under Posts", async 
   page,
 }, info) => {
   const tag = `festive-${Date.now()}`;
-  await page.request.post("/api/v1/meta/connection", { data: { token: `EAA${"p".repeat(60)}` } });
+  await ensureMetaConnected(page.request);
   await page.goto("/creatives");
   await page
     .getByLabel("Upload an image")

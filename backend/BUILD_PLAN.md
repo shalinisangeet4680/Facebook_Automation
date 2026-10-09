@@ -43,4 +43,4 @@ Design in `docs/14-phase-1b.md`.
 - [x] 5. Publishing: `social_posts`, publish job (Facebook, Instagram), schedule, cancel, library sync, MCP publish tool, publish screen
 - [x] 6. Ads from posts: plan creative from a Facebook or Instagram post, picker on the plan page
 - [x] 7. Inbox: rules engine, suggestions, daily job, apply/dismiss/snooze, MCP tool, `/inbox` page
-- [ ] 8. Verification: all suites, screenshots, docs
+- [x] 8. Verification: all suites, screenshots, docs

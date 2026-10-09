@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { STORAGE_STATE, VALID_TOKEN } from "./fixtures";
+import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
 
 test.use({ storageState: STORAGE_STATE });
 
@@ -36,7 +36,7 @@ const plan = (name: string) => ({
 test("reviews a plan, runs it on an Instagram post, creates it paused and launches", async ({
   page,
 }, info) => {
-  await page.request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
+  await ensureMetaConnected(page.request);
   const name = `Boost post ${Date.now()}`;
   const created = await page.request.post("/api/v1/campaign-plans", { data: { plan: plan(name) } });
   expect(created.ok()).toBeTruthy();

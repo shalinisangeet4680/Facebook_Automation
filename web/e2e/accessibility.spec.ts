@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { STORAGE_STATE, VALID_TOKEN } from "./fixtures";
+import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
 
 async function audit(page: Page) {
   const results = await new AxeBuilder({ page })
@@ -38,7 +38,7 @@ for (const theme of ["light", "dark"] as const) {
         "/campaigns",
       ]) {
         test(path, async ({ page }) => {
-          await page.request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
+          await ensureMetaConnected(page.request);
           await page.goto(path);
           await page.waitForLoadState("networkidle");
           await audit(page);

@@ -87,3 +87,12 @@ cloudflared tunnel --protocol http2 --url http://localhost:3200
 A quick tunnel gets a new URL every time it starts. After a restart, update `APP_URL` and add the connector again in Claude. A named Cloudflare tunnel or a deployment gives a stable URL.
 
 Claude Code can use the local URL directly: `claude mcp add --transport http autopilot http://localhost:3200/mcp`. This works only when `APP_URL` is `http://localhost:3200`, because tokens are bound to `{APP_URL}/mcp`.
+
+## 9. Tests never touch your data
+
+| Suite | Database | Redis | Servers |
+| - | - | - | - |
+| Backend e2e (`npm run test:e2e`) | `adpilot_test`, created and migrated automatically | db 1 | In-process app and worker with mock Meta |
+| Web Playwright (`npx playwright test`) | `adpilot_e2e` | db 2 | Its own backend on 4100 (mock Meta) and production web build on 3400 |
+
+The dev servers (API 4000, web 3200, real Meta) can keep running while the tests run.

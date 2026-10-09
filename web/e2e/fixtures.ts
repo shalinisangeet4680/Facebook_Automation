@@ -21,3 +21,11 @@ export async function goToCode(page: Page, phone: string) {
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Enter the code" })).toBeVisible();
 }
+
+export async function ensureMetaConnected(request: APIRequestContext) {
+  const current = await request.get("/api/v1/meta/connection");
+  const body = (await current.json()) as { status?: string };
+  if (body.status === "active") return;
+  const res = await request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
+  expect(res.ok(), `connect failed: ${res.status()} ${await res.text()}`).toBeTruthy();
+}
