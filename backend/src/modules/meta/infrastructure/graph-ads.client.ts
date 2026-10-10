@@ -238,37 +238,46 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
   }
 
   async object(token: string, id: string): Promise<AdObject> {
-    const meta = await this.get<{ metadata?: { type?: string } }>(
-      token,
-      `/${id}`,
+    const attempts: { type: AdObjectType; fields: string }[] = [
       {
-        metadata: 1,
-        fields: "id",
+        type: "ad",
+        fields:
+          "id,name,status,effective_status,account_id,campaign_id,adset_id",
       },
-    );
-    const type = meta.metadata?.type as AdObjectType | undefined;
-    if (type !== "campaign" && type !== "adset" && type !== "ad") {
-      throw new Error(`Unsupported object type ${String(type)}`);
+      {
+        type: "adset",
+        fields:
+          "id,name,status,effective_status,account_id,campaign_id,daily_budget",
+      },
+      {
+        type: "campaign",
+        fields:
+          "id,name,status,effective_status,account_id,daily_budget,objective",
+      },
+    ];
+    let last: unknown = null;
+    for (const attempt of attempts) {
+      try {
+        const r = await this.get<Record<string, unknown>>(token, `/${id}`, {
+          fields: attempt.fields,
+        });
+        return {
+          id: str(r.id),
+          type: attempt.type,
+          name: str(r.name),
+          status: str(r.status),
+          effectiveStatus: str(r.effective_status),
+          accountId: `act_${str(r.account_id)}`,
+          campaignId:
+            attempt.type === "campaign" ? str(r.id) : optStr(r.campaign_id),
+          dailyBudget: optNum(r.daily_budget),
+        };
+      } catch (err) {
+        if ((err as { code?: string }).code !== "META_REJECTED") throw err;
+        last = err;
+      }
     }
-    const fields =
-      type === "ad"
-        ? "id,name,status,effective_status,account_id,campaign_id"
-        : type === "adset"
-          ? "id,name,status,effective_status,account_id,campaign_id,daily_budget"
-          : "id,name,status,effective_status,account_id,daily_budget";
-    const r = await this.get<Record<string, unknown>>(token, `/${id}`, {
-      fields,
-    });
-    return {
-      id: String(r.id),
-      type,
-      name: str(r.name),
-      status: str(r.status),
-      effectiveStatus: str(r.effective_status),
-      accountId: `act_${str(r.account_id)}`,
-      campaignId: type === "campaign" ? String(r.id) : optStr(r.campaign_id),
-      dailyBudget: optNum(r.daily_budget),
-    };
+    throw last;
   }
 
   async pixelEvents(

@@ -158,4 +158,72 @@ describe("GraphAdsClient", () => {
       value: { link: "https://example.com/" },
     });
   });
+
+  it("detects campaigns, ad sets and ads from the fields Meta accepts", async () => {
+    const invalidField = () =>
+      json(
+        {
+          error: {
+            code: 100,
+            message: "(#100) Tried accessing nonexisting field (adset_id)",
+          },
+        },
+        400,
+      );
+    fetchMock
+      .mockResolvedValueOnce(invalidField())
+      .mockResolvedValueOnce(invalidField())
+      .mockResolvedValueOnce(
+        json({
+          id: "c1",
+          name: "Camp",
+          status: "PAUSED",
+          effective_status: "PAUSED",
+          account_id: "123",
+          daily_budget: "50000",
+        }),
+      );
+    expect(await client.object("tok", "c1")).toMatchObject({
+      type: "campaign",
+      campaignId: "c1",
+      accountId: "act_123",
+      dailyBudget: 50000,
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(invalidField())
+      .mockResolvedValueOnce(
+        json({
+          id: "s1",
+          name: "Set",
+          status: "PAUSED",
+          effective_status: "PAUSED",
+          account_id: "123",
+          campaign_id: "c1",
+          daily_budget: "50000",
+        }),
+      );
+    expect(await client.object("tok", "s1")).toMatchObject({
+      type: "adset",
+      campaignId: "c1",
+      dailyBudget: 50000,
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      json({
+        id: "a1",
+        name: "Ad",
+        status: "PAUSED",
+        effective_status: "PAUSED",
+        account_id: "123",
+        campaign_id: "c1",
+        adset_id: "s1",
+      }),
+    );
+    expect(await client.object("tok", "a1")).toMatchObject({
+      type: "ad",
+      campaignId: "c1",
+      dailyBudget: null,
+    });
+  });
 });
