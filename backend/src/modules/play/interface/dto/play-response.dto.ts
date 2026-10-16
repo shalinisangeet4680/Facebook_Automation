@@ -15,7 +15,38 @@ export class PlayConnectionDto {
   status: "active" | "error";
   error?: string | null;
   checkedAt?: string | null;
+  discoveredAt?: string | null;
+  discoveryError?: string | null;
   apps?: number;
+}
+
+export class DiscoveredAddedDto {
+  id: string;
+  packageName: string;
+  title: string;
+}
+
+export class DiscoveredExistingDto {
+  packageName: string;
+  title: string;
+}
+
+export class DiscoveryFailureDto {
+  packageName: string;
+  title: string;
+  reason: string;
+}
+
+export class DiscoveryResultDto {
+  found: number;
+  added: DiscoveredAddedDto[];
+  already: DiscoveredExistingDto[];
+  failed: DiscoveryFailureDto[];
+  error: string | null;
+}
+
+export class ConnectResultDto extends PlayConnectionDto {
+  discovery: DiscoveryResultDto;
 }
 
 export class PlayConnectionListDto {

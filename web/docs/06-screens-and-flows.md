@@ -119,7 +119,7 @@ The page polls every 4 seconds until the set is uploaded, so images appear while
 
 The sidebar groups Meta ads (Campaigns, Creatives, Page & Instagram, Reports) and Google Play (Store listing, Review replies). Review replies shows a count of reviews that need a reply.
 
-- **Apps page:** a guided connect card until a Google Play service account is connected; then a summary row (30-day average rating across apps, need a reply, waiting for approval, waiting for Claude), one card per app (rating with change, 8-week rating sparkline, queues, mode, last check) and the connected accounts.
+- **Apps page:** a guided connect card until a Google Play service account is connected (connecting finds and adds every app the account can see and shows what it found); then a summary row (30-day average rating across apps, need a reply, waiting for approval, waiting for Claude), one card per app (rating with change, 8-week rating sparkline, queues, mode, last check) and the connected accounts, each with Find apps, when it last looked, and any problem with a link to fix it. Add by package name stays as a fallback.
 - **App page tabs:**
   - **Reviews:** status chips with counts, star, language, version and search filters, review cards with a rating-coloured edge, the reply composer (fill from template with live preview, 350-character counter, approve, save, discard, edit a posted reply), scheduled and Claude states, bulk reply, pages.
   - **Insights:** period chips, stat tiles with change against the previous period, reviews by rating over time, average rating, star breakdown, rating by version, languages, common words in unhappy and happy reviews; every chart has a table view. Import history uploads Play Console reports.

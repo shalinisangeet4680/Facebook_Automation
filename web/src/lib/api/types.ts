@@ -64,3 +64,4 @@ export type PlayRuleInput = Schemas["RuleDto"];
 export type PlayBulkResult = Schemas["BulkReplyResultDto"];
 export type PlayInsights = Schemas["PlayInsightsDto"];
 export type PlayImportResult = Schemas["ImportResultDto"];
+export type PlayDiscovery = Schemas["DiscoveryResultDto"];

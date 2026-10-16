@@ -6,6 +6,7 @@ import { JOBS } from "@shared/queue/job-names";
 import { QUEUES } from "@shared/queue/queue.constants";
 
 import { PlayEngine } from "../application/play-engine.service";
+import { PlayService } from "../application/play.service";
 
 const SYNC_EVERY_MS = 60 * 60_000;
 
@@ -13,7 +14,10 @@ const SYNC_EVERY_MS = 60 * 60_000;
 export class PlayProcessor extends WorkerHost {
   private readonly logger = new Logger(PlayProcessor.name);
 
-  constructor(private readonly engine: PlayEngine) {
+  constructor(
+    private readonly engine: PlayEngine,
+    private readonly play: PlayService,
+  ) {
     super();
   }
 
@@ -37,7 +41,24 @@ export class PlayProcessor extends WorkerHost {
         );
       }
     }
-    return { replies, synced, failed };
+    let discovered = 0;
+    for (const c of await this.engine.repo.connectionsDueForDiscovery(
+      new Date(Date.now() - 86_400_000),
+      5,
+    )) {
+      try {
+        const result = await this.play.discover(
+          { userId: null, workspaceId: c.workspaceId, via: "automation" },
+          c.id,
+        );
+        discovered += result.added.length;
+      } catch (err) {
+        this.logger.warn(
+          `App discovery failed for ${c.clientEmail}: ${(err as Error).message}`,
+        );
+      }
+    }
+    return { replies, synced, failed, discovered };
   }
 }
 

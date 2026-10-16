@@ -788,6 +788,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play/connections/{id}/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_discover_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/connections/{id}": {
         parameters: {
             query?: never;
@@ -1838,6 +1854,8 @@ export interface components {
             status: "error" | "active";
             error?: string | null;
             checkedAt?: string | null;
+            discoveredAt?: string | null;
+            discoveryError?: string | null;
             apps?: number;
         };
         PlayConnectionListDto: {
@@ -1845,6 +1863,40 @@ export interface components {
         };
         ConnectPlayDto: {
             key: string;
+        };
+        DiscoveredAddedDto: {
+            id: string;
+            packageName: string;
+            title: string;
+        };
+        DiscoveredExistingDto: {
+            packageName: string;
+            title: string;
+        };
+        DiscoveryFailureDto: {
+            packageName: string;
+            title: string;
+            reason: string;
+        };
+        DiscoveryResultDto: {
+            found: number;
+            added: components["schemas"]["DiscoveredAddedDto"][];
+            already: components["schemas"]["DiscoveredExistingDto"][];
+            failed: components["schemas"]["DiscoveryFailureDto"][];
+            error: string | null;
+        };
+        ConnectResultDto: {
+            id: string;
+            clientEmail: string;
+            projectId: string;
+            /** @enum {string} */
+            status: "error" | "active";
+            error?: string | null;
+            checkedAt?: string | null;
+            discoveredAt?: string | null;
+            discoveryError?: string | null;
+            apps?: number;
+            discovery: components["schemas"]["DiscoveryResultDto"];
         };
         PlayAppDto: {
             trend: (number | null)[];
@@ -4032,7 +4084,36 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlayConnectionDto"];
+                    "application/json": components["schemas"]["ConnectResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_discover_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryResultDto"];
                 };
             };
             default: {

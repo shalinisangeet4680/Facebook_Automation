@@ -185,7 +185,7 @@ export class PlayService {
   ) {
     return this.audit.record({
       workspaceId: actor.workspaceId,
-      actor: "user",
+      actor: actor.userId ? "user" : "system",
       actorId: actor.userId,
       action,
       target,
@@ -206,6 +206,8 @@ export class PlayService {
         status: c.status,
         error: c.error,
         checkedAt: c.checkedAt?.toISOString() ?? null,
+        discoveredAt: c.discoveredAt?.toISOString() ?? null,
+        discoveryError: c.discoveryError,
         apps: apps.filter((a) => a.connectionId === c.id).length,
       })),
     };
@@ -234,11 +236,13 @@ export class PlayService {
     await this.record(actor, "play.connected", row.id, {
       clientEmail: key.clientEmail,
     });
+    const discovery = await this.discover(actor, row.id);
     return {
       id: row.id,
       clientEmail: row.clientEmail,
       projectId: row.projectId,
       status: row.status,
+      discovery,
     };
   }
 
@@ -431,10 +435,15 @@ export class PlayService {
     const key = JSON.parse(
       this.crypto.decrypt(connection.keyCiphertext),
     ) as ServiceAccountKey;
-    let listing: { title: string | null; iconUrl: string | null };
+    let app: PlayAppRow;
     try {
-      await this.engine.api.listReviews(key, packageName, {});
-      listing = await this.engine.api.listing(key, packageName);
+      app = await this.createApp(
+        actor,
+        connection.id,
+        key,
+        packageName,
+        input.title,
+      );
     } catch (err) {
       throw new ValidationError(
         err instanceof PlayApiError
@@ -442,11 +451,24 @@ export class PlayService {
           : "The app couldn't be reached.",
       );
     }
+    const sync = await this.engine.sync(app).catch(() => null);
+    return { ...(await this.app(actor.workspaceId, app.id)), firstSync: sync };
+  }
+
+  private async createApp(
+    actor: PlayActor,
+    connectionId: string,
+    key: ServiceAccountKey,
+    packageName: string,
+    title?: string | null,
+  ): Promise<PlayAppRow> {
+    await this.engine.api.listReviews(key, packageName, {});
+    const listing = await this.engine.api.listing(key, packageName);
     const app = await this.repo.insertApp({
       workspaceId: actor.workspaceId,
-      connectionId: connection.id,
+      connectionId,
       packageName,
-      title: (input.title?.trim() || listing.title || packageName).slice(0, 80),
+      title: (title?.trim() || listing.title || packageName).slice(0, 80),
       iconUrl: listing.iconUrl,
       automation: true,
       settings: DEFAULT_SETTINGS,
@@ -474,10 +496,91 @@ export class PlayService {
       })),
     );
     await this.record(actor, "play.app_added", app.id, { packageName });
-    const sync = await this.engine
-      .sync(app, { firstSync: true })
-      .catch(() => null);
-    return { ...(await this.app(actor.workspaceId, app.id)), firstSync: sync };
+    return app;
+  }
+
+  async discover(actor: PlayActor, connectionId: string) {
+    const connection = await this.repo.connection(
+      actor.workspaceId,
+      connectionId,
+    );
+    if (!connection)
+      throw new NotFoundError("This Google Play connection doesn't exist.");
+    const key = JSON.parse(
+      this.crypto.decrypt(connection.keyCiphertext),
+    ) as ServiceAccountKey;
+    const result = {
+      found: 0,
+      added: [] as { id: string; packageName: string; title: string }[],
+      already: [] as { packageName: string; title: string }[],
+      failed: [] as { packageName: string; title: string; reason: string }[],
+      error: null as string | null,
+    };
+    let apps;
+    try {
+      apps = await this.engine.api.listApps(key);
+    } catch (err) {
+      result.error =
+        err instanceof PlayApiError
+          ? err.message
+          : "Your apps couldn't be listed.";
+      await this.repo.updateConnection(connection.id, {
+        discoveredAt: new Date(),
+        discoveryError: result.error,
+      });
+      return result;
+    }
+    result.found = apps.length;
+    const existing = new Map(
+      (await this.repo.apps(actor.workspaceId)).map((a) => [a.packageName, a]),
+    );
+    const created: PlayAppRow[] = [];
+    for (const found of apps) {
+      const title = found.displayName ?? found.packageName;
+      const have = existing.get(found.packageName);
+      if (have) {
+        result.already.push({
+          packageName: found.packageName,
+          title: have.title,
+        });
+        continue;
+      }
+      try {
+        const app = await this.createApp(
+          actor,
+          connection.id,
+          key,
+          found.packageName,
+          found.displayName,
+        );
+        created.push(app);
+        result.added.push({
+          id: app.id,
+          packageName: app.packageName,
+          title: app.title,
+        });
+      } catch (err) {
+        result.failed.push({
+          packageName: found.packageName,
+          title,
+          reason:
+            err instanceof PlayApiError
+              ? err.message
+              : "This app couldn't be added.",
+        });
+      }
+    }
+    for (const app of created.slice(0, 10))
+      await this.engine.sync(app).catch(() => null);
+    await this.repo.updateConnection(connection.id, {
+      discoveredAt: new Date(),
+      discoveryError: null,
+    });
+    if (result.added.length)
+      await this.record(actor, "play.apps_discovered", connection.id, {
+        added: result.added.map((a) => a.packageName),
+      });
+    return result;
   }
 
   async updateApp(actor: PlayActor, id: string, input: AppUpdate) {

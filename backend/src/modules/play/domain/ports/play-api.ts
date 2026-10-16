@@ -24,7 +24,13 @@ export interface PlayReviewData {
 }
 
 export type PlayErrorKind =
-  "auth" | "access" | "not_found" | "quota" | "invalid" | "unavailable";
+  | "auth"
+  | "access"
+  | "not_found"
+  | "quota"
+  | "invalid"
+  | "unavailable"
+  | "disabled";
 
 export class PlayApiError extends Error {
   constructor(
@@ -36,7 +42,13 @@ export class PlayApiError extends Error {
   }
 }
 
+export interface DiscoveredApp {
+  packageName: string;
+  displayName: string | null;
+}
+
 export interface PlayApi {
+  listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]>;
   verifyKey(key: ServiceAccountKey): Promise<void>;
   listReviews(
     key: ServiceAccountKey,

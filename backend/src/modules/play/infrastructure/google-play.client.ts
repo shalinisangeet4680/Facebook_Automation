@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { createSign } from "crypto";
 
 import {
+  DiscoveredApp,
   PlayApi,
   PlayApiError,
   PlayReviewData,
@@ -11,6 +12,9 @@ import {
 const API =
   "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";
 const SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+const REPORTING_SCOPE =
+  "https://www.googleapis.com/auth/playdeveloperreporting";
+const REPORTING = "https://playdeveloperreporting.googleapis.com/v1beta1";
 const MAX_PAGES = 20;
 
 type Fetch = typeof fetch;
@@ -91,14 +95,15 @@ export class GooglePlayClient implements PlayApi {
 
   constructor(private readonly http: Fetch = fetch) {}
 
-  private async token(key: ServiceAccountKey): Promise<string> {
-    const cached = this.tokens.get(key.clientEmail);
+  private async token(key: ServiceAccountKey, scope = SCOPE): Promise<string> {
+    const cacheKey = `${key.clientEmail} ${scope}`;
+    const cached = this.tokens.get(cacheKey);
     if (cached && cached.expires > Date.now() + 60_000) return cached.token;
     const now = Math.floor(Date.now() / 1000);
     const unsigned = `${b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }))}.${b64url(
       JSON.stringify({
         iss: key.clientEmail,
-        scope: SCOPE,
+        scope,
         aud: key.tokenUri,
         iat: now,
         exp: now + 3600,
@@ -138,7 +143,7 @@ export class GooglePlayClient implements PlayApi {
         "auth",
         `Google rejected this key${body.error_description ? `: ${body.error_description}` : ""}. It may have been deleted; create a new key.`,
       );
-    this.tokens.set(key.clientEmail, {
+    this.tokens.set(cacheKey, {
       token: body.access_token,
       expires: Date.now() + (body.expires_in ?? 3600) * 1000,
     });
@@ -175,7 +180,7 @@ export class GooglePlayClient implements PlayApi {
     if (res.ok) return body;
     const detail = body.error?.message ?? `HTTP ${res.status}`;
     if (res.status === 401) {
-      this.tokens.delete(key.clientEmail);
+      this.tokens.delete(`${key.clientEmail} ${SCOPE}`);
       throw new PlayApiError("auth", `Google rejected the key: ${detail}`);
     }
     if (res.status === 403)
@@ -202,8 +207,65 @@ export class GooglePlayClient implements PlayApi {
   }
 
   async verifyKey(key: ServiceAccountKey): Promise<void> {
-    this.tokens.delete(key.clientEmail);
+    this.tokens.delete(`${key.clientEmail} ${SCOPE}`);
     await this.token(key);
+  }
+
+  async listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]> {
+    const token = await this.token(key, REPORTING_SCOPE);
+    const apps: DiscoveredApp[] = [];
+    let page: string | undefined;
+    for (let i = 0; i < 10; i++) {
+      const query = new URLSearchParams({ pageSize: "1000" });
+      if (page) query.set("pageToken", page);
+      const res = await this.http(
+        `${REPORTING}/apps:search?${query.toString()}`,
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      ).catch(() => {
+        throw new PlayApiError(
+          "unavailable",
+          "Google Play couldn't be reached. Try again.",
+        );
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        apps?: { packageName?: string; displayName?: string }[];
+        nextPageToken?: string;
+        error?: { message?: string; status?: string };
+      };
+      if (!res.ok) {
+        const message = body.error?.message ?? `HTTP ${res.status}`;
+        if (
+          res.status === 403 &&
+          /has not been used|is disabled|SERVICE_DISABLED|not been enabled/i.test(
+            message,
+          )
+        )
+          throw new PlayApiError(
+            "disabled",
+            `Turn on the Google Play Developer Reporting API for project ${key.projectId} so Autopilot can find your apps: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${encodeURIComponent(key.projectId)}`,
+          );
+        if (res.status === 401 || res.status === 403)
+          throw new PlayApiError(
+            "access",
+            `${key.clientEmail} can't list apps. In Play Console, give it "View app information" for your apps.`,
+          );
+        throw new PlayApiError(
+          res.status >= 500 ? "unavailable" : "invalid",
+          message,
+        );
+      }
+      for (const app of body.apps ?? [])
+        if (app.packageName)
+          apps.push({
+            packageName: app.packageName,
+            displayName: app.displayName ?? null,
+          });
+      page = body.nextPageToken;
+      if (!page) break;
+    }
+    return apps;
   }
 
   async listReviews(

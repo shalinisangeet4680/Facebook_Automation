@@ -85,6 +85,13 @@
       "when": 1792150733844,
       "tag": "0011_play_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792155702482,
+      "tag": "0012_play_discovery",
+      "breakpoints": true
     }
   ]
 }

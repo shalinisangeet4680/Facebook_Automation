@@ -1,4 +1,5 @@
 import {
+  DiscoveredApp,
   PlayApi,
   PlayApiError,
   PlayReviewData,
@@ -139,8 +140,15 @@ function appStore(packageName: string): Map<string, Stored> {
   return reviews;
 }
 
+const extraApps: DiscoveredApp[] = [];
+
 export function resetMockPlay(): void {
   store.clear();
+  extraApps.length = 0;
+}
+
+export function addMockApp(app: DiscoveredApp): void {
+  extraApps.push(app);
 }
 
 export function addMockReview(
@@ -195,6 +203,21 @@ export class MockPlayApi implements PlayApi {
         "not_found",
         `${packageName} isn't in this Play Console account, or it has no production release yet.`,
       );
+  }
+
+  async listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]> {
+    if (key.clientEmail.startsWith("noreporting"))
+      throw new PlayApiError(
+        "disabled",
+        `Turn on the Google Play Developer Reporting API for project ${key.projectId} so Autopilot can find your apps: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${key.projectId}`,
+      );
+    if (!key.clientEmail.startsWith("discover")) return [];
+    return [
+      { packageName: "com.discover.shop", displayName: "Discover Shop" },
+      { packageName: "com.discover.wallet", displayName: "Discover Wallet" },
+      { packageName: "com.discover.denied", displayName: "No Reply Access" },
+      ...extraApps,
+    ];
   }
 
   async listReviews(

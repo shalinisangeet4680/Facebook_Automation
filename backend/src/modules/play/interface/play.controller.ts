@@ -43,11 +43,12 @@ import {
 } from "./dto/play.dto";
 import {
   BulkReplyResultDto,
+  ConnectResultDto,
+  DiscoveryResultDto,
   ImportResultDto,
   PlayInsightsDto,
   PlayAppDetailDto,
   PlayAppListDto,
-  PlayConnectionDto,
   PlayConnectionListDto,
   PlayReviewDto,
   PlayReviewListDto,
@@ -86,8 +87,18 @@ export class PlayController {
   connect(
     @CurrentUser() ctx: TenantContext,
     @Body() body: ConnectPlayDto,
-  ): Promise<PlayConnectionDto> {
+  ): Promise<ConnectResultDto> {
     return this.play.connect(actor(ctx), body.key);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("connections/:id/discover")
+  @HttpCode(HttpStatus.OK)
+  discover(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) connectionId: string,
+  ): Promise<DiscoveryResultDto> {
+    return this.play.discover(actor(ctx), connectionId);
   }
 
   @Delete("connections/:id")

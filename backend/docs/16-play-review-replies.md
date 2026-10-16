@@ -8,7 +8,9 @@ Module: `src/modules/play` (domain, application, infrastructure, interface, work
 
 - A **connection** is one Google Cloud service account key, stored encrypted (`CryptoService`). One connection covers every app the service account can see in Play Console.
 - The owner invites the service account email in Play Console → Users and permissions with **Reply to reviews** and **View app information**.
-- An **app** is a package name under a connection. Adding one checks access by listing reviews, reads the title and icon from the store listing (an edit that is always deleted), copies the preset templates into the workspace once, creates the six starter rules, and runs the first fetch.
+- **Apps are found automatically.** Connecting lists every app the service account can see through the Google Play Developer **Reporting** API (`apps.search`, scope `playdeveloperreporting`) and adds each one; **Find apps** on an account runs it again, and the worker repeats it once a day per connection, so apps granted later appear on their own. Apps the account can see but can't read reviews for are reported with the reason, not added. If the Reporting API isn't enabled in the key's project, connecting still works and the account shows a link to enable it; apps can always be added by package name.
+- Adding an app checks access by listing reviews, reads the title and icon from the store listing (an edit that is always deleted), copies the preset templates into the workspace once, creates the six starter rules, and runs the first fetch (the first 10 discovered apps immediately, the rest on the next worker tick).
+- An app's **first successful fetch** is recorded in `first_synced_at`; until then every automatic reply waits for approval, even if earlier fetches failed.
 - `PLAY_MOCK=true` swaps the Google client for a deterministic mock (8 sample reviews per package). Tests and the Playwright backend use it; never set it where real data is expected.
 
 ## Fetching
@@ -56,7 +58,8 @@ Module: `src/modules/play` (domain, application, infrastructure, interface, work
 
 | Endpoint | Purpose |
 | - | - |
-| `GET/POST /play/connections`, `DELETE /play/connections/:id` | Service account keys |
+| `GET/POST /play/connections`, `DELETE /play/connections/:id` | Service account keys; connecting also finds and adds apps |
+| `POST /play/connections/:id/discover` | Find apps the account can see and add new ones |
 | `GET/POST /play/apps`, `GET/PUT/DELETE /play/apps/:id` | Apps, settings and values |
 | `POST /play/apps/:id/sync` | Fetch now |
 | `GET /play/apps/:id/reviews` | Inbox with state, stars, language, version and search filters |

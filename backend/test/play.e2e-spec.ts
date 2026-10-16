@@ -5,11 +5,17 @@ import Redis from "ioredis";
 import { otpChallenges } from "@modules/auth/infrastructure/auth.tables";
 import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
 import { PlayEngine } from "@modules/play/application/play-engine.service";
+import { PlayService } from "@modules/play/application/play.service";
 import {
+  addMockApp,
   addMockReview,
   resetMockPlay,
 } from "@modules/play/infrastructure/mock-play.api";
-import { playReplies } from "@modules/play/infrastructure/play.tables";
+import { auditEvents } from "@modules/audit/infrastructure/audit.tables";
+import {
+  playApps,
+  playReplies,
+} from "@modules/play/infrastructure/play.tables";
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
@@ -659,5 +665,124 @@ describe("Play review replies", () => {
       (await api("DELETE", `/connections/${connectionId}`)).statusCode,
     ).toBe(204);
     expect((await api("GET", "/connections")).body.data).toEqual([]);
+  });
+
+  it("finds every app the service account can see and adds it", async () => {
+    const connected = await api("POST", "/connections", {
+      key: keyFile("discover@acme-play.iam.gserviceaccount.com"),
+    });
+    expect(connected.statusCode).toBe(201);
+    const discovery = connected.body.discovery as Json;
+    expect(discovery).toMatchObject({ found: 3, already: [], error: null });
+    expect(
+      (discovery.added as Json[])
+        .map((a) => a.title)
+        .sort((a, b) => a.localeCompare(b)),
+    ).toEqual(["Discover Shop", "Discover Wallet"]);
+    expect(discovery.failed).toEqual([
+      expect.objectContaining({
+        packageName: "com.discover.denied",
+        title: "No Reply Access",
+      }),
+    ]);
+    expect(discovery.failed[0].reason).toContain('"Reply to reviews"');
+
+    const apps = (await api("GET", "/apps")).body.data as Json[];
+    expect(
+      apps.map((a) => a.packageName).sort((a, b) => a.localeCompare(b)),
+    ).toEqual(["com.discover.shop", "com.discover.wallet"]);
+    expect(apps.every((a) => a.waiting === 8 && a.lastSyncedAt)).toBe(true);
+
+    const id = connected.body.id as string;
+    const again = await api("POST", `/connections/${id}/discover`);
+    expect(again.body).toMatchObject({ found: 3, added: [], error: null });
+    expect(again.body.already).toHaveLength(2);
+    const list = await api("GET", "/connections");
+    expect(list.body.data[0].discoveredAt).toBeTruthy();
+
+    addMockApp({
+      packageName: "com.discover.games",
+      displayName: "Discover Games",
+    });
+    const ownerApp = apps[0]!;
+    const workspaceId = (
+      await db
+        .select()
+        .from(playApps)
+        .where(eq(playApps.id, ownerApp.id as string))
+    )[0]!.workspaceId;
+    const daily = await app
+      .get(PlayService)
+      .discover({ userId: null, workspaceId, via: "automation" }, id);
+    expect(daily.added.map((a) => a.title)).toEqual(["Discover Games"]);
+    const events = await db
+      .select()
+      .from(auditEvents)
+      .where(eq(auditEvents.action, "play.apps_discovered"));
+    expect(events.some((e) => e.actor === "system")).toBe(true);
+  });
+
+  it("still connects when the Reporting API is off, and explains how to turn it on", async () => {
+    const connected = await api("POST", "/connections", {
+      key: keyFile("noreporting@acme-play.iam.gserviceaccount.com"),
+    });
+    expect(connected.statusCode).toBe(201);
+    expect(connected.body.discovery.error).toContain(
+      "playdeveloperreporting.googleapis.com?project=acme-play",
+    );
+    const list = (await api("GET", "/connections")).body.data as Json[];
+    expect(
+      list.find((c) => c.clientEmail.startsWith("noreporting"))!.discoveryError,
+    ).toContain("Reporting API");
+  });
+
+  it("holds automatic replies until an app's first successful fetch", async () => {
+    const apps = (await api("GET", "/apps")).body.data as Json[];
+    const target = apps.find((a) => a.packageName === "com.discover.shop")!;
+    const templates = (
+      await api("GET", `/templates?appId=${target.id as string}`)
+    ).body.data as Json[];
+    const thanks = templates.find((t) => t.presetKey === "thanks")!;
+    await api("PUT", `/apps/${target.id as string}/rules`, {
+      rules: [
+        {
+          name: "Auto thanks",
+          enabled: true,
+          conditions: { stars: [5] },
+          action: { type: "template", templateId: thanks.id },
+          mode: "auto",
+          delayMinutes: 0,
+        },
+      ],
+    });
+    await db
+      .update(playApps)
+      .set({
+        firstSyncedAt: null,
+        lastSyncedAt: new Date(),
+        syncError: "earlier failure",
+      })
+      .where(eq(playApps.id, target.id as string));
+    addMockReview("com.discover.shop", {
+      reviewId: "late-1",
+      stars: 5,
+      text: "Loving it",
+    });
+    await api("POST", `/apps/${target.id as string}/sync`);
+    const late = (
+      (await api("GET", `/apps/${target.id as string}/reviews?pageSize=100`))
+        .body.data as Json[]
+    ).find((r) => r.reviewId === "late-1")!;
+    expect(late.draft).toMatchObject({
+      status: "pending_approval",
+      note: "Reviews found when the app was added always wait for approval.",
+    });
+    const row = (
+      await db
+        .select()
+        .from(playApps)
+        .where(eq(playApps.id, target.id as string))
+    )[0]!;
+    expect(row.firstSyncedAt).toBeTruthy();
   });
 });

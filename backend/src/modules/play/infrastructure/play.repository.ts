@@ -50,6 +50,20 @@ export class PlayRepository {
       .orderBy(asc(playConnections.createdAt));
   }
 
+  connectionsDueForDiscovery(before: Date, limit: number) {
+    return this.db
+      .select()
+      .from(playConnections)
+      .where(
+        or(
+          isNull(playConnections.discoveredAt),
+          lt(playConnections.discoveredAt, before),
+        ),
+      )
+      .orderBy(asc(playConnections.discoveredAt))
+      .limit(limit);
+  }
+
   async connection(workspaceId: string, id: string) {
     return firstOrNull(
       await this.db

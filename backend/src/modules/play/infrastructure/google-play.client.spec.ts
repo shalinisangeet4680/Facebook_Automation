@@ -232,4 +232,67 @@ describe("GooglePlayClient", () => {
     });
     expect(seen).toContain("DELETE com.acme.shop/edits/e1");
   });
+
+  it("lists every app the account can see, with its own token scope", async () => {
+    const calls: string[] = [];
+    const http = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push(url);
+      if (url === key.tokenUri) {
+        const assertion = new URLSearchParams(
+          init!.body as URLSearchParams,
+        ).get("assertion")!;
+        const claims = JSON.parse(
+          Buffer.from(assertion.split(".")[1]!, "base64url").toString(),
+        ) as {
+          scope: string;
+        };
+        return json({
+          access_token: claims.scope.endsWith("playdeveloperreporting")
+            ? "rep"
+            : "pub",
+          expires_in: 3600,
+        });
+      }
+      if (url.includes("pageToken=p2"))
+        return json({
+          apps: [{ packageName: "com.acme.two", displayName: "Two" }],
+        });
+      return json({
+        apps: [
+          { packageName: "com.acme.one", displayName: "One" },
+          { name: "apps/x" },
+        ],
+        nextPageToken: "p2",
+      });
+    });
+    const client = new GooglePlayClient(http as unknown as typeof fetch);
+    await expect(client.listApps(key)).resolves.toEqual([
+      { packageName: "com.acme.one", displayName: "One" },
+      { packageName: "com.acme.two", displayName: "Two" },
+    ]);
+    expect(calls[1]).toBe(
+      "https://playdeveloperreporting.googleapis.com/v1beta1/apps:search?pageSize=1000",
+    );
+  });
+
+  it("explains how to turn on the Reporting API", async () => {
+    const http = vi.fn(async (url: string) =>
+      url === key.tokenUri
+        ? json({ access_token: "t", expires_in: 3600 })
+        : json(
+            {
+              error: {
+                status: "PERMISSION_DENIED",
+                message:
+                  "Google Play Developer Reporting API has not been used in project 123 before or it is disabled.",
+              },
+            },
+            403,
+          ),
+    );
+    const client = new GooglePlayClient(http as unknown as typeof fetch);
+    await expect(client.listApps(key)).rejects.toThrow(
+      "https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=acme-play",
+    );
+  });
 });

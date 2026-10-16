@@ -116,7 +116,8 @@ export class PlayEngine {
     return null;
   }
 
-  async sync(app: PlayAppRow, options: { firstSync?: boolean } = {}) {
+  async sync(app: PlayAppRow) {
+    const firstSync = !app.firstSyncedAt;
     const key = await this.keyFor(app);
     let data: PlayReviewData[];
     try {
@@ -202,11 +203,12 @@ export class PlayEngine {
       if (edited) touched.push(updated);
     }
     const drafts = app.automation
-      ? await this.automate(app, touched, Boolean(options.firstSync))
+      ? await this.automate(app, touched, firstSync)
       : 0;
     await this.repo.updateApp(app.id, {
       lastSyncedAt: new Date(),
       syncError: null,
+      ...(firstSync ? { firstSyncedAt: new Date() } : {}),
       ...(latest && (!app.latestVersion || latest.name !== app.latestVersion)
         ? { latestVersion: latest.name }
         : {}),

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, MessageSquareReply, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, MessageSquareReply, Plus, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,14 +17,16 @@ import { EmptyState, ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import {
   useAddPlayApp,
+  useDiscoverApps,
   usePlayApps,
   usePlayConnections,
   useRemovePlayConnection,
 } from "@/lib/api/queries";
-import type { PlayApp, PlayConnection } from "@/lib/api/types";
+import type { PlayApp, PlayConnection, PlayDiscovery } from "@/lib/api/types";
 
 import { Sparkline, StatTile } from "./charts";
 import { ConnectPlay } from "./connect-play";
+import { DiscoveryPanel, Linkified } from "./discovery";
 import { MODE, ago } from "./labels";
 import { Rating } from "./stars";
 
@@ -59,6 +61,7 @@ export function ReviewApps() {
   const apps = usePlayApps();
   const [adding, setAdding] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [discovery, setDiscovery] = useState<PlayDiscovery | null>(null);
   const hasConnection = Boolean(connections.data?.data.length);
 
   return (
@@ -73,7 +76,7 @@ export function ReviewApps() {
                 Connect another account
               </Button>
               <Button onClick={() => setAdding(true)}>
-                <Plus /> Add app
+                <Plus /> Add by package name
               </Button>
             </>
           ) : null
@@ -94,9 +97,12 @@ export function ReviewApps() {
           }}
         />
       ) : !hasConnection ? (
-        <ConnectPlay />
+        <ConnectPlay onDone={setDiscovery} />
       ) : (
         <div className="grid gap-8">
+          {discovery ? (
+            <DiscoveryPanel result={discovery} onClose={() => setDiscovery(null)} />
+          ) : null}
           {apps.data.data.length ? <Summary apps={apps.data.data} /> : null}
           {apps.data.data.length ? (
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -108,8 +114,8 @@ export function ReviewApps() {
             <Card>
               <EmptyState
                 icon={<MessageSquareReply className="size-5" />}
-                title="Add your first app"
-                description="Use the package name from your Play Store link, like com.acme.shop."
+                title="No apps yet"
+                description="Use Find apps on your account below after giving it access in Play Console, or add an app by its package name."
                 action={
                   <Button onClick={() => setAdding(true)}>
                     <Plus /> Add app
@@ -118,7 +124,7 @@ export function ReviewApps() {
               />
             </Card>
           )}
-          <Connections connections={connections.data.data} />
+          <Connections connections={connections.data.data} onDiscovered={setDiscovery} />
         </div>
       )}
       {hasConnection ? (
@@ -130,7 +136,13 @@ export function ReviewApps() {
       ) : null}
       <Dialog open={connecting} onOpenChange={setConnecting}>
         <DialogContent title="Connect another Google Play account" className="max-w-xl">
-          <ConnectPlay compact onDone={() => setConnecting(false)} />
+          <ConnectPlay
+            compact
+            onDone={(d) => {
+              setConnecting(false);
+              setDiscovery(d);
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -330,8 +342,15 @@ function AddAppDialog({
   );
 }
 
-function Connections({ connections }: { connections: PlayConnection[] }) {
+function Connections({
+  connections,
+  onDiscovered,
+}: {
+  connections: PlayConnection[];
+  onDiscovered: (d: PlayDiscovery) => void;
+}) {
   const remove = useRemovePlayConnection();
+  const discover = useDiscoverApps();
   const [confirm, setConfirm] = useState<PlayConnection | null>(null);
   return (
     <section aria-label="Connected Google Play accounts">
@@ -343,9 +362,28 @@ function Connections({ connections }: { connections: PlayConnection[] }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[14px] font-medium">{c.clientEmail}</p>
                 <p className="text-caption text-muted">
-                  Project {c.projectId} · {c.apps} {c.apps === 1 ? "app" : "apps"}
+                  Project {c.projectId} · {c.apps} {c.apps === 1 ? "app" : "apps"} · checked for new
+                  apps {ago(c.discoveredAt)}
                 </p>
+                {c.discoveryError ? (
+                  <p className="text-caption text-warning mt-1">
+                    <Linkified text={c.discoveryError} />
+                  </p>
+                ) : null}
               </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={discover.isPending && discover.variables === c.id}
+                onClick={() =>
+                  discover.mutate(c.id, {
+                    onSuccess: onDiscovered,
+                    onError: (err) => toast.error(errorMessage(err)),
+                  })
+                }
+              >
+                <RefreshCw /> Find apps
+              </Button>
               <Badge tone={c.status === "active" ? "success" : "danger"}>
                 {c.status === "active" ? "Connected" : "Needs attention"}
               </Badge>

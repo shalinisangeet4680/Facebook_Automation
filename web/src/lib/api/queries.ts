@@ -559,7 +559,16 @@ export function useConnectPlay() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (key: string) => unwrap(api.POST("/api/v1/play/connections", { body: { key } })),
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.playConnections }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function useDiscoverApps() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.POST("/api/v1/play/connections/{id}/discover", { params: { path: { id } } })),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.play }),
   });
 }
 

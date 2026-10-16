@@ -58,6 +58,8 @@ export const playConnections = pgTable(
     status: playConnectionStatus("status").notNull().default("active"),
     error: text("error"),
     checkedAt: timestamp("checked_at", { withTimezone: true }),
+    discoveredAt: timestamp("discovered_at", { withTimezone: true }),
+    discoveryError: text("discovery_error"),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -91,6 +93,7 @@ export const playApps = pgTable(
       .default({}),
     latestVersion: text("latest_version"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    firstSyncedAt: timestamp("first_synced_at", { withTimezone: true }),
     syncError: text("sync_error"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
