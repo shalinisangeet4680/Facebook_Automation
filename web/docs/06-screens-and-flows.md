@@ -104,7 +104,7 @@ Settings has four sections:
 - **Connections:** Meta and Claude.
 - **Sign out everywhere.**
 
-## 13. Play Store (`/store`, `/store/:id`)
+## 13. Store listing (`/store`, `/store/:id`)
 
 The list shows each app's store listing project with its cover, status and languages. With no projects it explains how to start: connect Claude, install the store-creatives plugin and run `/store-creatives:store-creatives` in the app's folder.
 
@@ -115,6 +115,18 @@ A project page has:
 
 The page polls every 4 seconds until the set is uploaded, so images appear while the plugin uploads them.
 
-## 14. States everywhere
+## 14. Review replies (`/reviews`, `/reviews/:id`)
+
+The sidebar groups Meta ads (Campaigns, Creatives, Page & Instagram, Reports) and Google Play (Store listing, Review replies). Review replies shows a count of reviews that need a reply.
+
+- **Apps page:** a guided connect card until a Google Play service account is connected; then a summary row (30-day average rating across apps, need a reply, waiting for approval, waiting for Claude), one card per app (rating with change, 8-week rating sparkline, queues, mode, last check) and the connected accounts.
+- **App page tabs:**
+  - **Reviews:** status chips with counts, star, language, version and search filters, review cards with a rating-coloured edge, the reply composer (fill from template with live preview, 350-character counter, approve, save, discard, edit a posted reply), scheduled and Claude states, bulk reply, pages.
+  - **Insights:** period chips, stat tiles with change against the previous period, reviews by rating over time, average rating, star breakdown, rating by version, languages, common words in unhappy and happy reviews; every chart has a table view. Import history uploads Play Console reports.
+  - **Templates:** library with category, scope, languages, usage and problems; editor with languages, several wordings, placeholder chips and a live preview.
+  - **Rules:** automation switch, safeguard summary, rules as one-line summaries that expand to edit, reorder, save.
+  - **Settings:** app name, placeholder values, quiet hours and time zone, daily limit, never-auto words, edited reviews, translation, remove app.
+
+## 15. States everywhere
 
 Loading uses skeletons shaped like the content. Errors show the backend message with a Retry action. Empty states explain what to do next.

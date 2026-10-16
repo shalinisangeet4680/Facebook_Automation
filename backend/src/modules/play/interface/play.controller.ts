@@ -10,11 +10,19 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from "@nestjs/common";
-import { ApiDefaultResponse, ApiTags } from "@nestjs/swagger";
+import { FastifyRequest } from "fastify";
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiDefaultResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
+import { ValidationError } from "@shared/errors/domain-error";
 import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
@@ -35,6 +43,8 @@ import {
 } from "./dto/play.dto";
 import {
   BulkReplyResultDto,
+  ImportResultDto,
+  PlayInsightsDto,
   PlayAppDetailDto,
   PlayAppListDto,
   PlayConnectionDto,
@@ -136,6 +146,45 @@ export class PlayController {
     @Param("id", id) appId: string,
   ): Promise<SyncResultDto> {
     return this.play.syncNow(actor(ctx), appId);
+  }
+
+  @Get("apps/:id/insights")
+  insights(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+    @Query("days") days = "30",
+  ): Promise<PlayInsightsDto> {
+    const n = Number(days);
+    if (![7, 30, 90, 365].includes(n))
+      throw new ValidationError("days must be 7, 30, 90 or 365.");
+    return this.play.insights(ctx.workspaceId, appId, n);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("apps/:id/import")
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["file"],
+      properties: { file: { type: "string", format: "binary" } },
+    },
+  })
+  async importReport(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+    @Req() req: FastifyRequest,
+  ): Promise<ImportResultDto> {
+    if (!req.isMultipart())
+      throw new ValidationError("Upload the report as multipart/form-data.");
+    const file = await req.file({
+      limits: { fileSize: 25 * 1024 * 1024 + 1, files: 1 },
+    });
+    if (!file) throw new ValidationError("Choose a reviews report to upload.");
+    const buffer = await file.toBuffer().catch(() => {
+      throw new ValidationError("Reports can be at most 25 MB.");
+    });
+    return this.play.importReport(actor(ctx), appId, buffer);
   }
 
   @Get("apps/:id/reviews")

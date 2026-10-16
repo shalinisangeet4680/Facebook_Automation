@@ -25,7 +25,7 @@ export function StoreProjects() {
   return (
     <>
       <PageHeader
-        title="Play Store"
+        title="Store listing"
         description="Google Play screenshots and feature graphics made from your app. Claude Code reads your app, captures its screens and renders the images on your computer; you choose the style here."
       />
       {projects.isPending ? (
@@ -133,7 +133,7 @@ function ProjectCard({ project }: { project: StoreProject }) {
 export function BackToStore() {
   return (
     <Button asChild variant="link" size="sm">
-      <Link href="/store">Play Store</Link>
+      <Link href="/store">Store listing</Link>
     </Button>
   );
 }

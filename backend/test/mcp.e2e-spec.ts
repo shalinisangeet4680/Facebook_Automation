@@ -360,17 +360,23 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_performance",
       "get_planning_context",
       "get_profile_checkup",
+      "get_review_insights",
+      "get_review_templates",
       "get_suggestions",
       "list_campaign_plans",
       "list_campaigns",
       "list_creatives",
+      "list_play_apps",
+      "list_play_reviews",
       "list_social_posts",
       "pause",
       "propose_campaign_plan",
       "publish_post",
       "save_ad_creative",
       "save_profile_draft",
+      "save_review_drafts",
       "search_targeting",
+      "send_review_reply",
       "store_get_project",
       "store_save_project",
       "store_start_upload",
@@ -946,6 +952,111 @@ describe("Claude connector (OAuth + MCP)", () => {
     expect(all.data.data).toHaveLength(1);
   });
 
+  it("lets Claude draft and send Google Play review replies", async () => {
+    const key = JSON.stringify({
+      type: "service_account",
+      project_id: "acme-play",
+      private_key:
+        "-----BEGIN PRIVATE KEY-----\nx\n-----END PRIVATE KEY-----\n",
+      client_email: "claude-test@acme-play.iam.gserviceaccount.com",
+    });
+    const connection = await call(app, "POST", "/api/v1/play/connections", {
+      headers: session,
+      body: { key },
+    });
+    const added = await call(app, "POST", "/api/v1/play/apps", {
+      headers: session,
+      body: {
+        connectionId: connection.body.id,
+        packageName: "com.claude.reviews",
+      },
+    });
+    const appId = added.body.id as string;
+
+    const apps = await tool(accessToken, "list_play_apps");
+    expect(apps.data.data[0]).toMatchObject({ id: appId, waiting: 8 });
+
+    const list = await tool(accessToken, "list_play_reviews", {
+      app_id: appId,
+      stars: [1],
+      limit: 5,
+    });
+    expect(list.data.total).toBe(2);
+    const crash = (list.data.reviews as Record<string, any>[]).find((r) =>
+      r.text.includes("crashing"),
+    )!;
+    expect(crash).toMatchObject({
+      author: "Rahul Verma",
+      can_reply: true,
+      draft: { status: "pending_approval" },
+    });
+
+    const templates = await tool(accessToken, "get_review_templates", {
+      app_id: appId,
+    });
+    expect(templates.data.reply_max).toBe(350);
+    expect(
+      (templates.data.templates as unknown[]).length,
+    ).toBeGreaterThanOrEqual(7);
+
+    const insights = await tool(accessToken, "get_review_insights", {
+      app_id: appId,
+      days: 30,
+    });
+    expect(insights.data).toMatchObject({
+      reviews: 8,
+      distribution: [2, 1, 1, 1, 3],
+    });
+
+    const drafted = await tool(accessToken, "save_review_drafts", {
+      app_id: appId,
+      drafts: [
+        {
+          review_id: crash.review_id,
+          text: "Sorry Rahul, we found the orders crash and fixed it in 2.3.2.",
+        },
+      ],
+    });
+    expect(drafted.data).toEqual({
+      saved: [{ review_id: crash.review_id, state: "waiting" }],
+      url: `${APP_URL}/reviews/${appId}`,
+    });
+
+    const args = {
+      app_id: appId,
+      review_id: crash.review_id,
+      text: "Sorry Rahul, fixed in 2.3.2. Please update!",
+    };
+    const first = await tool(accessToken, "send_review_reply", args);
+    expect(first.data.status).toBe("confirmation_required");
+    expect(first.data.summary).toContain("Rahul Verma's 1-star review");
+    const wrong = await tool(accessToken, "send_review_reply", {
+      ...args,
+      text: "different",
+      confirm_token: first.data.confirmToken,
+    });
+    expect(wrong.data.status).toBe("invalid_confirmation");
+    const second = await tool(accessToken, "send_review_reply", args);
+    const sent = await tool(accessToken, "send_review_reply", {
+      ...args,
+      confirm_token: second.data.confirmToken,
+    });
+    expect(sent.data).toMatchObject({
+      status: "sent",
+      reply: { text: args.text },
+    });
+
+    await call(app, "DELETE", `/api/v1/play/apps/${appId}`, {
+      headers: session,
+    });
+    await call(
+      app,
+      "DELETE",
+      `/api/v1/play/connections/${connection.body.id as string}`,
+      { headers: session },
+    );
+  });
+
   it("refuses objects outside the selected ad account", async () => {
     const res = await tool(accessToken, "pause", { id: "999999999" });
     expect(res.isError).toBe(true);
@@ -994,7 +1105,9 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(13);
+    expect(names).toHaveLength(17);
+    expect(names).toContain("list_play_reviews");
+    expect(names).not.toContain("send_review_reply");
     expect(names).toContain("store_get_project");
     expect(names).not.toContain("activate");
     expect(names).not.toContain("store_save_project");

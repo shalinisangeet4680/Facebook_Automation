@@ -308,6 +308,10 @@ export class PlayEngine {
     ]);
     if (!review || !app)
       throw new NotFoundError("This review no longer exists.");
+    if (review.reviewId.startsWith("csv:"))
+      throw new ValidationError(
+        "This review came from a report without a review link, so Google Play can't take a reply for it here. Reply in Play Console.",
+      );
     try {
       const sent = await this.api.reply(
         await this.keyFor(app),

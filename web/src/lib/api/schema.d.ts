@@ -852,6 +852,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play/apps/{id}/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_insights_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/apps/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_importReport_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/apps/{id}/reviews": {
         parameters: {
             query?: never;
@@ -1815,6 +1847,7 @@ export interface components {
             key: string;
         };
         PlayAppDto: {
+            trend: (number | null)[];
             id: string;
             packageName: string;
             title: string;
@@ -1861,6 +1894,7 @@ export interface components {
             drafts: number;
         };
         PlayAppDetailDto: {
+            trend: (number | null)[];
             variables: {
                 [key: string]: string;
             };
@@ -1908,6 +1942,52 @@ export interface components {
                 [key: string]: string;
             };
         };
+        InsightPointDto: {
+            stars: number[];
+            start: string;
+            total: number;
+            rating: number | null;
+        };
+        VersionInsightDto: {
+            version: string;
+            reviews: number;
+            rating: number;
+        };
+        LanguageInsightDto: {
+            language: string;
+            reviews: number;
+        };
+        WordInsightDto: {
+            word: string;
+            reviews: number;
+        };
+        PlayInsightsDto: {
+            distribution: number[];
+            days: number;
+            weekly: boolean;
+            rating: number | null;
+            previousRating: number | null;
+            reviews: number;
+            previousReviews: number;
+            textReviews: number;
+            replyRate: number | null;
+            previousReplyRate: number | null;
+            medianReplyHours: number | null;
+            series: components["schemas"]["InsightPointDto"][];
+            versions: components["schemas"]["VersionInsightDto"][];
+            languages: components["schemas"]["LanguageInsightDto"][];
+            complaints: components["schemas"]["WordInsightDto"][];
+            praise: components["schemas"]["WordInsightDto"][];
+        };
+        ImportResultDto: {
+            rows: number;
+            imported: number;
+            alreadyHere: number;
+            skipped: number;
+            ratingOnly: number;
+            from: string;
+            to: string;
+        };
         PostedReplyDto: {
             text: string;
             repliedAt: string | null;
@@ -1945,6 +2025,7 @@ export interface components {
             reply: components["schemas"]["PostedReplyDto"] | null;
             editedAfterReply: boolean;
             starsBeforeEdit: number | null;
+            canReply: boolean;
             draft: components["schemas"]["ReplyViewDto"] | null;
         };
         ReviewCountsDto: {
@@ -4155,6 +4236,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_insights_v1: {
+        parameters: {
+            query?: {
+                days?: unknown;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInsightsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_importReport_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResultDto"];
                 };
             };
             default: {

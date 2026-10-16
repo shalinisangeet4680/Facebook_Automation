@@ -1,6 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 import { AuditService } from "@modules/audit/application/audit.service";
+import { AppConfig, appUrl } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
@@ -17,7 +19,9 @@ import {
   TemplateBody,
   TemplateCategory,
 } from "../domain/play.types";
+import { computeInsights } from "../domain/insights";
 import { PRESET_RULES, PRESET_TEMPLATES } from "../domain/presets";
+import { parseReport } from "../domain/report-csv";
 import { PACKAGE_NAME, parseServiceAccount } from "../domain/service-account";
 import {
   BUILT_IN_VARIABLES,
@@ -89,7 +93,85 @@ export class PlayService {
     private readonly engine: PlayEngine,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
+
+  reviewsUrl(appId: string) {
+    return `${appUrl(this.config)}/reviews/${appId}`;
+  }
+
+  async forClaude(
+    workspaceId: string,
+    appId: string,
+    state: ReviewState | undefined,
+    stars: number[] | undefined,
+    limit: number,
+  ) {
+    const list = await this.reviews(workspaceId, appId, {
+      state,
+      stars,
+      pageSize: limit,
+    });
+    return {
+      total: list.total,
+      counts: list.counts,
+      url: this.reviewsUrl(appId),
+      reviews: list.data.map((r) => ({
+        review_id: r.id,
+        stars: r.stars,
+        author: r.authorName || "A Google user",
+        text: r.text,
+        ...(r.originalText ? { original_text: r.originalText } : {}),
+        language: r.language,
+        app_version: r.appVersionName,
+        reviewed_at: r.reviewedAt,
+        state: r.state,
+        can_reply: r.canReply,
+        ...(r.reply ? { current_reply: r.reply.text } : {}),
+        ...(r.draft
+          ? {
+              draft: {
+                text: r.draft.text,
+                status: r.draft.status,
+                note: r.draft.note,
+              },
+            }
+          : {}),
+        ...(r.editedAfterReply
+          ? { updated_after_reply: true, stars_before: r.starsBeforeEdit }
+          : {}),
+      })),
+    };
+  }
+
+  async reviewForClaude(workspaceId: string, appId: string, reviewId: string) {
+    const app = await this.appRow(workspaceId, appId);
+    const view = await this.view(app, reviewId);
+    if (!view.canReply)
+      throw new ValidationError(
+        "This review came from a report without a review link; reply in Play Console.",
+      );
+    return {
+      author: view.authorName || "A Google user",
+      stars: view.stars,
+      current_reply: view.reply?.text ?? null,
+    };
+  }
+
+  async templatesForClaude(workspaceId: string, appId: string) {
+    const app = await this.appRow(workspaceId, appId);
+    const list = await this.templates(workspaceId, app.id);
+    return {
+      app: app.title,
+      values: this.engine.values(app, null),
+      templates: list.data.map((t) => ({
+        name: t.name,
+        category: t.category,
+        bodies: t.bodies,
+      })),
+      reply_max: REPLY_MAX,
+    };
+  }
 
   private get repo() {
     return this.engine.repo;
@@ -171,7 +253,25 @@ export class PlayService {
   }
 
   private async card(app: PlayAppRow, connections: Map<string, string>) {
-    const stats = await this.repo.appStats(app.id, new Date());
+    const now = new Date();
+    const stats = await this.repo.appStats(app.id, now);
+    const recent = await this.repo.reviewsSince(
+      app.id,
+      new Date(now.getTime() - 56 * 86_400_000),
+    );
+    const trend = Array.from({ length: 8 }, (_, i) => {
+      const to = now.getTime() - (7 - i) * 7 * 86_400_000;
+      const week = recent.filter(
+        (r) =>
+          r.reviewedAt.getTime() > to - 7 * 86_400_000 &&
+          r.reviewedAt.getTime() <= to,
+      );
+      return week.length
+        ? Math.round(
+            (week.reduce((n, r) => n + r.stars, 0) / week.length) * 100,
+          ) / 100
+        : null;
+    });
     const rules = await this.repo.rules(app.id);
     const enabled = rules.filter((r) => r.enabled);
     return {
@@ -200,6 +300,66 @@ export class PlayService {
       scheduled: stats.waiting.scheduled ?? 0,
       lastSyncedAt: app.lastSyncedAt?.toISOString() ?? null,
       syncError: app.syncError,
+      trend,
+    };
+  }
+
+  async insights(workspaceId: string, appId: string, days: number) {
+    const app = await this.appRow(workspaceId, appId);
+    const now = new Date();
+    const reviews = await this.repo.reviewsSince(
+      app.id,
+      new Date(now.getTime() - 2 * days * 86_400_000),
+    );
+    return computeInsights({
+      reviews,
+      now,
+      days,
+      timezone: app.settings.timezone,
+      appTitle: app.title,
+    });
+  }
+
+  async importReport(actor: PlayActor, appId: string, file: Buffer) {
+    const app = await this.appRow(actor.workspaceId, appId);
+    const parsed = parseReport(file);
+    if (typeof parsed === "string") throw new ValidationError(parsed);
+    const other = parsed.packages.filter((p) => p !== app.packageName);
+    if (other.length)
+      throw new ValidationError(
+        `This report is for ${other.join(", ")}, not ${app.packageName}.`,
+      );
+    if (!parsed.rows.length)
+      throw new ValidationError("The report has no reviews.");
+    const imported = await this.repo.insertReviews(
+      parsed.rows.map((r) => ({
+        workspaceId: app.workspaceId,
+        appId: app.id,
+        reviewId: r.reviewId,
+        stars: r.stars,
+        text: r.text,
+        language: r.language,
+        appVersionName: r.appVersionName,
+        appVersionCode: r.appVersionCode,
+        device: r.device,
+        reviewedAt: r.reviewedAt,
+        replyText: r.replyText,
+        repliedAt: r.repliedAt,
+      })),
+    );
+    await this.record(actor, "play.report_imported", app.id, {
+      rows: parsed.rows.length,
+      imported,
+    });
+    const times = parsed.rows.map((r) => r.reviewedAt.getTime());
+    return {
+      rows: parsed.rows.length,
+      imported,
+      alreadyHere: parsed.rows.length - imported,
+      skipped: parsed.skipped,
+      ratingOnly: parsed.rows.filter((r) => !r.text).length,
+      from: new Date(Math.min(...times)).toISOString(),
+      to: new Date(Math.max(...times)).toISOString(),
     };
   }
 
@@ -460,6 +620,7 @@ export class PlayService {
         : null,
       editedAfterReply: review.editedAfterReply,
       starsBeforeEdit: review.starsBeforeEdit,
+      canReply: !review.reviewId.startsWith("csv:"),
       state,
       draft: draft ? this.replyView(draft) : null,
     };

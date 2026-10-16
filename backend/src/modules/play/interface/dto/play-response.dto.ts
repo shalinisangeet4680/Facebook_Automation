@@ -39,6 +39,8 @@ export class PlayAppDto {
   scheduled: number;
   lastSyncedAt: string | null;
   syncError: string | null;
+  @ApiProperty({ type: "array", items: { type: "number", nullable: true } })
+  trend: (number | null)[];
 }
 
 export class PlayAppListDto {
@@ -114,6 +116,7 @@ export class PlayReviewDto {
   reply: PostedReplyDto | null;
   editedAfterReply: boolean;
   starsBeforeEdit: number | null;
+  canReply: boolean;
   @ApiProperty({ enum: REVIEW_STATES })
   state: (typeof REVIEW_STATES)[number];
   draft: ReplyViewDto | null;
@@ -246,4 +249,58 @@ export class PlayRuleDto {
 
 export class PlayRuleListDto {
   data: PlayRuleDto[];
+}
+
+export class InsightPointDto {
+  start: string;
+  @ApiProperty({ type: [Number] })
+  stars: number[];
+  total: number;
+  rating: number | null;
+}
+
+export class VersionInsightDto {
+  version: string;
+  reviews: number;
+  rating: number;
+}
+
+export class LanguageInsightDto {
+  language: string;
+  reviews: number;
+}
+
+export class WordInsightDto {
+  word: string;
+  reviews: number;
+}
+
+export class PlayInsightsDto {
+  days: number;
+  weekly: boolean;
+  rating: number | null;
+  previousRating: number | null;
+  reviews: number;
+  previousReviews: number;
+  textReviews: number;
+  replyRate: number | null;
+  previousReplyRate: number | null;
+  medianReplyHours: number | null;
+  @ApiProperty({ type: [Number] })
+  distribution: number[];
+  series: InsightPointDto[];
+  versions: VersionInsightDto[];
+  languages: LanguageInsightDto[];
+  complaints: WordInsightDto[];
+  praise: WordInsightDto[];
+}
+
+export class ImportResultDto {
+  rows: number;
+  imported: number;
+  alreadyHere: number;
+  skipped: number;
+  ratingOnly: number;
+  from: string;
+  to: string;
 }

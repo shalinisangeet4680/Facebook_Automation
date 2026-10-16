@@ -18,16 +18,18 @@ import { cn } from "@/lib/utils";
 
 import { AppIcon } from "./apps-page";
 import { MODE, ago } from "./labels";
+import { InsightsTab } from "./insights-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { RulesTab } from "./rules-tab";
 import { SettingsTab } from "./settings-tab";
 import { Rating } from "./stars";
 import { TemplatesTab } from "./templates-tab";
 
-const TABS = ["reviews", "templates", "rules", "settings"] as const;
+const TABS = ["reviews", "insights", "templates", "rules", "settings"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABELS: Record<Tab, string> = {
   reviews: "Reviews",
+  insights: "Insights",
   templates: "Templates",
   rules: "Rules",
   settings: "Settings",
@@ -133,6 +135,7 @@ function AppBody({ app }: { app: PlayAppDetail }) {
       </div>
       <div role="tabpanel" aria-label={TAB_LABELS[tab]}>
         {tab === "reviews" ? <ReviewsTab app={app} /> : null}
+        {tab === "insights" ? <InsightsTab app={app} /> : null}
         {tab === "templates" ? <TemplatesTab app={app} /> : null}
         {tab === "rules" ? <RulesTab app={app} onOpenSettings={() => setTab("settings")} /> : null}
         {tab === "settings" ? <SettingsTab key={app.id} app={app} /> : null}

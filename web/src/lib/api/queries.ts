@@ -54,6 +54,7 @@ export const keys = {
     ["play", "apps", id, "reviews", filters] as const,
   playTemplates: (appId?: string) => ["play", "templates", appId ?? "all"] as const,
   playRules: (id: string) => ["play", "apps", id, "rules"] as const,
+  playInsights: (id: string, days: number) => ["play", "apps", id, "insights", days] as const,
   storeProject: (id: string) => ["store", id] as const,
 };
 
@@ -780,5 +781,36 @@ export function useSaveRules(appId: string) {
       void client.invalidateQueries({ queryKey: ["play", "templates"] });
       invalidate(appId);
     },
+  });
+}
+
+export function usePlayInsights(id: string, days: number) {
+  return useQuery({
+    queryKey: keys.playInsights(id, days),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/play/apps/{id}/insights", {
+          params: { path: { id }, query: { days: String(days) } },
+        }),
+      ),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useImportReport(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return unwrap(
+        api.POST("/api/v1/play/apps/{id}/import", {
+          params: { path: { id } },
+          body: form as unknown as { file: string },
+          bodySerializer: (body) => body as unknown as FormData,
+        }),
+      );
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.playApp(id) }),
   });
 }

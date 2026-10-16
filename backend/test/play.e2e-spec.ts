@@ -13,7 +13,7 @@ import { playReplies } from "@modules/play/infrastructure/play.tables";
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
-import { call } from "./helpers";
+import { call, multipartFields } from "./helpers";
 
 const OWNER = "9000000015";
 const OTHER = "9000000016";
@@ -560,6 +560,86 @@ describe("Play review replies", () => {
       reply: { text: "Thanks Neha, we're making it faster." },
       draft: { note: "Today's limit of 1 automatic replies is reached." },
     });
+  });
+
+  it("charts insights and imports Play Console reports", async () => {
+    const bad = await api("GET", `/apps/${appId}/insights?days=12`);
+    expect(bad.statusCode).toBe(400);
+    const insights = await api("GET", `/apps/${appId}/insights?days=30`);
+    expect(insights.body).toMatchObject({ days: 30, weekly: false });
+    expect(insights.body.series).toHaveLength(30);
+    expect(
+      insights.body.distribution.reduce((a: number, b: number) => a + b, 0),
+    ).toBe(insights.body.reviews);
+
+    const header =
+      "Package Name,App Version Code,App Version Name,Reviewer Language,Device,Review Submit Date and Time,Review Submit Millis Since Epoch,Review Last Update Date and Time,Review Last Update Millis Since Epoch,Star Rating,Review Title,Review Text,Developer Reply Date and Time,Developer Reply Millis Since Epoch,Developer Reply Text,Review Link";
+    const month = Date.now() - 20 * 86_400_000;
+    const csv = [
+      header,
+      `com.acme.shop,220,2.2.0,en,a05m,,${month},,${month},2,,"Login is broken",,,,http://play.google.com/console/x/review-details?reviewId=gp:OLD1`,
+      `com.acme.shop,220,2.2.0,en,a05m,,${month + 1000},,${month + 1000},4,,,,,,`,
+      `com.acme.shop,220,2.2.0,en,a05m,,${month + 2000},,${month + 2000},1,,"No link here",,,,`,
+    ].join("\n");
+    const upload = (buffer: Buffer) => {
+      const body = multipartFields(
+        buffer,
+        "text/csv",
+        "reviews_com.acme.shop_202609.csv",
+        {},
+      );
+      return app.inject({
+        method: "POST",
+        url: `/api/v1/play/apps/${appId}/import`,
+        headers: { ...owner, "content-type": body.contentType },
+        payload: body.payload,
+      });
+    };
+    const utf16 = Buffer.concat([
+      Buffer.from([0xff, 0xfe]),
+      Buffer.from(csv, "utf16le"),
+    ]);
+    const imported = await upload(utf16);
+    expect(imported.statusCode).toBe(201);
+    expect(imported.json()).toMatchObject({
+      rows: 3,
+      imported: 3,
+      alreadyHere: 0,
+      ratingOnly: 1,
+    });
+    expect((await upload(utf16)).json()).toMatchObject({
+      imported: 0,
+      alreadyHere: 3,
+    });
+    const wrongApp = await upload(
+      Buffer.from(csv.replaceAll("com.acme.shop", "com.other.app")),
+    );
+    expect(wrongApp.json().message).toBe(
+      "This report is for com.other.app, not com.acme.shop.",
+    );
+
+    const old = await byGoogleId("gp:OLD1");
+    expect(old).toMatchObject({ canReply: true, state: "unreplied", stars: 2 });
+    const noLink = (
+      (await reviews("?q=No%20link&pageSize=5")).data as Json[]
+    )[0]!;
+    expect(noLink.canReply).toBe(false);
+    const refused = await api(
+      "POST",
+      `/apps/${appId}/reviews/${noLink.id as string}/reply`,
+      { text: "Thanks" },
+    );
+    expect(refused.body.message).toContain("Reply in Play Console");
+    expect(
+      ((await reviews("?pageSize=100")).data as Json[]).some(
+        (r) => r.text === "",
+      ),
+    ).toBe(false);
+
+    const longer = await api("GET", `/apps/${appId}/insights?days=90`);
+    expect(longer.body.weekly).toBe(true);
+    expect(longer.body.reviews).toBe(insights.body.reviews + 3);
+    expect(longer.body.complaints.map((w: Json) => w.word)).toContain("login");
   });
 
   it("keeps everything inside the workspace and cleans up", async () => {

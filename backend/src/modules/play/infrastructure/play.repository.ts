@@ -185,6 +185,33 @@ export class PlayRepository {
       );
   }
 
+  reviewsSince(appId: string, since: Date) {
+    return this.db
+      .select()
+      .from(playReviews)
+      .where(
+        and(eq(playReviews.appId, appId), gte(playReviews.reviewedAt, since)),
+      )
+      .orderBy(asc(playReviews.reviewedAt))
+      .limit(50_000);
+  }
+
+  async insertReviews(values: (typeof playReviews.$inferInsert)[]) {
+    if (!values.length) return 0;
+    let inserted = 0;
+    for (let i = 0; i < values.length; i += 500) {
+      const rows = await this.db
+        .insert(playReviews)
+        .values(values.slice(i, i + 500))
+        .onConflictDoNothing({
+          target: [playReviews.appId, playReviews.reviewId],
+        })
+        .returning({ id: playReviews.id });
+      inserted += rows.length;
+    }
+    return inserted;
+  }
+
   async insertReview(tx: Executor, values: typeof playReviews.$inferInsert) {
     const [row] = await tx.insert(playReviews).values(values).returning();
     return row!;
@@ -235,7 +262,10 @@ export class PlayRepository {
     },
     limit: number,
   ) {
-    const where = [eq(playReviews.appId, appId)];
+    const where = [
+      eq(playReviews.appId, appId),
+      sql`${playReviews.text} <> ''`,
+    ];
     if (filters.stars?.length)
       where.push(inArray(playReviews.stars, filters.stars));
     if (filters.language)
@@ -365,6 +395,7 @@ export class PlayRepository {
       .where(
         and(
           eq(playReviews.appId, appId),
+          sql`${playReviews.text} <> ''`,
           or(
             isNull(playReviews.replyText),
             eq(playReviews.editedAfterReply, true),

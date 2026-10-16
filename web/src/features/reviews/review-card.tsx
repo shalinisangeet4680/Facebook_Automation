@@ -82,10 +82,17 @@ export function ReviewCard({
     <li>
       <Card
         className={cn(
-          "flex flex-col gap-3 p-4 sm:p-5",
+          "relative flex flex-col gap-3 overflow-hidden p-4 sm:p-5",
           selected && "border-accent ring-accent ring-1",
         )}
       >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-1"
+          style={{
+            background: `var(--chart-star-${review.stars <= 2 ? 1 : review.stars === 3 ? 3 : 5})`,
+          }}
+        />
         <div className="flex items-start gap-3">
           <input
             type="checkbox"

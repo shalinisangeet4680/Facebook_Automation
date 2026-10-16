@@ -23,6 +23,13 @@
   --danger: #b91c1c;
   --danger-soft: #fdecec;
   --ring: rgb(79 70 229 / 0.45);
+  --chart-star-1: #c43c3b;
+  --chart-star-2: #ef8f8e;
+  --chart-star-3: #d6d5cf;
+  --chart-star-4: #86b6ef;
+  --chart-star-5: #2a78d6;
+  --chart-grid: #ececef;
+  --chart-axis: #d4d4d8;
   --shadow-color: 220 20% 10%;
   color-scheme: light;
 }
@@ -48,6 +55,13 @@
   --danger: #f87171;
   --danger-soft: #2d1111;
   --ring: rgb(124 116 255 / 0.5);
+  --chart-star-1: #f07a79;
+  --chart-star-2: #9c4847;
+  --chart-star-3: #3a3a37;
+  --chart-star-4: #2e5f9e;
+  --chart-star-5: #5ea2f0;
+  --chart-grid: #1e1e22;
+  --chart-axis: #34343b;
   --shadow-color: 0 0% 0%;
   color-scheme: dark;
 }

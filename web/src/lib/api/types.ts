@@ -62,3 +62,5 @@ export type PlayTemplateCheck = Schemas["TemplateCheckDto"];
 export type PlayRule = Schemas["PlayRuleDto"];
 export type PlayRuleInput = Schemas["RuleDto"];
 export type PlayBulkResult = Schemas["BulkReplyResultDto"];
+export type PlayInsights = Schemas["PlayInsightsDto"];
+export type PlayImportResult = Schemas["ImportResultDto"];

@@ -23,6 +23,7 @@ import {
 } from "@/lib/api/queries";
 import type { PlayApp, PlayConnection } from "@/lib/api/types";
 
+import { Sparkline, StatTile } from "./charts";
 import { ConnectPlay } from "./connect-play";
 import { MODE, ago } from "./labels";
 import { Rating } from "./stars";
@@ -96,6 +97,7 @@ export function ReviewApps() {
         <ConnectPlay />
       ) : (
         <div className="grid gap-8">
+          {apps.data.data.length ? <Summary apps={apps.data.data} /> : null}
           {apps.data.data.length ? (
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {apps.data.data.map((app) => (
@@ -135,6 +137,38 @@ export function ReviewApps() {
   );
 }
 
+function Summary({ apps }: { apps: PlayApp[] }) {
+  const rated = apps.filter((a) => a.rating !== null && a.reviews30d > 0);
+  const weight = rated.reduce((n, a) => n + a.reviews30d, 0);
+  const rating = weight ? rated.reduce((n, a) => n + a.rating! * a.reviews30d, 0) / weight : null;
+  const sum = (k: "needsReply" | "waiting" | "needsClaude" | "reviews30d") =>
+    apps.reduce((n, a) => n + a[k], 0);
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile
+        label="Average rating, 30 days"
+        value={rating === null ? "–" : `${rating.toFixed(2)}★`}
+        hint={`${sum("reviews30d")} reviews across ${apps.length} app${apps.length === 1 ? "" : "s"}`}
+      />
+      <StatTile
+        label="Need a reply"
+        value={String(sum("needsReply"))}
+        hint="Reviews with text and no reply"
+      />
+      <StatTile
+        label="Waiting for your approval"
+        value={String(sum("waiting"))}
+        hint="Drafted by rules or Claude"
+      />
+      <StatTile
+        label="Waiting for Claude"
+        value={String(sum("needsClaude"))}
+        hint="Ask Claude to draft them"
+      />
+    </div>
+  );
+}
+
 function AppCard({ app }: { app: PlayApp }) {
   const mode = MODE[app.mode];
   return (
@@ -152,12 +186,18 @@ function AppCard({ app }: { app: PlayApp }) {
             </div>
             <Badge tone={mode.tone}>{mode.label}</Badge>
           </div>
-          <Rating value={app.rating} previous={app.previousRating} />
+          <div className="flex items-end justify-between gap-3">
+            <Rating value={app.rating} previous={app.previousRating} compact />
+            <Sparkline
+              values={app.trend}
+              label={`Weekly average rating for ${app.title}, last 8 weeks`}
+            />
+          </div>
           <dl className="grid grid-cols-3 gap-2 text-center">
             {[
               { label: "Need reply", value: app.needsReply, strong: app.needsReply > 0 },
               { label: "To approve", value: app.waiting, strong: app.waiting > 0 },
-              { label: "Last 30 days", value: app.reviews30d, strong: false },
+              { label: "30 days", value: app.reviews30d, strong: false },
             ].map((s) => (
               <div
                 key={s.label}

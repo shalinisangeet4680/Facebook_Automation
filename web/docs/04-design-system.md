@@ -54,3 +54,24 @@ Button (primary, secondary, ghost, danger; sm, md, lg; loading), Input, Phone in
 ## 7. Themes
 
 Light and dark, following the system by default with a manual toggle. The theme class is applied by an inline script before first paint, so there is no flash.
+
+## 8. Charts
+
+Charts follow the data-viz method: form first, colour by the job it does, validated palettes, thin marks, hover tooltips and a table view for every chart.
+
+- **Single series** (counts, averages, languages): `--accent`.
+- **Star ratings** are an ordered scale with a neutral middle, so they use a diverging palette, red ↔ blue with a gray midpoint. Validated with the data-viz validator in both modes (adjacent colour-blind ΔE ≥ 11, normal-vision ΔE ≥ 15); the light arms are below 3:1 contrast, so every chart ships a legend and a table view.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--chart-star-1` | `#c43c3b` | `#f07a79` |
+| `--chart-star-2` | `#ef8f8e` | `#9c4847` |
+| `--chart-star-3` | `#d6d5cf` | `#3a3a37` |
+| `--chart-star-4` | `#86b6ef` | `#2e5f9e` |
+| `--chart-star-5` | `#2a78d6` | `#5ea2f0` |
+| `--chart-grid` | `#ececef` | `#1e1e22` |
+| `--chart-axis` | `#d4d4d8` | `#34343b` |
+
+- Marks: columns at most 24 px wide with a 4 px rounded data end, a 2 px gap between stacked segments, 2 px lines with ringed end dots, solid hairline grid. Labels and values use text tokens, never the series colour.
+- No dual axes: rating and volume are separate charts.
+- Status colours (`--success`, `--warning`, `--danger`) are only for state, always with an icon or label.

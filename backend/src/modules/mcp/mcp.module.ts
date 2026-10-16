@@ -6,6 +6,7 @@ import { InboxModule } from "@modules/inbox/inbox.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
 import { PlansModule } from "@modules/plans/plans.module";
 import { ProfileModule } from "@modules/profile/profile.module";
+import { PlayModule } from "@modules/play/play.module";
 import { SocialModule } from "@modules/social/social.module";
 import { StoreModule } from "@modules/store/store.module";
 
@@ -23,6 +24,7 @@ import { McpController } from "./interface/mcp.controller";
     InboxModule,
     ProfileModule,
     StoreModule,
+    PlayModule,
   ],
   controllers: [McpController],
   providers: [McpServerFactory, McpAuthGuard],

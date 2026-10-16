@@ -20,6 +20,10 @@ import { SCOPES } from "@modules/oauth/domain/oauth.policy";
 import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
 import { SocialService } from "@modules/social/application/social.service";
+import {
+  PlayService,
+  REVIEW_STATES,
+} from "@modules/play/application/play.service";
 import { StoreService } from "@modules/store/application/store.service";
 import { LANG, SLUG } from "@modules/store/domain/store.rules";
 import { InboxService } from "@modules/inbox/application/inbox.service";
@@ -42,6 +46,7 @@ How to work:
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
 - To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in Autopilot or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from Autopilot's Profile page into the Instagram app.
 - Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in Autopilot. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
+- Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in Autopilot, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -72,6 +77,7 @@ export class McpServerFactory {
     private readonly inbox: InboxService,
     private readonly profile: ProfileService,
     private readonly store: StoreService,
+    private readonly play: PlayService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -306,7 +312,178 @@ export class McpServerFactory {
         ),
     );
 
+    const appId = z.string().uuid();
+
+    server.registerTool(
+      "list_play_apps",
+      {
+        title: "Google Play apps",
+        description:
+          "Google Play apps connected for review replies, with rating, rating trend, reviews needing a reply, replies waiting for approval and reviews waiting for Claude.",
+        annotations: readOnly,
+      },
+      () => run(() => this.play.apps(ws)),
+    );
+
+    server.registerTool(
+      "list_play_reviews",
+      {
+        title: "Google Play reviews",
+        description:
+          'Reviews of one app, newest first. state: "claude" (rules asked you to draft), "unreplied", "waiting" (draft waiting for the owner), "scheduled", "failed", "replied"; omit for all. Each review has its text, translation, language, version, current reply and draft.',
+        inputSchema: {
+          app_id: appId,
+          state: z.enum(REVIEW_STATES as [string, ...string[]]).optional(),
+          stars: z.array(z.number().int().min(1).max(5)).optional(),
+          limit: z.number().int().min(1).max(50).default(20),
+        },
+        annotations: readOnly,
+      },
+      (a) =>
+        run(() =>
+          this.play.forClaude(
+            ws,
+            a.app_id,
+            a.state as (typeof REVIEW_STATES)[number] | undefined,
+            a.stars,
+            a.limit,
+          ),
+        ),
+    );
+
+    server.registerTool(
+      "get_review_templates",
+      {
+        title: "Reply templates and values",
+        description:
+          "The owner's reply templates (with wordings per language) and this app's values like team_name and support_email, to match their tone and include the right contact details.",
+        inputSchema: { app_id: appId },
+        annotations: readOnly,
+      },
+      (a) => run(() => this.play.templatesForClaude(ws, a.app_id)),
+    );
+
+    server.registerTool(
+      "get_review_insights",
+      {
+        title: "Review insights",
+        description:
+          "Rating and review volume for a period against the period before, reply rate, median reply time, star distribution, rating by app version, languages, and the most common words in 1-2 star and 4-5 star reviews.",
+        inputSchema: {
+          app_id: appId,
+          days: z
+            .union([z.literal(7), z.literal(30), z.literal(90), z.literal(365)])
+            .default(30),
+        },
+        annotations: readOnly,
+      },
+      (a) => run(() => this.play.insights(ws, a.app_id, a.days)),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "save_review_drafts",
+      {
+        title: "Save review reply drafts",
+        description:
+          "Save up to 25 reply drafts for the owner to approve in Autopilot. Nothing is posted. Returns each review's new state and the review page url to share.",
+        inputSchema: {
+          app_id: appId,
+          drafts: z
+            .array(
+              z.object({
+                review_id: z.string().uuid(),
+                text: z.string().min(1).max(350),
+              }),
+            )
+            .min(1)
+            .max(25),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const saved = [];
+          for (const d of a.drafts) {
+            const view = await this.play.saveDraft(
+              actor,
+              a.app_id,
+              d.review_id,
+              { text: d.text, source: "claude" },
+            );
+            saved.push({ review_id: view.id, state: view.state });
+          }
+          return { saved, url: this.play.reviewsUrl(a.app_id) };
+        }),
+    );
+
+    server.registerTool(
+      "send_review_reply",
+      {
+        title: "Reply on Google Play (needs confirmation)",
+        description:
+          "Post a public reply to a Google Play review, or replace the existing one. Two steps: call without confirm_token to check it and get a summary, show the reply to the user, then call again with the same arguments and confirm_token after they explicitly agree.",
+        inputSchema: {
+          app_id: appId,
+          review_id: z.string().uuid(),
+          text: z.string().min(1).max(350),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const args = {
+            app_id: a.app_id,
+            review_id: a.review_id,
+            text: a.text,
+          };
+          if (!a.confirm_token) {
+            const review = await this.play.reviewForClaude(
+              ws,
+              a.app_id,
+              a.review_id,
+            );
+            return {
+              status: "confirmation_required",
+              summary: `Reply publicly to ${review.author}'s ${review.stars}-star review${review.current_reply ? ", replacing the current reply" : ""}: "${a.text}"`,
+              confirmToken: await this.confirmations.issue(
+                ws,
+                "send_review_reply",
+                args,
+              ),
+            };
+          }
+          const ok = await this.confirmations.consume(
+            ws,
+            "send_review_reply",
+            args,
+            a.confirm_token,
+          );
+          if (!ok)
+            return {
+              status: "invalid_confirmation",
+              message:
+                "This confirmation is invalid, expired, used, or for a different reply. Call again without confirm_token.",
+            };
+          const view = await this.play.replyNow(actor, a.app_id, a.review_id, {
+            text: a.text,
+            source: "claude",
+          });
+          return { status: "sent", review_id: view.id, reply: view.reply };
+        }),
+    );
 
     server.registerTool(
       "store_save_project",
