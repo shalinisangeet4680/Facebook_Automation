@@ -190,19 +190,17 @@ describe("GraphAdsClient", () => {
       dailyBudget: 50000,
     });
 
-    fetchMock
-      .mockResolvedValueOnce(invalidField())
-      .mockResolvedValueOnce(
-        json({
-          id: "s1",
-          name: "Set",
-          status: "PAUSED",
-          effective_status: "PAUSED",
-          account_id: "123",
-          campaign_id: "c1",
-          daily_budget: "50000",
-        }),
-      );
+    fetchMock.mockResolvedValueOnce(invalidField()).mockResolvedValueOnce(
+      json({
+        id: "s1",
+        name: "Set",
+        status: "PAUSED",
+        effective_status: "PAUSED",
+        account_id: "123",
+        campaign_id: "c1",
+        daily_budget: "50000",
+      }),
+    );
     expect(await client.object("tok", "s1")).toMatchObject({
       type: "adset",
       campaignId: "c1",

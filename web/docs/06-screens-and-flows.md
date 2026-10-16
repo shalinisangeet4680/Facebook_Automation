@@ -104,6 +104,17 @@ Settings has four sections:
 - **Connections:** Meta and Claude.
 - **Sign out everywhere.**
 
-## 13. States everywhere
+## 13. Play Store (`/store`, `/store/:id`)
+
+The list shows each app's store listing project with its cover, status and languages. With no projects it explains how to start: connect Claude, install the store-creatives plugin and run `/store-creatives:store-creatives` in the app's folder.
+
+A project page has:
+- **Choose a style:** one preview per style as large radio tiles, language and size toggles, and a save button. After saving, a card tells the user to go back to Claude Code, with a request to copy.
+- **Your store set:** screenshots filtered by style, language and size, in upload order, each with a download link and a checkbox; selected images go to Creatives. Feature graphics below.
+- **Screens:** the captured screens.
+
+The page polls every 4 seconds until the set is uploaded, so images appear while the plugin uploads them.
+
+## 14. States everywhere
 
 Loading uses skeletons shaped like the content. Errors show the backend message with a Retry action. Empty states explain what to do next.

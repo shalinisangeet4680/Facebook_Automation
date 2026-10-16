@@ -42,3 +42,7 @@ export type Suggestion = Schemas["SuggestionDto"];
 export type ProfileCheckup = Schemas["ProfileCheckupDto"];
 export type ProfileDraftInput = Schemas["SaveProfileDraftDto"];
 export type FacebookPart = Schemas["ApplyFacebookDto"]["parts"][number];
+export type StoreProject = Schemas["StoreProjectDto"];
+export type StoreProjectDetail = Schemas["StoreProjectDetailDto"];
+export type StoreAsset = Schemas["StoreAssetDto"];
+export type StoreChoice = Schemas["StoreChoiceDto"];

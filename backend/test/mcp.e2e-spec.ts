@@ -1,3 +1,4 @@
+import { Resvg } from "@resvg/resvg-js";
 import { createHash, randomBytes } from "crypto";
 
 import { NestFastifyApplication } from "@nestjs/platform-fastify";
@@ -14,7 +15,7 @@ import {
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
-import { call } from "./helpers";
+import { call, multipartFields } from "./helpers";
 
 const PHONE = "9000000003";
 const E164 = `+91${PHONE}`;
@@ -370,6 +371,9 @@ describe("Claude connector (OAuth + MCP)", () => {
       "save_ad_creative",
       "save_profile_draft",
       "search_targeting",
+      "store_get_project",
+      "store_save_project",
+      "store_start_upload",
       "update_campaign_plan",
       "update_daily_budget",
     ]);
@@ -884,6 +888,64 @@ describe("Claude connector (OAuth + MCP)", () => {
     expect(listed.data.data[0].name).toBe("Clinic banner");
   });
 
+  it("keeps a store listing project in step with the plugin", async () => {
+    const saved = await tool(accessToken, "store_save_project", {
+      name: "Clinic App",
+      languages: ["en", "hi"],
+    });
+    expect(saved.isError).toBe(false);
+    expect(saved.data.url).toBe(`${APP_URL}/store/${saved.data.projectId}`);
+    expect(saved.data.uploadUrl).toBe(`${APP_URL}/api/v1/store-uploads`);
+    expect(saved.data.uploadToken).toMatch(/^stu_/);
+
+    const png = new Resvg(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920"><rect width="1080" height="1920" fill="#1b2536"/></svg>',
+    )
+      .render()
+      .asPng();
+    const body = multipartFields(png, "image/png", "01_home.png", {
+      kind: "preview",
+      name: "01_home",
+      style: "bold",
+      lang: "en",
+      size: "phone",
+    });
+    const uploaded = await app.inject({
+      method: "POST",
+      url: "/api/v1/store-uploads",
+      headers: {
+        "content-type": body.contentType,
+        "x-upload-token": saved.data.uploadToken as string,
+      },
+      payload: body.payload,
+    });
+    expect(uploaded.statusCode).toBe(201);
+
+    const project = await tool(accessToken, "store_get_project", {
+      project_id: saved.data.projectId,
+    });
+    expect(project.data).toMatchObject({
+      name: "Clinic App",
+      status: "choosing",
+      choice: null,
+      counts: { previews: 1 },
+    });
+    expect(project.data.next).toContain("Waiting for the user");
+
+    const again = await tool(accessToken, "store_save_project", {
+      name: "Clinic App",
+      languages: ["en"],
+    });
+    expect(again.data.projectId).toBe(saved.data.projectId);
+    const fresh = await tool(accessToken, "store_start_upload", {
+      project_id: saved.data.projectId,
+    });
+    expect(fresh.data.uploadToken).not.toBe(again.data.uploadToken);
+
+    const all = await tool(accessToken, "store_get_project");
+    expect(all.data.data).toHaveLength(1);
+  });
+
   it("refuses objects outside the selected ad account", async () => {
     const res = await tool(accessToken, "pause", { id: "999999999" });
     expect(res.isError).toBe(true);
@@ -932,8 +994,10 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(12);
+    expect(names).toHaveLength(13);
+    expect(names).toContain("store_get_project");
     expect(names).not.toContain("activate");
+    expect(names).not.toContain("store_save_project");
   });
 
   it("supports confidential clients with a secret", async () => {

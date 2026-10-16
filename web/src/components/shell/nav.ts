@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   Megaphone,
   Settings,
+  Smartphone,
   Sparkles,
   Store,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export const NAV: NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/creatives", label: "Creatives", icon: LayoutGrid },
   { href: "/profile", label: "Page & Instagram", icon: Store },
+  { href: "/store", label: "Play Store", icon: Smartphone },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

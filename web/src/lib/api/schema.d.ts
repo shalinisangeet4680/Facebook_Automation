@@ -708,6 +708,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/store-projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StoreController_list_v1"];
+        put?: never;
+        post: operations["StoreController_save_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store-projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StoreController_get_v1"];
+        put?: never;
+        post?: never;
+        delete: operations["StoreController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store-projects/{id}/choice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["StoreController_choose_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store-projects/{id}/creatives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StoreController_addToCreatives_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1380,6 +1444,87 @@ export interface components {
         };
         LaunchPlanDto: {
             confirm: boolean;
+        };
+        StoreChoiceDto: {
+            /** @enum {string} */
+            style: "callouts" | "light" | "bold" | "minimal";
+            languages: string[];
+            sizes: ("phone" | "tablet7" | "tablet10")[];
+        };
+        StoreCountsDto: {
+            screens: number;
+            previews: number;
+            screenshots: number;
+            featureGraphics: number;
+        };
+        StoreProjectDto: {
+            id: string;
+            slug: string;
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "choosing" | "style_chosen" | "rendered";
+            languages: string[];
+            choice: components["schemas"]["StoreChoiceDto"] | null;
+            counts: components["schemas"]["StoreCountsDto"];
+            coverUrl: string | null;
+            url: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+        StoreProjectListDto: {
+            data: components["schemas"]["StoreProjectDto"][];
+        };
+        SaveStoreProjectDto: {
+            name: string;
+            slug?: string;
+            languages: string[];
+        };
+        StoreUploadTicketDto: {
+            projectId: string;
+            url: string;
+            uploadUrl: string;
+            uploadToken: string;
+            expiresAt: string;
+        };
+        StoreAssetDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "screen" | "preview" | "screenshot" | "feature_graphic";
+            name: string;
+            style: string;
+            lang: string;
+            size: string;
+            url: string;
+            width: number;
+            height: number;
+            bytes: number;
+        };
+        StoreOptionsDto: {
+            styles: string[];
+            featureStyles: string[];
+            sizes: string[];
+        };
+        StoreProjectDetailDto: {
+            id: string;
+            slug: string;
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "choosing" | "style_chosen" | "rendered";
+            languages: string[];
+            choice: components["schemas"]["StoreChoiceDto"] | null;
+            counts: components["schemas"]["StoreCountsDto"];
+            coverUrl: string | null;
+            url: string;
+            createdAt: string;
+            updatedAt: string;
+            assets: components["schemas"]["StoreAssetDto"][];
+            options: components["schemas"]["StoreOptionsDto"];
+        };
+        AddToCreativesDto: {
+            assetIds: string[];
+        };
+        AddedCreativesDto: {
+            data: components["schemas"]["CreativeDto"][];
         };
     };
     responses: never;
@@ -2973,6 +3118,186 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProjectListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_save_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveStoreProjectDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreUploadTicketDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProjectDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_choose_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreChoiceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProjectDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoreController_addToCreatives_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddToCreativesDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedCreativesDto"];
                 };
             };
             default: {

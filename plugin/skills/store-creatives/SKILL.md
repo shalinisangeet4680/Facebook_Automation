@@ -5,7 +5,9 @@ description: Make Google Play screenshots and feature graphics for the user's An
 
 # Store creatives
 
-You turn the user's app into a Google Play screenshot set with the `store-creatives` MCP tools: `list_styles`, `check_project`, `render_preview`, `render_set`. Everything runs on the user's machine.
+You turn the user's app into a Google Play screenshot set with the `store-creatives` MCP tools: `list_styles`, `check_project`, `render_preview`, `render_set` and `upload_to_platform`. Reading code, capturing and rendering run on the user's machine.
+
+If the Autopilot connector is available (its tools include `store_save_project`), the project also lives in Autopilot: the user chooses the style there, downloads the set, and can reuse the screenshots in ads. Without the connector, do everything locally and skip the Autopilot steps; mention once that connecting Autopilot lets them choose styles and keep the set in their workspace.
 
 Project path: use the path the user gave ($ARGUMENTS), otherwise the current working directory. Always pass it as an absolute `project_path`.
 
@@ -75,6 +77,8 @@ Copy rules:
 
 Show the user the card list (screen, headline, callouts) and adjust it before capturing anything.
 
+**Autopilot:** call `store_save_project` with the app name and the card languages. Keep `projectId`, `url`, `upload_url` and `upload_token` for the next steps. Tokens last two hours; if an upload says the token expired, call `store_start_upload` with the project id and retry.
+
 ## 3. Get the screenshots
 
 Each card's `screen` needs `.store-creatives/screens/<screen>.png`. Ask the user which way they prefer:
@@ -95,13 +99,23 @@ adb shell am broadcast -a com.android.systemui.demo -e command notifications -e 
 
 For each screen, get there (ask the user to navigate, or tap yourself: `adb exec-out uiautomator dump /dev/tty` shows element bounds, `adb shell input tap <x> <y>` taps, `adb shell input text` types). Capture with `adb exec-out screencap -p > .store-creatives/screens/<screen>.png`, then look at the image. Retake it if it shows a loading state, an empty list, an error, a keyboard, personal data, or a different screen. Empty screens sell badly, so ask the user to add sample data when needed. When done, exit demo mode with `adb shell am broadcast -a com.android.systemui.demo -e command exit`.
 
+**Autopilot:** upload the screens with `upload_to_platform` and `parts: ["screens"]`.
+
 ## 4. Let the user choose a style
 
-Run `check_project` until it has no problems. Call `render_preview` (it renders the first card in every style; pass `card` or `lang` to preview another). Open the returned `page` for the user (`open <page>` on macOS, `xdg-open <page>` on Linux), describe the styles in one line each from `list_styles`, and ask which style they want (recommend `callouts` when the cards have good callouts), plus which languages and sizes (`phone`, `tablet7`, `tablet10`). Preview the tablet sizes with `size: "tablet7"` if they want tablets.
+Run `check_project` until it has no problems. Call `render_preview` (it renders the first card in every style; pass `card` or `lang` to preview another).
+
+**Autopilot:** upload the previews with `upload_to_platform` and `parts: ["preview"]`, give the user the project `url`, and ask them to choose the style, languages and sizes there and tell you when they're done. Then read the choice with `store_get_project` and go to step 5.
+
+**Locally:** open the returned `page` for the user (`open <page>` on macOS, `xdg-open <page>` on Linux), describe the styles in one line each from `list_styles`, and ask which style they want (recommend `callouts` when the cards have good callouts), plus which languages and sizes (`phone`, `tablet7`, `tablet10`). Preview the tablet sizes with `size: "tablet7"` if they want tablets.
 
 ## 5. Render the set
 
-Call `render_set` with the chosen `styles`, `langs` and `sizes`. It also renders two feature graphics (`dark` and `bold`, 1024x500). Show the user a contact sheet from the result, give them the output folder, and remind them:
+Call `render_set` with the chosen `styles`, `langs` and `sizes`. It also renders two feature graphics (`dark` and `bold`, 1024x500).
+
+**Autopilot:** upload with `upload_to_platform`, `parts: ["set"]` and the same `styles`, `langs` and `sizes`. Report any `failed` files. Tell the user the set is in Autopilot at the project `url`, where they can download it or add screenshots to Creatives for app-install ads.
+
+Show the user a contact sheet from the result, give them the output folder, and remind them:
 - Play needs 2 to 8 phone screenshots per language; upload them in card order.
 - Tablet screenshots are needed only if the app supports tablets.
 - Pick one feature graphic.

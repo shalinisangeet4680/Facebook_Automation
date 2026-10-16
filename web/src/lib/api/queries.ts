@@ -16,6 +16,7 @@ import type {
   ProfileUpdate,
   ReportPreset,
   Settings,
+  StoreChoice,
   WorkspaceUpdate,
 } from "./types";
 
@@ -40,6 +41,8 @@ export const keys = {
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
+  store: ["store"] as const,
+  storeProject: (id: string) => ["store", id] as const,
 };
 
 export function useMe() {
@@ -454,5 +457,63 @@ export function useRetryPost() {
       void client.invalidateQueries({ queryKey: keys.posts });
       void client.invalidateQueries({ queryKey: keys.inbox });
     },
+  });
+}
+
+const WAITING_FOR_PLUGIN = new Set(["draft", "choosing", "style_chosen"]);
+
+export function useStoreProjects() {
+  return useQuery({
+    queryKey: keys.store,
+    queryFn: () => unwrap(api.GET("/api/v1/store-projects")),
+  });
+}
+
+export function useStoreProject(id: string) {
+  return useQuery({
+    queryKey: keys.storeProject(id),
+    queryFn: () => unwrap(api.GET("/api/v1/store-projects/{id}", { params: { path: { id } } })),
+    refetchInterval: (query) =>
+      query.state.data && WAITING_FOR_PLUGIN.has(query.state.data.status) ? 4_000 : false,
+  });
+}
+
+export function useChooseStoreStyle(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (choice: StoreChoice) =>
+      unwrap(
+        api.PUT("/api/v1/store-projects/{id}/choice", {
+          params: { path: { id } },
+          body: choice,
+        }),
+      ),
+    onSuccess: (project) => {
+      client.setQueryData(keys.storeProject(id), project);
+      void client.invalidateQueries({ queryKey: keys.store, exact: true });
+    },
+  });
+}
+
+export function useAddStoreToCreatives(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (assetIds: string[]) =>
+      unwrap(
+        api.POST("/api/v1/store-projects/{id}/creatives", {
+          params: { path: { id } },
+          body: { assetIds },
+        }),
+      ),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.creatives }),
+  });
+}
+
+export function useDeleteStoreProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/store-projects/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.store }),
   });
 }

@@ -22,6 +22,7 @@ The skill (`skills/store-creatives/SKILL.md`) is the workflow Claude follows, in
 | `check_project` | Validates `product.json`, the cards file, screenshots and logo; lists every problem |
 | `render_preview` | One card in every style, a contact sheet and an `index.html` gallery |
 | `render_set` | Chosen styles × languages × sizes, feature graphics and a contact sheet per set |
+| `upload_to_platform` | Sends screens, previews or the set straight to an Autopilot store project with the upload token from `store_save_project` |
 
 Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`. Sizes: `phone` 1080x1920, `tablet7` 1920x1080, `tablet10` 3840x2160. PNGs are flattened to RGB because Google Play rejects screenshots with alpha.
 
@@ -33,6 +34,7 @@ Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`
 | `src/jobs.ts` | Style and size catalog; expands cards into render jobs |
 | `src/render.ts` | Remotion bundle and still rendering, flattening, contact sheets, preview page |
 | `src/studio.ts` | `checkProject`, `renderPreview`, `renderSet` |
+| `src/upload.ts` | Collects screens, previews and the set and uploads them to Autopilot |
 | `src/server.ts` | stdio MCP server |
 | `templates/` | Remotion compositions `StoreCard` and `FeatureGraphic` (moved from money-shorts) with the bundled Montserrat font |
 | `skills/store-creatives/` | The skill |
@@ -72,11 +74,14 @@ The repo stays private; only this folder is published.
 
 Claude Code does not run install scripts for plugins. Our native dependencies (`sharp`, Remotion's compositor) ship prebuilt platform packages, so they work without them.
 
+## Autopilot
+
+With the Autopilot connector added to Claude Code, the skill saves a store project in the user's workspace, uploads screens and previews, waits for the owner to choose the style at `/store/:id`, then renders and uploads the set. Without it everything stays local. See `backend/docs/15-store-creatives.md`.
+
 ## Next steps
 
-1. Platform link: a `store-creatives` backend module and `/store` web screens; the plugin uploads screens, previews and the final set through the existing MCP connector so the user picks the style in the web app and reuses the set in Meta app-install ads.
-2. Device tools: emulator control as MCP tools (`device_screenshot`, `device_tap`, `ui_dump`) instead of raw adb in the skill.
-3. Upload to Play Console through the Google Play Developer API with the developer's service account.
+1. Device tools: emulator control as MCP tools (`device_screenshot`, `device_tap`, `ui_dump`) instead of raw adb in the skill.
+2. Upload to Play Console through the Google Play Developer API with the developer's service account.
 
 ## Open questions
 

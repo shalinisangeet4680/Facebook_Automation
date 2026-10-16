@@ -36,6 +36,7 @@ for (const theme of ["light", "dark"] as const) {
         "/setup/accounts",
         "/claude",
         "/campaigns",
+        "/store",
       ]) {
         test(path, async ({ page }) => {
           await ensureMetaConnected(page.request);

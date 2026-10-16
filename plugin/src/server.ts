@@ -8,6 +8,7 @@ import { z } from "zod";
 import { SIZES, STYLES, Size, Style } from "./jobs.js";
 import { ProjectError } from "./project.js";
 import { PACKAGE_ROOT } from "./render.js";
+import { UPLOAD_PARTS, uploadToPlatform } from "./upload.js";
 import {
   DEFAULT_CARDS,
   checkProject,
@@ -181,6 +182,42 @@ server.registerTool(
           sizes: a.sizes,
           only: a.only,
           feature: a.feature_graphic,
+        },
+        progress(extra),
+      ),
+    ),
+);
+
+server.registerTool(
+  "upload_to_platform",
+  {
+    title: "Upload to Autopilot",
+    description:
+      "Uploads images from .store-creatives straight to the Autopilot store listing project, without passing them through the conversation. Get upload_url and upload_token from the Autopilot connector's store_save_project or store_start_upload tool. parts: screens (the screenshots in screens/), preview (every rendered style preview), set (the rendered screenshots and feature graphics, filtered by styles, langs and sizes). Re-uploading replaces the same image.",
+    inputSchema: {
+      project_path: projectPath,
+      cards,
+      upload_url: z.string().url(),
+      upload_token: z.string().min(10),
+      parts: z.array(z.enum(UPLOAD_PARTS)).min(1),
+      styles: z.array(styleName).optional(),
+      langs: z.array(z.string()).optional(),
+      sizes: z.array(sizeName).optional(),
+    },
+    annotations: { openWorldHint: true },
+  },
+  (a, extra) =>
+    run(() =>
+      uploadToPlatform(
+        a.project_path,
+        {
+          cardsId: a.cards,
+          uploadUrl: a.upload_url,
+          uploadToken: a.upload_token,
+          parts: a.parts,
+          styles: a.styles,
+          langs: a.langs,
+          sizes: a.sizes,
         },
         progress(extra),
       ),

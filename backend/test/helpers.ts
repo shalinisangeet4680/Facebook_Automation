@@ -61,3 +61,28 @@ export function multipart(
     contentType: `multipart/form-data; boundary=${boundary}`,
   };
 }
+
+export function multipartFields(
+  file: Buffer,
+  mime: string,
+  filename: string,
+  fields: Record<string, string>,
+) {
+  const boundary = "----autopilot";
+  const parts: Buffer[] = Object.entries(fields).map(([key, value]) =>
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}\r\n`,
+    ),
+  );
+  parts.push(
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime}\r\n\r\n`,
+    ),
+    file,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  );
+  return {
+    payload: Buffer.concat(parts),
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}

@@ -20,6 +20,8 @@ import { SCOPES } from "@modules/oauth/domain/oauth.policy";
 import { PlanService } from "@modules/plans/application/plan.service";
 import { planSchema } from "@modules/plans/domain/plan.schema";
 import { SocialService } from "@modules/social/application/social.service";
+import { StoreService } from "@modules/store/application/store.service";
+import { LANG, SLUG } from "@modules/store/domain/store.rules";
 import { InboxService } from "@modules/inbox/application/inbox.service";
 import { ProfileService } from "@modules/profile/application/profile.service";
 import { FACEBOOK_PARTS } from "@modules/profile/domain/profile.draft";
@@ -39,6 +41,7 @@ How to work:
 - To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
 - To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in Autopilot or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from Autopilot's Profile page into the Instagram app.
+- Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in Autopilot. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -68,6 +71,7 @@ export class McpServerFactory {
     private readonly confirmations: ConfirmationService,
     private readonly inbox: InboxService,
     private readonly profile: ProfileService,
+    private readonly store: StoreService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -285,7 +289,69 @@ export class McpServerFactory {
       () => run(() => this.profile.checkup(ws)),
     );
 
+    server.registerTool(
+      "store_get_project",
+      {
+        title: "Store listing project",
+        description:
+          "A Google Play store listing project: status, the style, languages and sizes the owner chose in Autopilot, image counts, screen names and what to do next. Without project_id, lists all projects.",
+        inputSchema: { project_id: z.string().uuid().optional() },
+        annotations: readOnly,
+      },
+      (a) =>
+        run(() =>
+          a.project_id
+            ? this.store.forClaude(ws, a.project_id)
+            : this.store.list(ws),
+        ),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "store_save_project",
+      {
+        title: "Save a store listing project",
+        description:
+          "Create or update the Google Play store listing project for an app (matched by slug, which defaults to the name) and get an upload token. Pass upload_url and upload_token to the store-creatives plugin's upload_to_platform tool; the files go straight from the user's machine to Autopilot. Share url with the user to choose a style. The token lasts two hours.",
+        inputSchema: {
+          name: z.string().min(1).max(80),
+          slug: z.string().regex(SLUG).optional(),
+          languages: z.array(z.string().regex(LANG)).min(1).max(20),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(() =>
+          this.store.save(actor, {
+            name: a.name,
+            slug: a.slug,
+            languages: a.languages,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "store_start_upload",
+      {
+        title: "New store upload token",
+        description:
+          "A fresh two-hour upload token for an existing store listing project, for the plugin's upload_to_platform tool.",
+        inputSchema: { project_id: z.string().uuid() },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      (a) => run(() => this.store.startUpload(actor, a.project_id)),
+    );
 
     server.registerTool(
       "save_profile_draft",
