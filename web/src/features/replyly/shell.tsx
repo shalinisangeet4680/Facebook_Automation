@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, type ComponentType, type ReactNode } from "react";
 
 import { useMe, usePlayApps, usePlayConnections, usePlayInbox } from "@/lib/api/queries";
 
@@ -44,7 +44,7 @@ export function useAppColors() {
   };
 }
 
-function Logo() {
+function Logo({ product }: { product: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px" }}>
       <span
@@ -72,7 +72,7 @@ function Logo() {
       </span>
       <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
         <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-.01em" }}>TreeVook</span>
-        <span style={{ fontSize: 11.5, color: "#6C6962" }}>Play Reviews</span>
+        <span style={{ fontSize: 11.5, color: "#6C6962" }}>{product}</span>
       </span>
     </div>
   );
@@ -157,27 +157,39 @@ function Footer() {
   );
 }
 
-export function ReplylyShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
+export function ProductShell({
+  children,
+  fontClass,
+  product,
+  Nav,
+  Footer,
+}: {
+  children: ReactNode;
+  fontClass: string;
+  product: string;
+  Nav: ComponentType<{ mobile?: boolean }>;
+  Footer: ComponentType;
+}) {
   return (
     <div className={`rp ${fontClass}`}>
       <ToastProvider>
-        <aside className="rp-aside" aria-label="Play Reviews">
-          <Logo />
+        <aside className="rp-aside" aria-label={product}>
+          <Logo product={product} />
           <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Suspense>
-              <NavLinks />
+              <Nav />
             </Suspense>
           </nav>
           <Suspense>
             <Footer />
           </Suspense>
         </aside>
-        <nav className="rp-mobile-bar" aria-label="Play Reviews">
+        <nav className="rp-mobile-bar" aria-label={product}>
           <span style={{ marginRight: 8 }}>
-            <Logo />
+            <Logo product={product} />
           </span>
           <Suspense>
-            <NavLinks mobile />
+            <Nav mobile />
           </Suspense>
         </nav>
         <main className="rp-main">
@@ -185,5 +197,13 @@ export function ReplylyShell({ children, fontClass }: { children: ReactNode; fon
         </main>
       </ToastProvider>
     </div>
+  );
+}
+
+export function ReplylyShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
+  return (
+    <ProductShell fontClass={fontClass} product="Play Reviews" Nav={NavLinks} Footer={Footer}>
+      {children}
+    </ProductShell>
   );
 }

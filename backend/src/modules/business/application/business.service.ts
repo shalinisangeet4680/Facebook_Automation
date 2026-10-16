@@ -12,7 +12,7 @@ import {
   suggestFromListing,
   suggestFromReplies,
 } from "@modules/engine/domain/variable-suggestions";
-import { AppConfig, appUrl } from "@shared/config/app-config";
+import { AppConfig, appUrl, webOrigins } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
@@ -87,8 +87,16 @@ export class BusinessService {
     return this.engine.repo;
   }
 
-  private redirectUri() {
-    return `${appUrl(this.config)}/api/v1/business/oauth/callback`;
+  private origin(candidate?: string | null) {
+    const allowed = [appUrl(this.config), ...webOrigins(this.config)].map((o) =>
+      o.replace(/\/+$/, ""),
+    );
+    const clean = candidate?.replace(/\/+$/, "");
+    return clean && allowed.includes(clean) ? clean : appUrl(this.config);
+  }
+
+  private redirectUri(origin = appUrl(this.config)) {
+    return `${origin}/api/v1/business/oauth/callback`;
   }
 
   configured() {
@@ -107,7 +115,7 @@ export class BusinessService {
     };
   }
 
-  connectUrl(actor: BusinessActor) {
+  connectUrl(actor: BusinessActor, from?: string) {
     if (!this.configured())
       throw new ValidationError(
         "Google sign-in isn't set up on this server yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
@@ -117,20 +125,27 @@ export class BusinessService {
         JSON.stringify({
           w: actor.workspaceId,
           u: actor.userId,
+          o: this.origin(from),
           e: Date.now() + STATE_TTL_MS,
         }),
       ),
     ).toString("base64url");
-    return { url: this.engine.api.authUrl(this.redirectUri(), state) };
+    return {
+      url: this.engine.api.authUrl(this.redirectUri(this.origin(from)), state),
+    };
   }
 
-  private readState(state: string): { w: string; u: string | null } {
+  private readState(state: string): {
+    w: string;
+    u: string | null;
+    o: string;
+  } {
     try {
       const parsed = JSON.parse(
         this.crypto.decrypt(Buffer.from(state, "base64url").toString()),
-      ) as { w: string; u: string | null; e: number };
+      ) as { w: string; u: string | null; o?: string; e: number };
       if (parsed.e < Date.now()) throw new Error("expired");
-      return parsed;
+      return { ...parsed, o: this.origin(parsed.o) };
     } catch {
       throw new ValidationError(
         "This sign-in link expired. Start again from TreeVook.",
@@ -139,7 +154,13 @@ export class BusinessService {
   }
 
   async callback(input: { code?: string; state?: string; error?: string }) {
-    const base = `${appUrl(this.config)}/business/connect`;
+    let origin = appUrl(this.config);
+    try {
+      if (input.state) origin = this.readState(input.state).o;
+    } catch {
+      origin = appUrl(this.config);
+    }
+    const base = `${origin}/business/connect`;
     if (input.error || !input.code || !input.state)
       return `${base}?error=${encodeURIComponent(
         input.error === "access_denied"
@@ -150,7 +171,7 @@ export class BusinessService {
       const { w, u } = this.readState(input.state);
       const grant = await this.engine.api.exchangeCode(
         input.code,
-        this.redirectUri(),
+        this.redirectUri(origin),
       );
       const connection = await this.repo.upsertConnection({
         workspaceId: w,
@@ -164,7 +185,7 @@ export class BusinessService {
         email: grant.email,
       });
       const result = await this.discover(actor, connection.id);
-      return `${appUrl(this.config)}/business?connected=${result.added.length + result.restored.length}`;
+      return `${origin}/business?connected=${result.added.length + result.restored.length}`;
     } catch (err) {
       const message =
         err instanceof BusinessApiError || err instanceof ValidationError

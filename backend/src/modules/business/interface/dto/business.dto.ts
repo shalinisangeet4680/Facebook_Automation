@@ -123,6 +123,13 @@ export class UpdateLocationDto {
   ratingRules?: BusinessRatingRuleDto[];
 }
 
+export class StartOAuthDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  origin?: string;
+}
+
 export class OAuthCallbackQueryDto {
   @IsOptional()
   @IsString()
@@ -332,7 +339,7 @@ export class PostContentDto {
   offer: PostOfferDto | null;
 }
 
-export class UpdatePostDto {
+export class UpdateGbpPostDto {
   @ValidateNested()
   @Type(() => PostContentDto)
   content: PostContentDto;
@@ -345,7 +352,7 @@ export class UpdatePostDto {
   scheduledAt?: string | null;
 }
 
-export class CreatePostDto extends UpdatePostDto {
+export class CreateGbpPostDto extends UpdateGbpPostDto {
   @IsUUID()
   locationId: string;
 }

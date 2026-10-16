@@ -43,7 +43,6 @@ export const NAV: NavItem[] = [
     label: "Business Profile",
     icon: Building2,
     group: "Google Business",
-    soon: true,
   },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

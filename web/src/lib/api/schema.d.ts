@@ -1396,6 +1396,470 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/business/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_dashboard_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_connections_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_start_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["BusinessController_disconnect_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_discover_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_locations_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_syncAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_location_v1"];
+        put: operations["BusinessController_updateLocation_v1"];
+        post?: never;
+        delete: operations["BusinessController_removeLocation_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_sync_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_locationReviews_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/variable-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_suggestions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_info_v1"];
+        put: operations["BusinessController_updateInfo_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/info/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_previewInfo_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_inbox_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_analytics_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_insights_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/reviews/{id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_reply_v1"];
+        delete: operations["BusinessController_deleteReply_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/reviews/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["BusinessController_saveDraft_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/reviews/{id}/ai-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_aiDraft_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/reviews/{id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_skip_v1"];
+        delete: operations["BusinessController_unskip_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/replies/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_approveAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/replies/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/replies/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_discard_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_templates_v1"];
+        put?: never;
+        post: operations["BusinessController_createTemplate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["BusinessController_updateTemplate_v1"];
+        post?: never;
+        delete: operations["BusinessController_deleteTemplate_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/templates/{id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["BusinessController_templateVisibility_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_posts_v1"];
+        put?: never;
+        post: operations["BusinessController_createPost_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["BusinessController_updatePost_v1"];
+        post?: never;
+        delete: operations["BusinessController_deletePost_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1939,7 +2403,7 @@ export interface components {
         };
         ApplyResultDto: {
             /** @enum {string} */
-            part: "phone" | "email" | "description" | "picture" | "about" | "website" | "cover";
+            part: "phone" | "email" | "description" | "website" | "picture" | "about" | "cover";
             ok: boolean;
             error: string | null;
         };
@@ -2307,7 +2771,7 @@ export interface components {
             clientEmail: string;
             projectId: string;
             /** @enum {string} */
-            status: "active" | "error";
+            status: "error" | "active";
             error?: string | null;
             checkedAt?: string | null;
             discoveredAt?: string | null;
@@ -2348,7 +2812,7 @@ export interface components {
             clientEmail: string;
             projectId: string;
             /** @enum {string} */
-            status: "active" | "error";
+            status: "error" | "active";
             error?: string | null;
             checkedAt?: string | null;
             discoveredAt?: string | null;
@@ -2796,6 +3260,500 @@ export interface components {
         };
         ReplaceRulesDto: {
             rules: components["schemas"]["RuleDto"][];
+        };
+        BusinessStatusDto: {
+            configured: boolean;
+            mock: boolean;
+            redirectUri: string;
+        };
+        BusinessDashboardDto: {
+            locations: number;
+            needsReply: number;
+            scheduledPosts: number;
+            publishedPosts30d: number;
+        };
+        GbpConnectionDto: {
+            /** @enum {string} */
+            status: "active" | "error";
+            id: string;
+            email: string;
+            error: string | null;
+            discoveredAt: string | null;
+            locations: number;
+            createdAt: string;
+        };
+        GbpConnectionListDto: {
+            data: components["schemas"]["GbpConnectionDto"][];
+        };
+        StartOAuthDto: {
+            origin?: string;
+        };
+        ConnectUrlDto: {
+            url: string;
+        };
+        DiscoveredLocationDto: {
+            id: string;
+            title: string;
+        };
+        LocationDiscoveryDto: {
+            found: number;
+            added: components["schemas"]["DiscoveredLocationDto"][];
+            restored: components["schemas"]["DiscoveredLocationDto"][];
+            already: components["schemas"]["DiscoveredLocationDto"][];
+            error: string | null;
+        };
+        GbpLocationDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual" | "mixed";
+            id: string;
+            title: string;
+            address: string | null;
+            category: string | null;
+            rating: number | null;
+            totalReviews: number;
+            reviews30d: number;
+            needsReply: number;
+            waiting: number;
+            verified: boolean;
+            mapsUri: string | null;
+            newReviewUri: string | null;
+            connectionId: string;
+            connectionEmail: string | null;
+            lastSyncedAt: string | null;
+            syncError: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
+        };
+        GbpLocationListDto: {
+            data: components["schemas"]["GbpLocationDto"][];
+        };
+        SyncAllResultDto: {
+            synced: number;
+            failed: number;
+            added: number;
+            restored: number;
+            error: string | null;
+        };
+        BusinessAddressDto: {
+            lines: string[];
+            locality: string;
+            region: string;
+            postalCode: string;
+            country: string;
+        };
+        OpeningPeriodViewDto: {
+            /** @enum {string} */
+            day: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+            open: string;
+            close: string;
+        };
+        BusinessInfoDto: {
+            title: string;
+            description: string;
+            phone: string | null;
+            website: string | null;
+            address: components["schemas"]["BusinessAddressDto"] | null;
+            primaryCategory: string | null;
+            additionalCategories: string[];
+            hours: components["schemas"]["OpeningPeriodViewDto"][];
+        };
+        BusinessQuietHoursViewDto: {
+            start: string;
+            end: string;
+        };
+        BusinessRatingRuleViewDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual";
+            rating: number;
+            templateId: string | null;
+        };
+        BusinessSettingsViewDto: {
+            /** @enum {string} */
+            delay: "instant" | "15m" | "1h" | "6h";
+            /** @enum {string} */
+            tone: "friendly" | "professional" | "concise";
+            timezone: string;
+            quietHours: components["schemas"]["BusinessQuietHoursViewDto"] | null;
+            dailyAutoLimit: number;
+            neverAutoWords: string[];
+            translateTo: string;
+            replyToEdited: boolean;
+            ratingRules: components["schemas"]["BusinessRatingRuleViewDto"][];
+            translate: boolean;
+            personalize: boolean;
+            skipEmpty: boolean;
+            escalate: boolean;
+            autoPause: boolean;
+        };
+        GbpLocationDetailDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual" | "mixed";
+            id: string;
+            title: string;
+            address: string | null;
+            category: string | null;
+            rating: number | null;
+            totalReviews: number;
+            reviews30d: number;
+            needsReply: number;
+            waiting: number;
+            verified: boolean;
+            mapsUri: string | null;
+            newReviewUri: string | null;
+            connectionId: string;
+            connectionEmail: string | null;
+            lastSyncedAt: string | null;
+            syncError: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
+            info: components["schemas"]["BusinessInfoDto"];
+            placeId: string | null;
+            settings: components["schemas"]["BusinessSettingsViewDto"];
+            variables: {
+                [key: string]: string;
+            };
+        };
+        BusinessQuietHoursDto: {
+            start: string;
+            end: string;
+        };
+        BusinessSettingsDto: {
+            /** @enum {string} */
+            delay?: "instant" | "15m" | "1h" | "6h";
+            /** @enum {string} */
+            tone?: "friendly" | "professional" | "concise";
+            translate?: boolean;
+            personalize?: boolean;
+            skipEmpty?: boolean;
+            escalate?: boolean;
+            autoPause?: boolean;
+            timezone?: string;
+            quietHours?: components["schemas"]["BusinessQuietHoursDto"] | null;
+            dailyAutoLimit?: number;
+            neverAutoWords?: string[];
+            replyToEdited?: boolean;
+        };
+        BusinessRatingRuleDto: {
+            rating: number;
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual";
+            /** Format: uuid */
+            templateId: string | null;
+        };
+        UpdateLocationDto: {
+            settings?: components["schemas"]["BusinessSettingsDto"];
+            variables?: {
+                [key: string]: string;
+            };
+            ratingRules?: components["schemas"]["BusinessRatingRuleDto"][];
+        };
+        LocationSyncResultDto: {
+            fetched: number;
+            created: number;
+            updated: number;
+            drafts: number;
+            archived: boolean;
+        };
+        BusinessReplyTextDto: {
+            text: string;
+            repliedAt: string | null;
+        };
+        BusinessSentViaDto: {
+            /** @enum {string} */
+            source: "template" | "claude" | "manual" | "ai";
+            auto: boolean;
+            sentAt: string | null;
+        };
+        BusinessReplyViewDto: {
+            /** @enum {string} */
+            status: "pending_approval" | "needs_claude" | "scheduled" | "sent" | "failed" | "discarded";
+            /** @enum {string} */
+            source: "template" | "claude" | "manual" | "ai";
+            id: string;
+            text: string;
+            templateId: string | null;
+            auto: boolean;
+            note: string | null;
+            error: string | null;
+            sendAt: string | null;
+            sentAt: string | null;
+            createdAt: string;
+        };
+        GbpReviewDto: {
+            /** @enum {string} */
+            state: "unreplied" | "waiting" | "claude" | "scheduled" | "replied" | "failed" | "skipped";
+            id: string;
+            locationId: string;
+            reviewId: string;
+            authorName: string;
+            authorPhoto: string | null;
+            stars: number;
+            text: string;
+            language: string | null;
+            reviewedAt: string;
+            reply: components["schemas"]["BusinessReplyTextDto"] | null;
+            editedAfterReply: boolean;
+            starsBeforeEdit: number | null;
+            topic: string | null;
+            skippedAt: string | null;
+            sentVia: components["schemas"]["BusinessSentViaDto"] | null;
+            draft: components["schemas"]["BusinessReplyViewDto"] | null;
+        };
+        GbpReviewListDto: {
+            data: components["schemas"]["GbpReviewDto"][];
+            total: number;
+            counts: {
+                [key: string]: number;
+            };
+        };
+        BusinessSuggestionDto: {
+            key: string;
+            value: string;
+            source: string;
+            count: number;
+            current: string | null;
+        };
+        BusinessSuggestionListDto: {
+            data: components["schemas"]["BusinessSuggestionDto"][];
+        };
+        LocationInfoDto: {
+            info: components["schemas"]["BusinessInfoDto"];
+            mapsUri: string | null;
+            newReviewUri: string | null;
+            verified: boolean;
+        };
+        OpeningPeriodDto: {
+            /** @enum {string} */
+            day: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+            open: string;
+            close: string;
+        };
+        InfoPatchDto: {
+            title?: string;
+            description?: string;
+            phone?: string | null;
+            website?: string | null;
+            hours?: components["schemas"]["OpeningPeriodDto"][];
+        };
+        InfoPreviewDto: {
+            changes: string[];
+            problems: string[];
+        };
+        BusinessInboxCountsDto: {
+            pending: number;
+            replied: number;
+            all: number;
+        };
+        BusinessInboxDto: {
+            data: components["schemas"]["GbpReviewDto"][];
+            counts: components["schemas"]["BusinessInboxCountsDto"];
+            approvable: string[];
+        };
+        BusinessPeriodStatsDto: {
+            reviews: number;
+            written: number;
+            replied: number;
+            replyRate: number | null;
+            medianResponseMinutes: number | null;
+            rating: number | null;
+        };
+        BusinessSeriesPointDto: {
+            day: string;
+            reviews: number;
+            replied: number;
+            rating: number | null;
+        };
+        BusinessDistributionDto: {
+            stars: number;
+            count: number;
+            pct: number;
+        };
+        BusinessTopicTrendDto: {
+            topic: string;
+            count: number;
+            previous: number;
+            change: number | null;
+            negative: boolean;
+        };
+        BusinessAnalyticsDto: {
+            /** @enum {string} */
+            bucket: "day" | "week" | "month";
+            days: number;
+            from: string;
+            to: string;
+            current: components["schemas"]["BusinessPeriodStatsDto"];
+            previous: components["schemas"]["BusinessPeriodStatsDto"];
+            repliesSent: number;
+            timeSavedHours: number;
+            series: components["schemas"]["BusinessSeriesPointDto"][];
+            distribution: components["schemas"]["BusinessDistributionDto"][];
+            topics: components["schemas"]["BusinessTopicTrendDto"][];
+        };
+        MetricsDto: {
+            impressionsMaps: number;
+            impressionsSearch: number;
+            calls: number;
+            websiteClicks: number;
+            directions: number;
+            conversations: number;
+            bookings: number;
+        };
+        MetricsPointDto: {
+            impressionsMaps: number;
+            impressionsSearch: number;
+            calls: number;
+            websiteClicks: number;
+            directions: number;
+            conversations: number;
+            bookings: number;
+            day: string;
+        };
+        BusinessInsightsDto: {
+            from: string;
+            to: string;
+            days: number;
+            current: components["schemas"]["MetricsDto"];
+            previous: components["schemas"]["MetricsDto"];
+            series: components["schemas"]["MetricsPointDto"][];
+            lastDay: string | null;
+            note: string;
+        };
+        BusinessReplyDto: {
+            text: string;
+            /** Format: uuid */
+            templateId?: string;
+        };
+        BusinessDraftDto: {
+            rewrite?: boolean;
+        };
+        BusinessApproveAllDto: {
+            replyIds: string[];
+        };
+        BusinessApproveFailureDto: {
+            replyId: string;
+            error: string;
+        };
+        BusinessApproveAllResultDto: {
+            sent: number;
+            failed: components["schemas"]["BusinessApproveFailureDto"][];
+        };
+        BusinessApproveDto: {
+            text?: string;
+        };
+        BusinessTemplateBodyViewDto: {
+            language: string;
+            variants: string[];
+        };
+        GbpTemplateDto: {
+            /** @enum {string} */
+            category: "positive" | "negative" | "bug" | "feature" | "billing" | "updated" | "neutral" | "custom";
+            id: string;
+            name: string;
+            bodies: components["schemas"]["BusinessTemplateBodyViewDto"][];
+            ratings: number[];
+            hidden: boolean;
+            preset: boolean;
+            locationId: string | null;
+            updatedAt: string;
+        };
+        GbpTemplateListDto: {
+            data: components["schemas"]["GbpTemplateDto"][];
+        };
+        BusinessTemplateBodyDto: {
+            language: string;
+            variants: string[];
+        };
+        BusinessTemplateDto: {
+            name: string;
+            /** @enum {string} */
+            category: "positive" | "negative" | "bug" | "feature" | "billing" | "updated" | "neutral" | "custom";
+            ratings?: number[];
+            bodies: components["schemas"]["BusinessTemplateBodyDto"][];
+            /** Format: uuid */
+            locationId?: string | null;
+        };
+        BusinessVisibilityDto: {
+            hidden: boolean;
+        };
+        PostCtaViewDto: {
+            /** @enum {string} */
+            type: "BOOK" | "ORDER" | "SHOP" | "LEARN_MORE" | "SIGN_UP" | "CALL";
+            url: string | null;
+        };
+        PostEventViewDto: {
+            title: string;
+            start: string;
+            end: string;
+        };
+        PostOfferViewDto: {
+            couponCode: string | null;
+            redeemUrl: string | null;
+            terms: string | null;
+        };
+        PostContentViewDto: {
+            /** @enum {string} */
+            type: "STANDARD" | "EVENT" | "OFFER";
+            summary: string;
+            mediaUrl: string | null;
+            cta: components["schemas"]["PostCtaViewDto"] | null;
+            event: components["schemas"]["PostEventViewDto"] | null;
+            offer: components["schemas"]["PostOfferViewDto"] | null;
+        };
+        GbpPostDto: {
+            /** @enum {string} */
+            type: "STANDARD" | "EVENT" | "OFFER";
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "failed";
+            id: string;
+            locationId: string;
+            content: components["schemas"]["PostContentViewDto"];
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            searchUrl: string | null;
+            error: string | null;
+            source: string;
+            createdAt: string;
+        };
+        GbpPostListDto: {
+            data: components["schemas"]["GbpPostDto"][];
+        };
+        PostCtaDto: {
+            /** @enum {string} */
+            type: "BOOK" | "ORDER" | "SHOP" | "LEARN_MORE" | "SIGN_UP" | "CALL";
+            url: string | null;
+        };
+        PostEventDto: {
+            title: string;
+            start: string;
+            end: string;
+        };
+        PostOfferDto: {
+            couponCode: string | null;
+            redeemUrl: string | null;
+            terms: string | null;
+        };
+        PostContentDto: {
+            /** @enum {string} */
+            type: "STANDARD" | "EVENT" | "OFFER";
+            summary: string;
+            mediaUrl: string | null;
+            cta: components["schemas"]["PostCtaDto"] | null;
+            event: components["schemas"]["PostEventDto"] | null;
+            offer: components["schemas"]["PostOfferDto"] | null;
+        };
+        CreateGbpPostDto: {
+            /** Format: uuid */
+            locationId: string;
+            content: components["schemas"]["PostContentDto"];
+            /** @enum {string} */
+            when: "now" | "schedule" | "draft";
+            scheduledAt?: string | null;
+        };
+        UpdateGbpPostDto: {
+            content: components["schemas"]["PostContentDto"];
+            /** @enum {string} */
+            when: "now" | "schedule" | "draft";
+            scheduledAt?: string | null;
         };
     };
     responses: never;
@@ -5990,6 +6948,1149 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlayRuleListDto"];
                 };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessStatusDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_dashboard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessDashboardDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_connections_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpConnectionListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_start_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartOAuthDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectUrlDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_disconnect_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_discover_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationDiscoveryDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_locations_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpLocationListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_syncAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncAllResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_location_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpLocationDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_updateLocation_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLocationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpLocationDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_removeLocation_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_sync_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationSyncResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_locationReviews_v1: {
+        parameters: {
+            query?: {
+                state?: "unreplied" | "waiting" | "claude" | "scheduled" | "replied" | "failed" | "skipped";
+                stars?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_suggestions_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessSuggestionListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_info_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationInfoDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_updateInfo_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfoPatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationInfoDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_previewInfo_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfoPatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfoPreviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_inbox_v1: {
+        parameters: {
+            query?: {
+                filter?: "pending" | "replied" | "all";
+                locationId?: string;
+                stars?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessInboxDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_analytics_v1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+                days?: 1 | 7 | 30 | 90;
+                from?: string;
+                to?: string;
+                all?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessAnalyticsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_insights_v1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+                days?: 1 | 7 | 30 | 90;
+                from?: string;
+                to?: string;
+                all?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessInsightsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_reply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessReplyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_deleteReply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_saveDraft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessReplyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_aiDraft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_skip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_unskip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_approveAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessApproveAllDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessApproveAllResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_approve_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessApproveDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_discard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_templates_v1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpTemplateListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_createTemplate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessTemplateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpTemplateDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_updateTemplate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessTemplateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpTemplateDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_deleteTemplate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_templateVisibility_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessVisibilityDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpTemplateDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_posts_v1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpPostListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_createPost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGbpPostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_updatePost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGbpPostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_deletePost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: {
                 headers: {

@@ -38,12 +38,13 @@ import {
   BusinessReviewQueryDto,
   BusinessTemplateDto,
   BusinessVisibilityDto,
-  CreatePostDto,
+  CreateGbpPostDto,
   InfoPatchDto,
   OAuthCallbackQueryDto,
+  StartOAuthDto,
   PostQueryDto,
   UpdateLocationDto,
-  UpdatePostDto,
+  UpdateGbpPostDto,
 } from "./dto/business.dto";
 import {
   BusinessAnalyticsDto,
@@ -114,8 +115,11 @@ export class BusinessController {
   @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
   @Post("oauth/start")
   @HttpCode(HttpStatus.OK)
-  start(@CurrentUser() ctx: TenantContext): ConnectUrlDto {
-    return this.business.connectUrl(actor(ctx));
+  start(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: StartOAuthDto,
+  ): ConnectUrlDto {
+    return this.business.connectUrl(actor(ctx), body?.origin);
   }
 
   @Public()
@@ -411,7 +415,7 @@ export class BusinessController {
   @Post("posts")
   createPost(
     @CurrentUser() ctx: TenantContext,
-    @Body() body: CreatePostDto,
+    @Body() body: CreateGbpPostDto,
   ): Promise<GbpPostDto> {
     return this.business.createPost(actor(ctx), body);
   }
@@ -420,7 +424,7 @@ export class BusinessController {
   updatePost(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) postId: string,
-    @Body() body: UpdatePostDto,
+    @Body() body: UpdateGbpPostDto,
   ): Promise<GbpPostDto> {
     return this.business.updatePost(actor(ctx), postId, body);
   }

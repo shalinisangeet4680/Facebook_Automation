@@ -41,6 +41,14 @@ export const TOPIC_STYLE: Record<string, [string, string]> = {
   Support: ["#FBF3E2", "#8A5A00"],
   "Feature request": ["#ECEFF6", "#3B4A6B"],
   Praise: ["#EAF3EE", A],
+  Staff: ["#FDF0EE", "#B42318"],
+  Price: ["#FBF3E2", "#8A5A00"],
+  "Wait time": ["#FBF3E2", "#8A5A00"],
+  Cleanliness: ["#FDF0EE", "#B42318"],
+  Service: ["#ECEFF6", "#3B4A6B"],
+  Quality: ["#ECEFF6", "#3B4A6B"],
+  Booking: ["#ECEFF6", "#3B4A6B"],
+  Location: ["#EFEDE8", "#55534E"],
 };
 
 export const DELAYS = [

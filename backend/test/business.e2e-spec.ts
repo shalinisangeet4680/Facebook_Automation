@@ -86,7 +86,19 @@ describe("Google Business automation", () => {
     expect(bad.statusCode).toBe(302);
     expect(bad.headers.location).toContain("/business/connect?error=");
 
-    const start = await api("POST", "/oauth/start");
+    const elsewhere = await api("POST", "/oauth/start", {
+      origin: "https://evil.example",
+    });
+    expect(new URL(elsewhere.body.url as string).searchParams.get("code")).toBe(
+      "mock",
+    );
+    expect(elsewhere.body.url).toContain(
+      "http://localhost:3200/api/v1/business/oauth/callback",
+    );
+
+    const start = await api("POST", "/oauth/start", {
+      origin: "http://localhost:3200",
+    });
     const url = new URL(start.body.url as string);
     expect(url.searchParams.get("code")).toBe("mock");
     const done = await call(app, "GET", `${url.pathname}${url.search}`);
