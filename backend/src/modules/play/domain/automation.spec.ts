@@ -1,11 +1,12 @@
 import {
   decide,
+  ratingDrop,
   firstMatch,
   matches,
   minutesUntilQuietEnds,
   sendTime,
 } from "./automation";
-import { DEFAULT_SETTINGS, ReviewFacts, Rule } from "./play.types";
+import { AppSettings, DEFAULT_SETTINGS, ReviewFacts, Rule } from "./play.types";
 import { BUG_WORDS, PRESET_RULES } from "./presets";
 
 const facts = (over: Partial<ReviewFacts> = {}): ReviewFacts => ({
@@ -57,15 +58,8 @@ describe("matches", () => {
 
 describe("preset rules", () => {
   const pick = (f: ReviewFacts) => firstMatch(rules, f)?.action;
-  it("route reviews to the right template", () => {
-    expect(pick(facts({ stars: 5 }))).toEqual({
-      type: "template",
-      templateId: "thanks",
-    });
-    expect(pick(facts({ stars: 1, text: "Terrible" }))).toEqual({
-      type: "template",
-      templateId: "negative",
-    });
+  it("catch bugs, payments and raised ratings before the per-rating rules", () => {
+    expect(pick(facts({ stars: 5 }))).toBeUndefined();
     expect(pick(facts({ stars: 2, text: "It keeps crashing" }))).toEqual({
       type: "template",
       templateId: "bug",
@@ -75,10 +69,6 @@ describe("preset rules", () => {
     ).toEqual({
       type: "template",
       templateId: "billing",
-    });
-    expect(pick(facts({ stars: 3, text: "ok" }))).toEqual({
-      type: "template",
-      templateId: "neutral",
     });
     expect(pick(facts({ stars: 5, editedAfterReply: true }))).toEqual({
       type: "template",
@@ -133,30 +123,83 @@ describe("quiet hours", () => {
 describe("decide", () => {
   const now = new Date("2026-10-16T06:30:00Z");
   const auto = rules.map((r) => ({ ...r, mode: "auto" as const }));
+  const settings: AppSettings = {
+    ...DEFAULT_SETTINGS,
+    delay: "1h",
+    ratingRules: [
+      { rating: 5, mode: "auto", templateId: "grateful" },
+      { rating: 4, mode: "auto", templateId: "nudge" },
+      { rating: 3, mode: "approval", templateId: null },
+      { rating: 2, mode: "approval", templateId: "apology" },
+      { rating: 1, mode: "manual", templateId: "apology" },
+    ],
+  };
   const base = {
     hasReply: false,
     rules: auto,
-    settings: DEFAULT_SETTINGS,
+    settings,
     autoSentToday: 0,
     firstSync: false,
     now,
   };
 
-  it("schedules an automatic reply after the rule's delay", () => {
+  it("uses the rating's mode, template and the posting delay", () => {
     const d = decide({ ...base, facts: facts() });
     expect(d).toMatchObject({
       kind: "template",
-      templateId: "thanks",
+      ruleId: null,
+      templateId: "grateful",
       auto: true,
       heldBecause: null,
     });
     if (d.kind === "template")
-      expect(d.sendAt?.toISOString()).toBe("2026-10-16T08:00:00.000Z");
+      expect(d.sendAt?.toISOString()).toBe("2026-10-16T07:30:00.000Z");
+    expect(
+      decide({ ...base, facts: facts({ stars: 3, text: "ok" }) }),
+    ).toMatchObject({
+      kind: "template",
+      templateId: null,
+      auto: false,
+    });
+    expect(
+      decide({ ...base, facts: facts({ stars: 1, text: "bad" }) }),
+    ).toEqual({
+      kind: "none",
+      reason: "1-star reviews are answered by hand",
+    });
   });
 
-  it("holds automatic replies for risky words, the daily limit and the first sync", () => {
+  it("runs advanced rules first", () => {
+    const d = decide({
+      ...base,
+      facts: facts({ stars: 1, text: "It keeps crashing" }),
+    });
+    expect(d).toMatchObject({
+      kind: "template",
+      templateId: "bug",
+      auto: true,
+    });
+    if (d.kind === "template")
+      expect(d.sendAt?.toISOString()).toBe("2026-10-16T07:00:00.000Z");
+  });
+
+  it("skips star-only reviews when asked", () => {
+    expect(decide({ ...base, facts: facts({ text: "" }) })).toEqual({
+      kind: "none",
+      reason: "star-only review",
+    });
     expect(
-      decide({ ...base, facts: facts({ stars: 1, text: "This is a scam" }) }),
+      decide({
+        ...base,
+        settings: { ...settings, skipEmpty: false },
+        facts: facts({ text: "" }),
+      }),
+    ).toMatchObject({ kind: "template" });
+  });
+
+  it("holds automatic replies for risky words, the daily limit, the first sync and a safety pause", () => {
+    expect(
+      decide({ ...base, facts: facts({ stars: 4, text: "This is a scam" }) }),
     ).toMatchObject({
       auto: false,
       heldBecause: 'Mentions "scam", so it needs your approval.',
@@ -170,6 +213,9 @@ describe("decide", () => {
     expect(decide({ ...base, firstSync: true, facts: facts() })).toMatchObject({
       auto: false,
     });
+    expect(
+      decide({ ...base, pausedBecause: "Paused", facts: facts() }),
+    ).toMatchObject({ auto: false, heldBecause: "Paused" });
   });
 
   it("leaves replied reviews alone unless they were edited", () => {
@@ -188,13 +234,13 @@ describe("decide", () => {
       decide({
         ...base,
         hasReply: true,
-        settings: { ...DEFAULT_SETTINGS, replyToEdited: false },
+        settings: { ...settings, replyToEdited: false },
         facts: facts({ editedAfterReply: true }),
       }),
     ).toMatchObject({ kind: "none" });
   });
 
-  it("sends to Claude or skips when the rule says so", () => {
+  it("sends to Claude or skips when an advanced rule says so", () => {
     const claude: Rule = {
       ...auto[0]!,
       conditions: {},
@@ -208,9 +254,31 @@ describe("decide", () => {
     expect(decide({ ...base, rules: [skip], facts: facts() })).toMatchObject({
       kind: "none",
     });
-    expect(decide({ ...base, rules: [], facts: facts() })).toEqual({
-      kind: "none",
-      reason: "no rule matches",
+    expect(
+      decide({
+        ...base,
+        rules: [],
+        settings: DEFAULT_SETTINGS,
+        facts: facts(),
+      }),
+    ).toEqual({ kind: "none", reason: "no rule matches" });
+  });
+});
+
+describe("ratingDrop", () => {
+  const now = new Date("2026-10-16T12:00:00Z");
+  const at = (h: number, stars: number) => ({
+    stars,
+    reviewedAt: new Date(now.getTime() - h * 3_600_000),
+  });
+  it("compares the last day with the month before", () => {
+    const before = Array.from({ length: 10 }, (_, i) => at(48 + i, 5));
+    const recent = Array.from({ length: 5 }, (_, i) => at(2 + i, i ? 5 : 1));
+    expect(ratingDrop([...before, ...recent], now)).toEqual({
+      recent: 4.2,
+      baseline: 5,
+      drop: 0.8,
     });
+    expect(ratingDrop(recent, now)).toBeNull();
   });
 });

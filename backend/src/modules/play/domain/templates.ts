@@ -5,37 +5,86 @@ import { REPLY_MAX, TemplateBody } from "./play.types";
 export const charCount = (text: string) => text.length;
 
 export const VARIABLE_NAME = /^[a-z][a-z0-9_]{0,31}$/;
-const PLACEHOLDER = /\{\{\s*([a-z][a-z0-9_]{0,31})\s*(?:\|([^}]*))?\}\}/g;
+const PLACEHOLDER =
+  /\{\{\s*([a-z][a-z0-9_]{0,31})\s*(?:\|([^}]*))?\}\}|(?<!\{)\{([a-z][a-z0-9_]{0,31})\}(?!\})/g;
+
+export const DEFAULT_FALLBACKS: Record<string, string> = {
+  user_name: "there",
+  developer_name: "The team",
+  team_name: "The team",
+  version: "the latest version",
+  latest_version: "the latest version",
+};
+
+export const ALIASES: Record<string, string> = {
+  user_name: "first_name",
+  version: "latest_version",
+  developer_name: "team_name",
+};
 
 export const BUILT_IN_VARIABLES = [
-  "first_name",
+  "user_name",
   "app_name",
+  "rating",
+  "version",
+  "first_name",
   "latest_version",
 ] as const;
 
 export const SUGGESTED_VARIABLES = [
-  "team_name",
   "support_email",
+  "developer_name",
   "support_phone",
   "support_url",
 ] as const;
 
+export const PLACEHOLDER_CHIPS = [
+  "user_name",
+  "app_name",
+  "rating",
+  "support_email",
+  "version",
+  "developer_name",
+] as const;
+
 export const SAMPLE_VALUES: Record<string, string> = {
   first_name: "Christopher",
+  user_name: "Christopher",
   app_name: "Your App",
+  rating: "5",
   latest_version: "10.12.3",
+  version: "10.12.3",
 };
+
+export function lookup(
+  values: Record<string, string | null | undefined>,
+  name: string,
+): string | undefined {
+  const direct = values[name]?.trim();
+  if (direct) return direct;
+  const alias = ALIASES[name];
+  const aliased = alias ? values[alias]?.trim() : undefined;
+  if (aliased) return aliased;
+  const reverse = Object.entries(ALIASES).find(([, v]) => v === name)?.[0];
+  return reverse ? values[reverse]?.trim() || undefined : undefined;
+}
 
 export interface Placeholder {
   name: string;
   fallback: string | null;
+  raw: string;
 }
 
 export function placeholders(text: string): Placeholder[] {
-  return [...text.matchAll(PLACEHOLDER)].map((m) => ({
-    name: m[1]!,
-    fallback: m[2] === undefined ? null : m[2].trim(),
-  }));
+  return [...text.matchAll(PLACEHOLDER)].map((m) =>
+    m[3]
+      ? { name: m[3], fallback: DEFAULT_FALLBACKS[m[3]] ?? null, raw: m[0] }
+      : {
+          name: m[1]!,
+          fallback: m[2] === undefined ? null : m[2].trim(),
+          raw: `{{${m[1]!}}}`,
+        },
+  );
 }
 
 export interface Rendered {
@@ -50,13 +99,24 @@ export function render(
 ): Rendered {
   const missing = new Set<string>();
   const text = template
-    .replace(PLACEHOLDER, (_, name: string, fallback?: string) => {
-      const value = values[name]?.trim();
-      if (value) return value;
-      if (fallback !== undefined) return fallback.trim();
-      missing.add(name);
-      return "";
-    })
+    .replace(
+      PLACEHOLDER,
+      (
+        _,
+        name: string | undefined,
+        fallback: string | undefined,
+        single: string | undefined,
+      ) => {
+        const key = (single ?? name)!;
+        const value = lookup(values, key);
+        if (value) return value;
+        if (single && DEFAULT_FALLBACKS[single] !== undefined)
+          return DEFAULT_FALLBACKS[single];
+        if (!single && fallback !== undefined) return fallback.trim();
+        missing.add(key);
+        return "";
+      },
+    )
     .replace(/[ \t]{2,}/g, " ")
     .replace(/ +([,.!?])/g, "$1")
     .replace(/[,;:]+([.!?])/g, "$1")
@@ -137,11 +197,11 @@ export function checkTemplate(
         const builtIn = (BUILT_IN_VARIABLES as readonly string[]).includes(
           p.name,
         );
-        if (!builtIn && !known[p.name]?.trim() && p.fallback === null)
+        if (!builtIn && !lookup(known, p.name) && p.fallback === null)
           problems.push({
             language: body.language,
             variant: i,
-            problem: `{{${p.name}}} has no value in this app's settings and no fallback`,
+            problem: `${p.raw} has no value in this app's settings and no fallback`,
           });
       }
       const longest = render(variant, { ...SAMPLE_VALUES, ...filled(known) });

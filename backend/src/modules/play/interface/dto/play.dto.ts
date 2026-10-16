@@ -17,7 +17,14 @@ import {
   ValidateNested,
 } from "class-validator";
 
-import { RULE_MODES, TEMPLATE_CATEGORIES } from "../../domain/play.types";
+import {
+  AI_MODES,
+  DELAYS,
+  RATING_MODES,
+  RULE_MODES,
+  TEMPLATE_CATEGORIES,
+  TONES,
+} from "../../domain/play.types";
 import { REVIEW_STATES } from "../../application/play.service";
 
 export class ConnectPlayDto {
@@ -49,7 +56,56 @@ export class QuietHoursDto {
   end: string;
 }
 
+export class RatingRuleDto {
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating: number;
+
+  @IsIn(RATING_MODES)
+  mode: (typeof RATING_MODES)[number];
+
+  @IsOptional()
+  @IsUUID()
+  templateId: string | null;
+}
+
 export class PlaySettingsDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => RatingRuleDto)
+  ratingRules?: RatingRuleDto[];
+
+  @IsOptional()
+  @IsIn(Object.keys(DELAYS))
+  delay?: keyof typeof DELAYS;
+
+  @IsOptional()
+  @IsIn(TONES)
+  tone?: (typeof TONES)[number];
+
+  @IsOptional()
+  @IsBoolean()
+  translate?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  personalize?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  skipEmpty?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  escalate?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  autoPause?: boolean;
+
   @IsOptional()
   @IsString()
   timezone?: string;
@@ -180,7 +236,6 @@ export class TemplateBodyDto {
   language: string;
 
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(10)
   @IsString({ each: true })
   variants: string[];
@@ -191,8 +246,15 @@ export class TemplateDto {
   @MaxLength(60)
   name: string;
 
+  @IsOptional()
   @IsIn(TEMPLATE_CATEGORIES)
-  category: (typeof TEMPLATE_CATEGORIES)[number];
+  category?: (typeof TEMPLATE_CATEGORIES)[number];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsInt({ each: true })
+  ratings?: number[];
 
   @IsArray()
   @ArrayMinSize(1)
@@ -294,4 +356,58 @@ export class ReplaceRulesDto {
   @ValidateNested({ each: true })
   @Type(() => RuleDto)
   rules: RuleDto[];
+}
+
+export class InboxQueryDto {
+  @IsOptional()
+  @IsIn(["pending", "replied", "all"])
+  filter?: "pending" | "replied" | "all";
+
+  @IsOptional()
+  @IsUUID()
+  appId?: string;
+}
+
+export class AnalyticsQueryDto {
+  @IsOptional()
+  @IsUUID()
+  appId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([7, 30, 90])
+  days?: number;
+}
+
+export class ApproveAllDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @IsUUID("all", { each: true })
+  replyIds: string[];
+}
+
+export class WorkspaceSettingsDto {
+  @IsOptional()
+  @IsIn(AI_MODES)
+  aiMode?: (typeof AI_MODES)[number];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  aiKey?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  slackWebhook?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(81)
+  slackChannel?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  agentsCanPost?: boolean;
 }

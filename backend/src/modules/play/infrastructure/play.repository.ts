@@ -32,6 +32,7 @@ import {
   playReviews,
   playRules,
   playTemplates,
+  playWorkspaceSettings,
 } from "./play.tables";
 
 @Injectable()
@@ -410,10 +411,27 @@ export class PlayRepository {
         and(
           eq(playReviews.appId, appId),
           sql`${playReviews.text} <> ''`,
+          isNull(playReviews.skippedAt),
           or(
             isNull(playReviews.replyText),
             eq(playReviews.editedAfterReply, true),
           ),
+        ),
+      );
+    const [overall] = await this.db
+      .select({ rating: avg(playReviews.stars) })
+      .from(playReviews)
+      .where(eq(playReviews.appId, appId));
+    const [failed] = await this.db
+      .select({ n: count() })
+      .from(playReplies)
+      .innerJoin(playReviews, eq(playReviews.id, playReplies.reviewId))
+      .where(
+        and(
+          eq(playReplies.appId, appId),
+          eq(playReplies.status, "failed"),
+          isNull(playReviews.replyText),
+          isNull(playReviews.skippedAt),
         ),
       );
     const waiting = await this.db
@@ -429,6 +447,8 @@ export class PlayRepository {
     return {
       rating: current?.rating ? Number(current.rating) : null,
       previousRating: previous?.rating ? Number(previous.rating) : null,
+      overall: overall?.rating ? Number(overall.rating) : null,
+      failed: failed?.n ?? 0,
       reviews30d: current?.n ?? 0,
       needsReply: open?.n ?? 0,
       waiting: Object.fromEntries(
@@ -525,5 +545,183 @@ export class PlayRepository {
       if (!rows.length) return [];
       return tx.insert(playRules).values(rows).returning();
     });
+  }
+
+  async workspaceSettings(workspaceId: string) {
+    return firstOrNull(
+      await this.db
+        .select()
+        .from(playWorkspaceSettings)
+        .where(eq(playWorkspaceSettings.workspaceId, workspaceId))
+        .limit(1),
+    );
+  }
+
+  async saveWorkspaceSettings(
+    workspaceId: string,
+    values: Partial<typeof playWorkspaceSettings.$inferInsert>,
+  ) {
+    const [row] = await this.db
+      .insert(playWorkspaceSettings)
+      .values({ ...values, workspaceId })
+      .onConflictDoUpdate({
+        target: playWorkspaceSettings.workspaceId,
+        set: { ...values, updatedAt: new Date() },
+      })
+      .returning();
+    return row!;
+  }
+
+  async settingsByToken(hash: string, now: Date) {
+    return firstOrNull(
+      await this.db
+        .select()
+        .from(playWorkspaceSettings)
+        .where(
+          or(
+            eq(playWorkspaceSettings.tokenHash, hash),
+            and(
+              eq(playWorkspaceSettings.previousTokenHash, hash),
+              gte(playWorkspaceSettings.previousTokenExpiresAt, now),
+            ),
+          ),
+        )
+        .limit(1),
+    );
+  }
+
+  repliedSince(appId: string, since: Date) {
+    return this.db
+      .select({
+        repliedAt: playReviews.repliedAt,
+        replyText: playReviews.replyText,
+      })
+      .from(playReviews)
+      .where(
+        and(eq(playReviews.appId, appId), gte(playReviews.repliedAt, since)),
+      );
+  }
+
+  untaggedReviews(appId: string, limit: number) {
+    return this.db
+      .select()
+      .from(playReviews)
+      .where(and(eq(playReviews.appId, appId), isNull(playReviews.topic)))
+      .limit(limit);
+  }
+
+  async aiDraftsSince(workspaceId: string, since: Date) {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(playReplies)
+      .where(
+        and(
+          eq(playReplies.workspaceId, workspaceId),
+          eq(playReplies.source, "ai"),
+          gte(playReplies.updatedAt, since),
+        ),
+      );
+    return row?.n ?? 0;
+  }
+
+  async holdScheduled(appId: string, note: string) {
+    await this.db
+      .update(playReplies)
+      .set({ status: "pending_approval", auto: false, sendAt: null, note })
+      .where(
+        and(
+          eq(playReplies.appId, appId),
+          eq(playReplies.status, "scheduled"),
+          eq(playReplies.auto, true),
+        ),
+      );
+  }
+
+  workspaceReviews(
+    workspaceId: string,
+    filters: { appIds: string[]; since?: Date },
+    limit: number,
+  ) {
+    if (!filters.appIds.length) return Promise.resolve([] as PlayReviewRow[]);
+    const where = [
+      eq(playReviews.workspaceId, workspaceId),
+      inArray(playReviews.appId, filters.appIds),
+    ];
+    if (filters.since) where.push(gte(playReviews.reviewedAt, filters.since));
+    return this.db
+      .select()
+      .from(playReviews)
+      .where(and(...where))
+      .orderBy(desc(playReviews.reviewedAt))
+      .limit(limit);
+  }
+
+  openReviews(workspaceId: string, appIds: string[], limit: number) {
+    if (!appIds.length) return Promise.resolve([] as PlayReviewRow[]);
+    return this.db
+      .select()
+      .from(playReviews)
+      .where(
+        and(
+          eq(playReviews.workspaceId, workspaceId),
+          inArray(playReviews.appId, appIds),
+          isNull(playReviews.skippedAt),
+          or(
+            isNull(playReviews.replyText),
+            eq(playReviews.editedAfterReply, true),
+          ),
+          sql`(${playReviews.text} <> '' or exists (select 1 from ${playReplies} where ${playReplies.reviewId} = ${playReviews.id} and ${playReplies.status} in ('pending_approval', 'needs_claude', 'scheduled', 'failed')))`,
+        ),
+      )
+      .orderBy(desc(playReviews.reviewedAt))
+      .limit(limit);
+  }
+
+  doneReviews(workspaceId: string, appIds: string[], limit: number) {
+    if (!appIds.length) return Promise.resolve([] as PlayReviewRow[]);
+    return this.db
+      .select()
+      .from(playReviews)
+      .where(
+        and(
+          eq(playReviews.workspaceId, workspaceId),
+          inArray(playReviews.appId, appIds),
+          or(
+            sql`${playReviews.skippedAt} is not null`,
+            and(
+              sql`${playReviews.replyText} is not null`,
+              eq(playReviews.editedAfterReply, false),
+            ),
+          ),
+        ),
+      )
+      .orderBy(
+        desc(
+          sql`coalesce(${playReviews.repliedAt}, ${playReviews.skippedAt}, ${playReviews.reviewedAt})`,
+        ),
+      )
+      .limit(limit);
+  }
+
+  async sentRepliesBetween(
+    workspaceId: string,
+    appIds: string[],
+    from: Date,
+    to: Date,
+  ) {
+    if (!appIds.length) return 0;
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(playReplies)
+      .where(
+        and(
+          eq(playReplies.workspaceId, workspaceId),
+          inArray(playReplies.appId, appIds),
+          eq(playReplies.status, "sent"),
+          gte(playReplies.sentAt, from),
+          lte(playReplies.sentAt, to),
+        ),
+      );
+    return row?.n ?? 0;
   }
 }

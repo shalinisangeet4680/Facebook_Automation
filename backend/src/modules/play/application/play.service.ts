@@ -11,7 +11,12 @@ import {
   ACTIVE_REPLY_STATUSES,
   AppSettings,
   DEFAULT_SETTINGS,
+  DELAYS,
+  PlayErrorKindView,
+  RATING_MODES,
+  RatingRule,
   REPLY_MAX,
+  TONES,
   RuleAction,
   RuleConditions,
   RuleMode,
@@ -20,7 +25,14 @@ import {
   TemplateCategory,
 } from "../domain/play.types";
 import { computeInsights } from "../domain/insights";
+import {
+  dailySeries,
+  distribution,
+  periodStats,
+  replySparkline,
+} from "../domain/analytics";
 import { PRESET_RULES, PRESET_TEMPLATES } from "../domain/presets";
+import { keywordTopic } from "../domain/topics";
 import { parseReport } from "../domain/report-csv";
 import { PACKAGE_NAME, parseServiceAccount } from "../domain/service-account";
 import {
@@ -38,13 +50,19 @@ import {
   PlayRuleRow,
   PlayTemplateRow,
 } from "../infrastructure/play.tables";
-import { PlayActor, PlayEngine } from "./play-engine.service";
+import { PlayActor, PlayEngine, syncErrorKind } from "./play-engine.service";
 
 const LANG = /^[a-z]{2,3}([-_][A-Za-z]{2,4})?$/;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export type ReviewState =
-  "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied";
+  | "unreplied"
+  | "waiting"
+  | "claude"
+  | "scheduled"
+  | "failed"
+  | "replied"
+  | "skipped";
 export const REVIEW_STATES: ReviewState[] = [
   "unreplied",
   "waiting",
@@ -52,6 +70,7 @@ export const REVIEW_STATES: ReviewState[] = [
   "scheduled",
   "failed",
   "replied",
+  "skipped",
 ];
 
 export interface RuleInput {
@@ -66,7 +85,8 @@ export interface RuleInput {
 
 export interface TemplateInput {
   name: string;
-  category: TemplateCategory;
+  category?: TemplateCategory;
+  ratings?: number[];
   bodies: TemplateBody[];
   appId?: string | null;
 }
@@ -97,7 +117,7 @@ export class PlayService {
   ) {}
 
   reviewsUrl(appId: string) {
-    return `${appUrl(this.config)}/reviews/${appId}`;
+    return `${appUrl(this.config)}/reviews/inbox?app=${appId}`;
   }
 
   async forClaude(
@@ -213,18 +233,34 @@ export class PlayService {
     };
   }
 
+  private connectError(
+    stage: number,
+    code: "invalid_key" | "api_disabled" | "no_permission" | "error",
+    message: string,
+    clientEmail?: string,
+  ) {
+    return new ValidationError(message, { stage, code, clientEmail });
+  }
+
   async connect(actor: PlayActor, raw: string) {
     const key = parseServiceAccount(raw);
-    if (typeof key === "string") throw new ValidationError(key);
+    if (typeof key === "string") throw this.connectError(0, "invalid_key", key);
     try {
       await this.engine.api.verifyKey(key);
     } catch (err) {
-      throw new ValidationError(
+      if (err instanceof PlayApiError && err.kind === "auth")
+        throw this.connectError(0, "invalid_key", err.message, key.clientEmail);
+      throw this.connectError(
+        0,
+        "error",
         err instanceof PlayApiError
           ? err.message
           : "The key couldn't be checked.",
+        key.clientEmail,
       );
     }
+    const before = await this.repo.connections(actor.workspaceId);
+    const isNew = !before.some((c) => c.clientEmail === key.clientEmail);
     const row = await this.repo.upsertConnection({
       workspaceId: actor.workspaceId,
       clientEmail: key.clientEmail,
@@ -233,16 +269,42 @@ export class PlayService {
       checkedAt: new Date(),
       createdBy: actor.userId,
     });
+    const discovery = await this.discover(actor, row.id);
+    const apps = (await this.repo.apps(actor.workspaceId)).filter(
+      (a) => a.connectionId === row.id,
+    );
+    const fail = (
+      stage: number,
+      code: "api_disabled" | "no_permission",
+      message: string,
+    ) => this.connectError(stage, code, message, key.clientEmail);
+    let problem: ValidationError | null = null;
+    if (discovery.errorKind === "disabled")
+      problem = fail(1, "api_disabled", discovery.error!);
+    else if (
+      discovery.failed.some((f) => f.kind === "disabled") &&
+      !apps.length
+    )
+      problem = fail(
+        1,
+        "api_disabled",
+        discovery.failed.find((f) => f.kind === "disabled")!.reason,
+      );
+    else if (discovery.found && !apps.length && discovery.failed.length)
+      problem = fail(2, "no_permission", discovery.failed[0]!.reason);
+    if (problem) {
+      if (isNew) await this.repo.deleteConnection(row.id);
+      throw problem;
+    }
     await this.record(actor, "play.connected", row.id, {
       clientEmail: key.clientEmail,
     });
-    const discovery = await this.discover(actor, row.id);
     return {
       id: row.id,
       clientEmail: row.clientEmail,
       projectId: row.projectId,
       status: row.status,
-      discovery,
+      discovery: { ...discovery, errorKind: undefined },
     };
   }
 
@@ -276,8 +338,13 @@ export class PlayService {
           ) / 100
         : null;
     });
-    const rules = await this.repo.rules(app.id);
-    const enabled = rules.filter((r) => r.enabled);
+    const ratingRules = await this.engine.ratingRules(app);
+    const modes = new Set(ratingRules.map((r) => r.mode));
+    const needsAccess = app.syncErrorKind === "no_permission";
+    const replied = await this.repo.repliedSince(
+      app.id,
+      new Date(now.getTime() - 14 * 86_400_000),
+    );
     return {
       id: app.id,
       packageName: app.packageName,
@@ -285,14 +352,16 @@ export class PlayService {
       iconUrl: app.iconUrl,
       connectionId: app.connectionId,
       connectionEmail: connections.get(app.connectionId) ?? null,
-      mode:
-        !app.automation || !enabled.length
-          ? ("off" as const)
-          : enabled.some((r) => r.mode === "auto")
-            ? ("auto" as const)
-            : ("approval" as const),
+      enabled: app.automation,
+      mode: needsAccess
+        ? ("needs_access" as const)
+        : modes.size === 1
+          ? [...modes][0]!
+          : ("mixed" as const),
       rating:
         stats.rating === null ? null : Math.round(stats.rating * 100) / 100,
+      overallRating:
+        stats.overall === null ? null : Math.round(stats.overall * 100) / 100,
       previousRating:
         stats.previousRating === null
           ? null
@@ -302,8 +371,17 @@ export class PlayService {
       waiting: stats.waiting.pending_approval ?? 0,
       needsClaude: stats.waiting.needs_claude ?? 0,
       scheduled: stats.waiting.scheduled ?? 0,
+      failed: stats.failed,
+      replies14d: replySparkline(replied, now, 14),
       lastSyncedAt: app.lastSyncedAt?.toISOString() ?? null,
       syncError: app.syncError,
+      syncErrorKind: app.syncErrorKind as PlayErrorKindView | null,
+      pausedUntil:
+        app.pausedUntil && app.pausedUntil > now
+          ? app.pausedUntil.toISOString()
+          : null,
+      pauseReason:
+        app.pausedUntil && app.pausedUntil > now ? app.pauseReason : null,
       trend,
     };
   }
@@ -343,6 +421,7 @@ export class PlayService {
         stars: r.stars,
         text: r.text,
         language: r.language,
+        topic: keywordTopic(r.text, r.stars),
         appVersionName: r.appVersionName,
         appVersionCode: r.appVersionCode,
         device: r.device,
@@ -376,7 +455,7 @@ export class PlayService {
     return { data: await Promise.all(apps.map((a) => this.card(a, emails))) };
   }
 
-  private async appRow(workspaceId: string, id: string) {
+  async appRow(workspaceId: string, id: string) {
     const app = await this.repo.app(workspaceId, id);
     if (!app) throw new NotFoundError("This app isn't connected.");
     return app;
@@ -385,33 +464,95 @@ export class PlayService {
   async app(workspaceId: string, id: string) {
     const app = await this.appRow(workspaceId, id);
     const connections = await this.repo.connections(workspaceId);
+    const card = await this.card(
+      app,
+      new Map(connections.map((c) => [c.id, c.clientEmail])),
+    );
+    const now = new Date();
+    const reviews = await this.repo.reviewsSince(
+      app.id,
+      new Date(now.getTime() - 60 * 86_400_000),
+    );
+    const settings = this.engine.settingsOf(app);
+    const month = reviews.filter(
+      (r) => r.reviewedAt.getTime() > now.getTime() - 30 * 86_400_000,
+    );
     return {
-      ...(await this.card(
-        app,
-        new Map(connections.map((c) => [c.id, c.clientEmail])),
-      )),
+      ...card,
       automation: app.automation,
-      settings: app.settings,
+      settings,
       variables: app.variables,
       latestVersion: app.latestVersion,
       builtInVariables: [...BUILT_IN_VARIABLES],
       suggestedVariables: [...SUGGESTED_VARIABLES],
+      overview: {
+        ...periodStats(reviews, now.getTime() - 30 * 86_400_000, now.getTime()),
+        series: dailySeries(reviews, now, 30, settings.timezone),
+        distribution: distribution(month),
+      },
     };
   }
 
+  async recheck(actor: PlayActor, id: string) {
+    const app = await this.appRow(actor.workspaceId, id);
+    try {
+      await this.engine.api.listReviews(
+        await this.engine.keyFor(app),
+        app.packageName,
+        {},
+      );
+    } catch (err) {
+      await this.repo.updateApp(app.id, {
+        syncError:
+          err instanceof PlayApiError
+            ? err.message
+            : "The app couldn't be reached.",
+        syncErrorKind: syncErrorKind(err),
+      });
+      return this.app(actor.workspaceId, app.id);
+    }
+    await this.repo.updateApp(app.id, { syncError: null, syncErrorKind: null });
+    await this.engine.sync(app).catch(() => null);
+    return this.app(actor.workspaceId, app.id);
+  }
+
+  async resume(actor: PlayActor, id: string) {
+    const app = await this.appRow(actor.workspaceId, id);
+    await this.repo.updateApp(app.id, { pausedUntil: null, pauseReason: null });
+    await this.record(actor, "play.safety_resumed", app.id);
+    return this.app(actor.workspaceId, app.id);
+  }
+
   async ensurePresets(workspaceId: string) {
-    const existing = new Set(
-      (await this.repo.allTemplates(workspaceId)).map((t) => t.presetKey),
+    const rows = await this.repo.allTemplates(workspaceId);
+    const existing = new Map(
+      rows.filter((t) => t.presetKey && !t.appId).map((t) => [t.presetKey!, t]),
     );
     await this.repo.insertTemplates(
       PRESET_TEMPLATES.filter((p) => !existing.has(p.key)).map((p) => ({
         workspaceId,
         name: p.name,
         category: p.category,
+        ratings: p.ratings,
         bodies: p.bodies,
         presetKey: p.key,
       })),
     );
+    for (const p of PRESET_TEMPLATES) {
+      const row = existing.get(p.key);
+      if (
+        row &&
+        (row.name !== p.name ||
+          JSON.stringify(row.bodies) !== JSON.stringify(p.bodies) ||
+          JSON.stringify(row.ratings) !== JSON.stringify(p.ratings))
+      )
+        await this.repo.updateTemplate(row.id, {
+          name: p.name,
+          bodies: p.bodies,
+          ratings: p.ratings,
+          category: p.category,
+        });
+    }
     return this.repo.allTemplates(workspaceId);
   }
 
@@ -475,6 +616,7 @@ export class PlayService {
       variables: {},
     });
     const templates = await this.ensurePresets(actor.workspaceId);
+    await this.engine.ratingRules(app);
     const byKey = new Map(
       templates.filter((t) => t.presetKey).map((t) => [t.presetKey!, t.id]),
     );
@@ -513,8 +655,14 @@ export class PlayService {
       found: 0,
       added: [] as { id: string; packageName: string; title: string }[],
       already: [] as { packageName: string; title: string }[],
-      failed: [] as { packageName: string; title: string; reason: string }[],
+      failed: [] as {
+        packageName: string;
+        title: string;
+        reason: string;
+        kind?: string;
+      }[],
       error: null as string | null,
+      errorKind: undefined as string | undefined,
     };
     let apps;
     try {
@@ -524,6 +672,7 @@ export class PlayService {
         err instanceof PlayApiError
           ? err.message
           : "Your apps couldn't be listed.";
+      result.errorKind = err instanceof PlayApiError ? err.kind : undefined;
       await this.repo.updateConnection(connection.id, {
         discoveredAt: new Date(),
         discoveryError: result.error,
@@ -567,6 +716,7 @@ export class PlayService {
             err instanceof PlayApiError
               ? err.message
               : "This app couldn't be added.",
+          kind: err instanceof PlayApiError ? err.kind : undefined,
         });
       }
     }
@@ -597,7 +747,7 @@ export class PlayService {
       const given = Object.fromEntries(
         Object.entries(input.settings).filter(([, v]) => v !== undefined),
       ) as Partial<AppSettings>;
-      const s = { ...app.settings, ...given };
+      const s = { ...this.engine.settingsOf(app), ...given };
       if (!validTimezone(s.timezone))
         throw new ValidationError(`${s.timezone} isn't a time zone.`);
       if (
@@ -627,6 +777,21 @@ export class PlayService {
         throw new ValidationError(
           "Translate to a language code like en, or leave it empty.",
         );
+      if (!(s.delay in DELAYS))
+        throw new ValidationError("Choose a posting delay.");
+      if (!TONES.includes(s.tone)) throw new ValidationError("Choose a voice.");
+      for (const k of [
+        "translate",
+        "personalize",
+        "skipEmpty",
+        "escalate",
+        "autoPause",
+        "replyToEdited",
+      ] as const)
+        if (typeof s[k] !== "boolean")
+          throw new ValidationError(`${k} must be true or false.`);
+      if (given.ratingRules)
+        s.ratingRules = await this.cleanRatingRules(app, given.ratingRules);
       values.settings = s;
     }
     if (input.variables) {
@@ -641,9 +806,9 @@ export class PlayService {
             `${k} must be lowercase letters, digits and _ and start with a letter.`,
           );
         if ((BUILT_IN_VARIABLES as readonly string[]).includes(k))
-          throw new ValidationError(`{{${k}}} is filled in automatically.`);
+          throw new ValidationError(`{${k}} is filled in automatically.`);
         if (v.length > 200)
-          throw new ValidationError(`{{${k}}} is longer than 200 characters.`);
+          throw new ValidationError(`{${k}} is longer than 200 characters.`);
       }
       values.variables = Object.fromEntries(entries);
     }
@@ -652,6 +817,28 @@ export class PlayService {
       fields: Object.keys(input),
     });
     return this.app(actor.workspaceId, app.id);
+  }
+
+  private async cleanRatingRules(app: PlayAppRow, input: RatingRule[]) {
+    const templates = new Set(
+      (await this.repo.templates(app.workspaceId, app.id)).map((t) => t.id),
+    );
+    const current = await this.engine.ratingRules(app);
+    return current.map((rule) => {
+      const next = input.find((r) => r.rating === rule.rating);
+      if (!next) return rule;
+      if (!RATING_MODES.includes(next.mode))
+        throw new ValidationError("Modes are auto, approval or manual.");
+      if (next.templateId && !templates.has(next.templateId))
+        throw new ValidationError(
+          `The template for ${rule.rating}-star reviews doesn't exist.`,
+        );
+      return {
+        rating: rule.rating,
+        mode: next.mode,
+        templateId: next.templateId ?? null,
+      };
+    });
   }
 
   async removeApp(actor: PlayActor, id: string) {
@@ -683,24 +870,28 @@ export class PlayService {
     };
   }
 
-  private reviewView(review: PlayReviewRow, replies: PlayReplyRow[]) {
+  reviewView(review: PlayReviewRow, replies: PlayReplyRow[]) {
     const active = replies.find((r) =>
       ACTIVE_REPLY_STATUSES.includes(r.status),
     );
     const lastFailed = replies.find((r) => r.status === "failed");
+    const lastSent = replies.find((r) => r.status === "sent");
     const replied = Boolean(review.replyText) && !review.editedAfterReply;
-    const state: ReviewState = active
-      ? active.status === "pending_approval"
-        ? "waiting"
-        : active.status === "needs_claude"
-          ? "claude"
-          : "scheduled"
-      : replied
-        ? "replied"
-        : lastFailed &&
-            (!review.repliedAt || lastFailed.updatedAt > review.repliedAt)
-          ? "failed"
-          : "unreplied";
+    const state: ReviewState =
+      review.skippedAt && !active
+        ? "skipped"
+        : active
+          ? active.status === "pending_approval"
+            ? "waiting"
+            : active.status === "needs_claude"
+              ? "claude"
+              : "scheduled"
+          : replied
+            ? "replied"
+            : lastFailed &&
+                (!review.repliedAt || lastFailed.updatedAt > review.repliedAt)
+              ? "failed"
+              : "unreplied";
     const draft = active ?? (state === "failed" ? lastFailed : undefined);
     return {
       id: review.id,
@@ -724,6 +915,15 @@ export class PlayService {
       editedAfterReply: review.editedAfterReply,
       starsBeforeEdit: review.starsBeforeEdit,
       canReply: !review.reviewId.startsWith("csv:"),
+      topic: review.topic,
+      skippedAt: review.skippedAt?.toISOString() ?? null,
+      sentVia: lastSent
+        ? {
+            auto: lastSent.auto,
+            source: lastSent.source,
+            sentAt: lastSent.sentAt?.toISOString() ?? null,
+          }
+        : null,
       state,
       draft: draft ? this.replyView(draft) : null,
     };
@@ -781,7 +981,7 @@ export class PlayService {
     };
   }
 
-  private async reviewFor(app: PlayAppRow, reviewId: string) {
+  async reviewFor(app: PlayAppRow, reviewId: string) {
     const review = await this.repo.review(app.workspaceId, reviewId);
     if (!review || review.appId !== app.id)
       throw new NotFoundError("This review doesn't exist.");
@@ -813,12 +1013,12 @@ export class PlayService {
     };
   }
 
-  private async view(app: PlayAppRow, reviewId: string) {
+  async view(app: PlayAppRow, reviewId: string) {
     const review = await this.reviewFor(app, reviewId);
     return this.reviewView(review, await this.repo.repliesFor([review.id]));
   }
 
-  private async upsertDraft(
+  async upsertDraft(
     actor: PlayActor,
     app: PlayAppRow,
     review: PlayReviewRow,
@@ -993,6 +1193,8 @@ export class PlayService {
       bodies: t.bodies,
       appId: t.appId,
       presetKey: t.presetKey,
+      builtIn: Boolean(t.presetKey && !t.appId),
+      ratings: t.ratings,
       usedBy: usedBy.map((u) => ({
         ruleId: u.id,
         name: u.name,
@@ -1005,8 +1207,7 @@ export class PlayService {
 
   async templates(workspaceId: string, appId?: string) {
     const app = appId ? await this.appRow(workspaceId, appId) : null;
-    if (!(await this.repo.allTemplates(workspaceId)).length)
-      await this.ensurePresets(workspaceId);
+    await this.ensurePresets(workspaceId);
     const rows = await this.repo.templates(workspaceId, app?.id);
     const known = app ? this.engine.values(app, null) : {};
     return {
@@ -1025,8 +1226,12 @@ export class PlayService {
     const name = input.name.trim();
     if (!name || name.length > 60)
       throw new ValidationError("Template names are 1 to 60 characters.");
-    if (!TEMPLATE_CATEGORIES.includes(input.category))
+    const category = input.category ?? "custom";
+    if (!TEMPLATE_CATEGORIES.includes(category))
       throw new ValidationError("Choose a category.");
+    const ratings = [...new Set(input.ratings ?? [])].sort((a, b) => b - a);
+    if (ratings.some((r) => !Number.isInteger(r) || r < 1 || r > 5))
+      throw new ValidationError("Ratings are 1 to 5.");
     if (!input.bodies.length || input.bodies.length > 20)
       throw new ValidationError("Add 1 to 20 languages.");
     const bodies = input.bodies.map((b) => {
@@ -1036,13 +1241,15 @@ export class PlayService {
           `${b.language} isn't a language code like en or pt-BR.`,
         );
       const variants = b.variants.map((v) => v.trim()).filter(Boolean);
+      if (!variants.length && input.bodies.length === 1)
+        return { language, variants: [""] };
       if (!variants.length || variants.length > 10)
         throw new ValidationError(`Add 1 to 10 wordings for ${language}.`);
       if (variants.some((v) => v.length > 1000))
         throw new ValidationError("A wording is too long.");
       return { language, variants };
     });
-    return { name, category: input.category, bodies };
+    return { name, category, ratings, bodies };
   }
 
   async createTemplate(actor: PlayActor, input: TemplateInput) {
@@ -1063,9 +1270,33 @@ export class PlayService {
     );
   }
 
+  async duplicateTemplate(actor: PlayActor, id: string) {
+    const template = await this.repo.template(actor.workspaceId, id);
+    if (!template) throw new NotFoundError("This template doesn't exist.");
+    const [row] = await this.repo.insertTemplates([
+      {
+        workspaceId: actor.workspaceId,
+        appId: template.appId,
+        name: `${template.name} copy`.slice(0, 60),
+        category: template.category,
+        ratings: template.ratings,
+        bodies: template.bodies,
+      },
+    ]);
+    await this.record(actor, "play.template_created", row!.id, {
+      name: row!.name,
+      from: template.id,
+    });
+    return this.templateView(row!, [], {});
+  }
+
   async updateTemplate(actor: PlayActor, id: string, input: TemplateInput) {
     const template = await this.repo.template(actor.workspaceId, id);
     if (!template) throw new NotFoundError("This template doesn't exist.");
+    if (template.presetKey && !template.appId)
+      throw new ValidationError(
+        "Pre-built templates are read-only. Duplicate it to edit.",
+      );
     const clean = this.cleanTemplate(input);
     const row = await this.repo.updateTemplate(id, clean);
     await this.record(actor, "play.template_updated", id, { name: clean.name });
@@ -1080,6 +1311,15 @@ export class PlayService {
   async deleteTemplate(actor: PlayActor, id: string) {
     const template = await this.repo.template(actor.workspaceId, id);
     if (!template) throw new NotFoundError("This template doesn't exist.");
+    if (template.presetKey && !template.appId)
+      throw new ValidationError("Pre-built templates can't be deleted.");
+    const apps = (await this.repo.apps(actor.workspaceId)).filter((a) =>
+      this.engine.settingsOf(a).ratingRules.some((r) => r.templateId === id),
+    );
+    if (apps.length)
+      throw new ValidationError(
+        `${apps.map((a) => a.title).join(", ")} use this template for a star rating. Pick another template there first.`,
+      );
     const used = await this.repo.rulesUsingTemplate(id);
     if (used.length)
       throw new ValidationError(

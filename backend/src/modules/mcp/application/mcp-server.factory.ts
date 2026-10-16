@@ -24,6 +24,8 @@ import {
   PlayService,
   REVIEW_STATES,
 } from "@modules/play/application/play.service";
+import { PlayInboxService } from "@modules/play/application/play-inbox.service";
+import { PlayWorkspaceService } from "@modules/play/application/play-workspace.service";
 import { StoreService } from "@modules/store/application/store.service";
 import { LANG, SLUG } from "@modules/store/domain/store.rules";
 import { InboxService } from "@modules/inbox/application/inbox.service";
@@ -78,6 +80,8 @@ export class McpServerFactory {
     private readonly profile: ProfileService,
     private readonly store: StoreService,
     private readonly play: PlayService,
+    private readonly playInbox: PlayInboxService,
+    private readonly playWorkspace: PlayWorkspaceService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -380,7 +384,90 @@ export class McpServerFactory {
       (a) => run(() => this.play.insights(ws, a.app_id, a.days)),
     );
 
+    server.registerTool(
+      "get_review_analytics",
+      {
+        title: "Review analytics across apps",
+        description:
+          "Reviews, reply rate, median response time and average rating for the last 7, 30 or 90 days against the period before, daily reviews vs replies, the rating mix and the topics reviewers mention most with their change. Omit app_id for all apps.",
+        inputSchema: {
+          app_id: appId.optional(),
+          days: z
+            .union([z.literal(7), z.literal(30), z.literal(90)])
+            .default(30),
+        },
+        annotations: readOnly,
+      },
+      (a) => run(() => this.playInbox.analytics(ws, a.app_id, a.days)),
+    );
+
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
+
+    server.registerTool(
+      "draft_review_reply",
+      {
+        title: "Draft a reply with the owner's template and voice",
+        description:
+          "Let Replyly draft a reply for one review using the template set for its star rating, the owner's voice and language settings. The draft lands in the owner's inbox; nothing is posted. Set rewrite to get a different wording than the current draft.",
+        inputSchema: {
+          review_id: z.string().uuid(),
+          rewrite: z.boolean().default(false),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const view = await this.playInbox.draft(
+            actor,
+            a.review_id,
+            a.rewrite,
+          );
+          return {
+            review_id: view.id,
+            state: view.state,
+            draft: view.draft?.text ?? null,
+            note: view.draft?.note ?? null,
+            url: this.play.reviewsUrl(view.appId),
+          };
+        }),
+    );
+
+    server.registerTool(
+      "upsert_review_template",
+      {
+        title: "Create or edit a reply template",
+        description:
+          "Create a reply template, or edit one of the owner's own templates by template_id (pre-built templates are read-only). Use single-brace placeholders: {user_name}, {app_name}, {rating}, {support_email}, {version}, {developer_name}. ratings lists the star ratings it's meant for.",
+        inputSchema: {
+          template_id: z.string().uuid().optional(),
+          name: z.string().min(1).max(60),
+          ratings: z.array(z.number().int().min(1).max(5)).max(5).default([]),
+          body: z.string().min(1).max(1000),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(() => {
+          const input = {
+            name: a.name,
+            ratings: a.ratings,
+            bodies: [{ language: "en", variants: [a.body] }],
+          };
+          return a.template_id
+            ? this.play.updateTemplate(actor, a.template_id, input)
+            : this.play.createTemplate(actor, input);
+        }),
+    );
 
     server.registerTool(
       "save_review_drafts",
@@ -444,6 +531,13 @@ export class McpServerFactory {
       },
       (a) =>
         run(async () => {
+          if (!(await this.playWorkspace.agentsCanPost(ws)))
+            return {
+              status: "posting_disabled",
+              message:
+                'The owner hasn\'t allowed agents to post replies. Save the reply with save_review_drafts so they can approve it in their inbox, or ask them to turn on "Allow agents to post replies" on the Replyly MCP page.',
+              url: this.play.reviewsUrl(a.app_id),
+            };
           const args = {
             app_id: a.app_id,
             review_id: a.review_id,

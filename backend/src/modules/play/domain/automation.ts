@@ -1,5 +1,6 @@
 import {
   AppSettings,
+  DELAYS,
   QuietHours,
   ReviewFacts,
   Rule,
@@ -110,8 +111,8 @@ export type Decision =
   | { kind: "claude"; ruleId: string }
   | {
       kind: "template";
-      ruleId: string;
-      templateId: string;
+      ruleId: string | null;
+      templateId: string | null;
       auto: boolean;
       sendAt: Date | null;
       heldBecause: string | null;
@@ -125,33 +126,82 @@ export function decide(input: {
   autoSentToday: number;
   firstSync: boolean;
   now: Date;
+  pausedBecause?: string | null;
 }): Decision {
   const { facts, settings } = input;
   if (input.hasReply && !facts.editedAfterReply)
     return { kind: "none", reason: "already replied" };
   if (facts.editedAfterReply && !settings.replyToEdited)
     return { kind: "none", reason: "edited reviews are left alone" };
+  if (settings.skipEmpty && !facts.text.trim() && !facts.originalText?.trim())
+    return { kind: "none", reason: "star-only review" };
+
+  let ruleId: string | null = null;
+  let templateId: string | null;
+  let mode: "auto" | "approval";
+  let delay: number;
   const rule = firstMatch(input.rules, facts);
-  if (!rule) return { kind: "none", reason: "no rule matches" };
-  if (rule.action.type === "skip")
-    return { kind: "none", reason: `skipped by ${rule.name}` };
-  if (rule.action.type === "claude") return { kind: "claude", ruleId: rule.id };
+  if (rule) {
+    if (rule.action.type === "skip")
+      return { kind: "none", reason: `skipped by ${rule.name}` };
+    if (rule.action.type === "claude")
+      return { kind: "claude", ruleId: rule.id };
+    ruleId = rule.id;
+    templateId = rule.action.templateId;
+    mode = rule.mode;
+    delay = rule.delayMinutes;
+  } else {
+    const byRating = settings.ratingRules.find((r) => r.rating === facts.stars);
+    if (!byRating) return { kind: "none", reason: "no rule matches" };
+    if (byRating.mode === "manual")
+      return {
+        kind: "none",
+        reason: `${facts.stars}-star reviews are answered by hand`,
+      };
+    templateId = byRating.templateId;
+    mode = byRating.mode;
+    delay = DELAYS[settings.delay] ?? 15;
+  }
+
   let held: string | null = null;
-  if (rule.mode === "auto") {
+  if (mode === "auto") {
     const word = neverAutoWord(facts, settings.neverAutoWords);
     if (input.firstSync)
       held = "Reviews found when the app was added always wait for approval.";
+    else if (input.pausedBecause) held = input.pausedBecause;
     else if (word) held = `Mentions "${word}", so it needs your approval.`;
     else if (input.autoSentToday >= settings.dailyAutoLimit)
       held = `Today's limit of ${settings.dailyAutoLimit} automatic replies is reached.`;
   }
-  const auto = rule.mode === "auto" && !held;
+  const auto = mode === "auto" && !held;
   return {
     kind: "template",
-    ruleId: rule.id,
-    templateId: rule.action.templateId,
+    ruleId,
+    templateId,
     auto,
-    sendAt: auto ? sendTime(input.now, rule.delayMinutes, settings) : null,
+    sendAt: auto ? sendTime(input.now, delay, settings) : null,
     heldBecause: held,
+  };
+}
+
+export function ratingDrop(
+  reviews: { stars: number; reviewedAt: Date }[],
+  now: Date,
+): { recent: number; baseline: number; drop: number } | null {
+  const day = now.getTime() - 86_400_000;
+  const month = now.getTime() - 30 * 86_400_000;
+  const recent = reviews.filter((r) => r.reviewedAt.getTime() > day);
+  const before = reviews.filter(
+    (r) => r.reviewedAt.getTime() > month && r.reviewedAt.getTime() <= day,
+  );
+  if (recent.length < 5 || before.length < 10) return null;
+  const avg = (rs: { stars: number }[]) =>
+    rs.reduce((n, r) => n + r.stars, 0) / rs.length;
+  const r = avg(recent);
+  const b = avg(before);
+  return {
+    recent: Math.round(r * 100) / 100,
+    baseline: Math.round(b * 100) / 100,
+    drop: Math.round((b - r) * 100) / 100,
   };
 }

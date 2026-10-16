@@ -27,7 +27,19 @@ export const ACTIVE_REPLY_STATUSES: ReplyStatus[] = [
   "scheduled",
 ];
 
-export const REPLY_SOURCES = ["template", "claude", "manual"] as const;
+export const REPLY_SOURCES = ["template", "claude", "manual", "ai"] as const;
+
+export const SYNC_ERROR_KINDS = [
+  "no_permission",
+  "api_disabled",
+  "disconnected",
+  "quota",
+  "error",
+] as const;
+export type PlayErrorKindView = (typeof SYNC_ERROR_KINDS)[number];
+
+export const AI_MODES = ["platform", "own", "off"] as const;
+export type AiMode = (typeof AI_MODES)[number];
 export type ReplySource = (typeof REPLY_SOURCES)[number];
 
 export const RULE_MODES = ["approval", "auto"] as const;
@@ -67,6 +79,35 @@ export interface QuietHours {
   end: string;
 }
 
+export const RATING_MODES = ["auto", "approval", "manual"] as const;
+export type RatingMode = (typeof RATING_MODES)[number];
+
+export interface RatingRule {
+  rating: number;
+  mode: RatingMode;
+  templateId: string | null;
+}
+
+export const DELAYS = { instant: 0, "15m": 15, "1h": 60, "6h": 360 } as const;
+export type DelayKey = keyof typeof DELAYS;
+
+export const TONES = ["friendly", "professional", "concise"] as const;
+export type Tone = (typeof TONES)[number];
+
+export const TOPICS = [
+  "Crash",
+  "Sync",
+  "Login",
+  "Payment",
+  "Performance",
+  "Ads",
+  "Feature request",
+  "Support",
+  "Praise",
+  "Other",
+] as const;
+export type Topic = (typeof TOPICS)[number];
+
 export interface AppSettings {
   timezone: string;
   quietHours: QuietHours | null;
@@ -74,6 +115,14 @@ export interface AppSettings {
   neverAutoWords: string[];
   translateTo: string;
   replyToEdited: boolean;
+  ratingRules: RatingRule[];
+  delay: DelayKey;
+  tone: Tone;
+  translate: boolean;
+  personalize: boolean;
+  skipEmpty: boolean;
+  escalate: boolean;
+  autoPause: boolean;
 }
 
 export const DEFAULT_NEVER_AUTO_WORDS = [
@@ -100,7 +149,21 @@ export const DEFAULT_SETTINGS: AppSettings = {
   neverAutoWords: DEFAULT_NEVER_AUTO_WORDS,
   translateTo: "en",
   replyToEdited: true,
+  ratingRules: [],
+  delay: "15m",
+  tone: "friendly",
+  translate: true,
+  personalize: true,
+  skipEmpty: true,
+  escalate: false,
+  autoPause: true,
 };
+
+export function normalizeSettings(
+  raw: Partial<AppSettings> | null | undefined,
+): AppSettings {
+  return { ...DEFAULT_SETTINGS, ...(raw ?? {}) };
+}
 
 export interface ReviewFacts {
   reviewId: string;

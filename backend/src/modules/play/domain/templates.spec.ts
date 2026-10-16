@@ -34,10 +34,35 @@ describe("render", () => {
   });
 
   it("lists placeholders with their fallbacks", () => {
-    expect(placeholders("{{a}} {{b_2|x y}} {{Bad}}")).toEqual([
-      { name: "a", fallback: null },
-      { name: "b_2", fallback: "x y" },
+    expect(placeholders("{{a}} {{b_2|x y}} {{Bad}} {user_name} {x}")).toEqual([
+      { name: "a", fallback: null, raw: "{{a}}" },
+      { name: "b_2", fallback: "x y", raw: "{{b_2}}" },
+      { name: "user_name", fallback: "there", raw: "{user_name}" },
+      { name: "x", fallback: null, raw: "{x}" },
     ]);
+  });
+
+  it("fills the design's single-brace placeholders with aliases and defaults", () => {
+    expect(
+      render(
+        "Hi {user_name}, thanks for the {rating}-star review of {app_name}! Fixed in {version}. – {developer_name}",
+        {
+          first_name: "Maya",
+          rating: "5",
+          app_name: "Pulse",
+          latest_version: "3.2",
+        },
+      ).text,
+    ).toBe(
+      "Hi Maya, thanks for the 5-star review of Pulse! Fixed in 3.2. – The team",
+    );
+    expect(
+      render("Hi {user_name}, email {support_email}.", {}).missing,
+    ).toEqual(["support_email"]);
+    expect(render("Hi {user_name}!", {}).text).toBe("Hi there!");
+    expect(render("JSON {{ Not }} and {Upper} stay", {}).text).toBe(
+      "JSON {{ Not }} and {Upper} stay",
+    );
   });
 });
 
@@ -78,11 +103,15 @@ describe("pickBody and pickVariant", () => {
 });
 
 describe("checkTemplate", () => {
-  it("accepts every preset without any app settings", () => {
+  it("accepts every preset once the support email is set", () => {
     for (const preset of PRESET_TEMPLATES)
-      expect(checkTemplate(preset.bodies, { app_name: "Acme Shop" })).toEqual(
-        [],
-      );
+      expect(
+        checkTemplate(preset.bodies, {
+          app_name: "Acme Shop",
+          rating: "5",
+          support_email: "help@acme.app",
+        }),
+      ).toEqual([]);
   });
 
   it("explains broken placeholders, missing values, duplicates and length", () => {

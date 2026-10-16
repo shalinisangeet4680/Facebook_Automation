@@ -1,10 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
 
 import {
+  AI_MODES,
+  DELAYS,
+  RATING_MODES,
   REPLY_SOURCES,
   REPLY_STATUSES,
   RULE_MODES,
+  SYNC_ERROR_KINDS,
   TEMPLATE_CATEGORIES,
+  TONES,
 } from "../../domain/play.types";
 import { REVIEW_STATES } from "../../application/play.service";
 
@@ -60,16 +65,28 @@ export class PlayAppDto {
   iconUrl: string | null;
   connectionId: string;
   connectionEmail: string | null;
-  mode: "off" | "approval" | "auto";
+  enabled: boolean;
+  @ApiProperty({
+    enum: ["auto", "approval", "manual", "mixed", "needs_access"],
+  })
+  mode: "auto" | "approval" | "manual" | "mixed" | "needs_access";
   rating: number | null;
+  overallRating: number | null;
   previousRating: number | null;
   reviews30d: number;
   needsReply: number;
   waiting: number;
   needsClaude: number;
   scheduled: number;
+  failed: number;
+  @ApiProperty({ type: [Number] })
+  replies14d: number[];
   lastSyncedAt: string | null;
   syncError: string | null;
+  @ApiProperty({ enum: SYNC_ERROR_KINDS, nullable: true })
+  syncErrorKind: (typeof SYNC_ERROR_KINDS)[number] | null;
+  pausedUntil: string | null;
+  pauseReason: string | null;
   @ApiProperty({ type: "array", items: { type: "number", nullable: true } })
   trend: (number | null)[];
 }
@@ -83,6 +100,13 @@ export class QuietHoursViewDto {
   end: string;
 }
 
+export class RatingRuleViewDto {
+  rating: number;
+  @ApiProperty({ enum: RATING_MODES })
+  mode: (typeof RATING_MODES)[number];
+  templateId: string | null;
+}
+
 export class PlaySettingsViewDto {
   timezone: string;
   quietHours: QuietHoursViewDto | null;
@@ -90,6 +114,62 @@ export class PlaySettingsViewDto {
   neverAutoWords: string[];
   translateTo: string;
   replyToEdited: boolean;
+  ratingRules: RatingRuleViewDto[];
+  @ApiProperty({ enum: Object.keys(DELAYS) })
+  delay: keyof typeof DELAYS;
+  @ApiProperty({ enum: TONES })
+  tone: (typeof TONES)[number];
+  translate: boolean;
+  personalize: boolean;
+  skipEmpty: boolean;
+  escalate: boolean;
+  autoPause: boolean;
+}
+
+export class SeriesPointDto {
+  day: string;
+  reviews: number;
+  replied: number;
+  rating: number | null;
+}
+
+export class DistributionDto {
+  stars: number;
+  count: number;
+  pct: number;
+}
+
+export class PeriodStatsDto {
+  reviews: number;
+  written: number;
+  replied: number;
+  replyRate: number | null;
+  medianResponseMinutes: number | null;
+  rating: number | null;
+}
+
+export class AppOverviewDto extends PeriodStatsDto {
+  series: SeriesPointDto[];
+  distribution: DistributionDto[];
+}
+
+export class TopicTrendDto {
+  topic: string;
+  count: number;
+  previous: number;
+  change: number | null;
+  negative: boolean;
+}
+
+export class PlayAnalyticsDto {
+  days: number;
+  current: PeriodStatsDto;
+  previous: PeriodStatsDto;
+  repliesSent: number;
+  timeSavedHours: number;
+  series: SeriesPointDto[];
+  distribution: DistributionDto[];
+  topics: TopicTrendDto[];
 }
 
 export class SyncResultDto {
@@ -108,6 +188,7 @@ export class PlayAppDetailDto extends PlayAppDto {
   builtInVariables: string[];
   suggestedVariables: string[];
   firstSync?: SyncResultDto | null;
+  overview: AppOverviewDto;
 }
 
 export class ReplyViewDto {
@@ -131,6 +212,13 @@ export class PostedReplyDto {
   repliedAt: string | null;
 }
 
+export class SentViaDto {
+  auto: boolean;
+  @ApiProperty({ enum: REPLY_SOURCES })
+  source: (typeof REPLY_SOURCES)[number];
+  sentAt: string | null;
+}
+
 export class PlayReviewDto {
   id: string;
   reviewId: string;
@@ -148,9 +236,75 @@ export class PlayReviewDto {
   editedAfterReply: boolean;
   starsBeforeEdit: number | null;
   canReply: boolean;
+  topic: string | null;
+  skippedAt: string | null;
+  sentVia: SentViaDto | null;
   @ApiProperty({ enum: REVIEW_STATES })
   state: (typeof REVIEW_STATES)[number];
   draft: ReplyViewDto | null;
+}
+
+export class InboxReviewDto extends PlayReviewDto {
+  appId: string;
+}
+
+export class InboxCountsDto {
+  pending: number;
+  replied: number;
+  all: number;
+}
+
+export class InboxDto {
+  data: InboxReviewDto[];
+  counts: InboxCountsDto;
+  approvable: string[];
+}
+
+export class ApproveAllFailureDto {
+  replyId: string;
+  error: string;
+}
+
+export class ApproveAllResultDto {
+  sent: number;
+  failed: ApproveAllFailureDto[];
+}
+
+export class WorkspaceSettingsViewDto {
+  @ApiProperty({ enum: AI_MODES })
+  aiMode: (typeof AI_MODES)[number];
+  platformAi: boolean;
+  aiKeyHint: string | null;
+  aiReady: boolean;
+  model: string;
+  dailyDrafts: number;
+  draftsToday: number;
+  slackConnected: boolean;
+  slackChannel: string | null;
+  agentsCanPost: boolean;
+  mcpUrl: string;
+  token: string | null;
+  tokenCreatedAt: string | null;
+  apps: number;
+  connected: boolean;
+}
+
+export class AccessTokenDto {
+  token: string;
+}
+
+export class McpClientDto {
+  id: string;
+  name: string;
+  @ApiProperty({ enum: ["token", "oauth"] })
+  kind: "token" | "oauth";
+  lastUsedAt: string | null;
+  lastTool: string | null;
+  connectedAt: string | null;
+}
+
+export class McpClientListDto {
+  data: McpClientDto[];
 }
 
 export class ReviewCountsDto {
@@ -160,6 +314,7 @@ export class ReviewCountsDto {
   scheduled: number;
   failed: number;
   replied: number;
+  skipped: number;
 }
 
 export class PlayReviewListDto {
@@ -223,6 +378,9 @@ export class PlayTemplateDto {
   bodies: TemplateBodyViewDto[];
   appId: string | null;
   presetKey: string | null;
+  builtIn: boolean;
+  @ApiProperty({ type: [Number] })
+  ratings: number[];
   usedBy: TemplateUsageDto[];
   problems: TemplateProblemDto[];
   updatedAt: string;

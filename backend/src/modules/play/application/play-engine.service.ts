@@ -1,10 +1,19 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 import { AuditService } from "@modules/audit/application/audit.service";
+import { AppConfig, appUrl } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
-import { decide } from "../domain/automation";
+import { decide, ratingDrop } from "../domain/automation";
+import {
+  ESCALATION_NOTIFIER,
+  EscalationNotifier,
+} from "../domain/ports/notifier";
+import { REPLY_AI, ReplyAi, ReplyAiError } from "../domain/ports/reply-ai";
+import { RATING_PRESETS } from "../domain/presets";
+import { keywordTopic } from "../domain/topics";
 import {
   PLAY_API,
   PlayApi,
@@ -12,10 +21,19 @@ import {
   PlayReviewData,
   ServiceAccountKey,
 } from "../domain/ports/play-api";
-import { REPLY_MAX, ReviewFacts, Rule } from "../domain/play.types";
+import {
+  AppSettings,
+  normalizeSettings,
+  PlayErrorKindView,
+  REPLY_MAX,
+  RatingRule,
+  ReviewFacts,
+  Rule,
+} from "../domain/play.types";
 import {
   charCount,
   firstName,
+  lookup,
   pickBody,
   pickVariant,
   render,
@@ -28,6 +46,7 @@ import {
   PlayReviewRow,
   PlayRuleRow,
   PlayTemplateRow,
+  PlayWorkspaceSettingsRow,
 } from "../infrastructure/play.tables";
 
 export interface PlayActor {
@@ -61,6 +80,26 @@ export interface RenderedReply extends Rendered {
   language: string | null;
 }
 
+export const syncErrorKind = (err: unknown): PlayErrorKindView =>
+  err instanceof PlayApiError
+    ? err.kind === "access"
+      ? "no_permission"
+      : err.kind === "disabled"
+        ? "api_disabled"
+        : err.kind === "auth"
+          ? "disconnected"
+          : err.kind === "quota"
+            ? "quota"
+            : "error"
+    : "error";
+
+export interface Drafted {
+  text: string;
+  source: "template" | "ai";
+  templateId: string | null;
+  problem: string | null;
+}
+
 @Injectable()
 export class PlayEngine {
   private readonly logger = new Logger(PlayEngine.name);
@@ -68,9 +107,134 @@ export class PlayEngine {
   constructor(
     readonly repo: PlayRepository,
     @Inject(PLAY_API) readonly api: PlayApi,
+    @Inject(REPLY_AI) private readonly ai: ReplyAi,
+    @Inject(ESCALATION_NOTIFIER) private readonly notifier: EscalationNotifier,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
+
+  settingsOf(app: PlayAppRow): AppSettings {
+    return normalizeSettings(app.settings);
+  }
+
+  async ratingRules(app: PlayAppRow): Promise<RatingRule[]> {
+    const settings = this.settingsOf(app);
+    if (settings.ratingRules.length === 5) return settings.ratingRules;
+    const presets = new Map(
+      (await this.repo.allTemplates(app.workspaceId))
+        .filter((t) => t.presetKey && !t.appId)
+        .map((t) => [t.presetKey!, t.id]),
+    );
+    const ratingRules = [5, 4, 3, 2, 1].map(
+      (rating) =>
+        settings.ratingRules.find((r) => r.rating === rating) ?? {
+          rating,
+          mode: "approval" as const,
+          templateId: presets.get(RATING_PRESETS[rating]!) ?? null,
+        },
+    );
+    await this.repo.updateApp(app.id, {
+      settings: { ...settings, ratingRules },
+    });
+    app.settings = { ...settings, ratingRules };
+    return ratingRules;
+  }
+
+  async aiKey(workspaceId: string): Promise<string | null> {
+    const ws = await this.repo.workspaceSettings(workspaceId);
+    return this.aiKeyFrom(ws);
+  }
+
+  aiKeyFrom(ws: PlayWorkspaceSettingsRow | null): string | null {
+    const mode = ws?.aiMode ?? "platform";
+    if (mode === "off") return null;
+    if (mode === "own")
+      return ws?.aiKeyCiphertext
+        ? this.crypto.decrypt(ws.aiKeyCiphertext)
+        : null;
+    if (this.config.get("AI_MOCK", { infer: true })) return "mock";
+    return this.config.get("ANTHROPIC_API_KEY", { infer: true }) ?? null;
+  }
+
+  async aiAllowance(workspaceId: string, ws: PlayWorkspaceSettingsRow | null) {
+    if ((ws?.aiMode ?? "platform") !== "platform") return Infinity;
+    const used = await this.repo.aiDraftsSince(
+      workspaceId,
+      new Date(Date.now() - 86_400_000),
+    );
+    return this.config.get("AI_DAILY_DRAFTS", { infer: true }) - used;
+  }
+
+  async draft(
+    app: PlayAppRow,
+    review: PlayReviewRow,
+    template: PlayTemplateRow | null,
+    key: string | null,
+    avoid: string | null = null,
+  ): Promise<Drafted | null> {
+    const settings = this.settingsOf(app);
+    const rendered = template ? this.renderFor(template, app, review) : null;
+    const wantsAi =
+      !template ||
+      settings.personalize ||
+      (settings.translate &&
+        Boolean(rendered) &&
+        !this.sameLanguage(rendered!.language, review.language));
+    if (key && wantsAi) {
+      const values = this.values(app, review);
+      try {
+        const out = await this.ai.draft(key, {
+          appName: app.title,
+          developerName: lookup(values, "developer_name") || null,
+          supportEmail: lookup(values, "support_email") || null,
+          latestVersion: app.latestVersion,
+          review: {
+            author: review.authorName,
+            stars: review.stars,
+            text: review.originalText || review.text,
+            language: review.language,
+          },
+          template: rendered?.text || null,
+          tone: settings.tone,
+          translate: settings.translate,
+          personalize: settings.personalize,
+          avoid,
+          maxLength: REPLY_MAX,
+        });
+        const text = out.text.slice(0, 2000);
+        if (out.topic && out.topic !== review.topic)
+          await this.repo.updateReview(review.id, { topic: out.topic });
+        return {
+          text,
+          source: "ai",
+          templateId: template?.id ?? null,
+          problem:
+            charCount(text) > REPLY_MAX
+              ? `The reply is over ${REPLY_MAX} characters; shorten it.`
+              : null,
+        };
+      } catch (err) {
+        if (!(err instanceof ReplyAiError)) throw err;
+        this.logger.warn(`AI draft failed: ${err.message}`);
+        if (!rendered) return null;
+      }
+    }
+    if (!rendered) return null;
+    return {
+      text: rendered.text,
+      source: "template",
+      templateId: template!.id,
+      problem: this.problemNote(rendered),
+    };
+  }
+
+  private sameLanguage(a: string | null, b: string | null) {
+    if (!a || !b) return true;
+    return (
+      a.toLowerCase().split(/[-_]/)[0] === b.toLowerCase().split(/[-_]/)[0]
+    );
+  }
 
   async keyFor(app: PlayAppRow): Promise<ServiceAccountKey> {
     const connection = await this.repo.connectionById(app.connectionId);
@@ -81,12 +245,16 @@ export class PlayEngine {
     ) as ServiceAccountKey;
   }
 
-  values(app: PlayAppRow, review: Pick<PlayReviewRow, "authorName"> | null) {
+  values(
+    app: PlayAppRow,
+    review: Pick<PlayReviewRow, "authorName" | "stars"> | null,
+  ) {
     return {
       ...app.variables,
       first_name: review ? firstName(review.authorName) : "",
       app_name: app.title,
       latest_version: app.latestVersion ?? "",
+      rating: review ? String(review.stars) : "",
     };
   }
 
@@ -109,7 +277,7 @@ export class PlayEngine {
 
   problemNote(rendered: Rendered): string | null {
     if (rendered.missing.length)
-      return `Add ${rendered.missing.map((m) => `{{${m}}}`).join(", ")} in this app's settings, or edit the reply.`;
+      return `Add ${rendered.missing.map((m) => `{${m}}`).join(", ")} in this app's placeholder values, or edit the reply.`;
     if (rendered.tooLong)
       return `The reply is over ${REPLY_MAX} characters; shorten it.`;
     if (!rendered.text) return "The template produced an empty reply.";
@@ -131,6 +299,7 @@ export class PlayEngine {
           : "Reviews couldn't be fetched.";
       await this.repo.updateApp(app.id, {
         syncError: message,
+        syncErrorKind: syncErrorKind(err),
         lastSyncedAt: new Date(),
       });
       throw err instanceof PlayApiError ? new ValidationError(message) : err;
@@ -176,6 +345,7 @@ export class PlayEngine {
             reviewId: d.reviewId,
             replyText: d.reply?.text ?? null,
             repliedAt: d.reply?.lastModified ?? null,
+            topic: keywordTopic(d.originalText || d.text, d.stars),
           }),
         );
         created++;
@@ -202,16 +372,19 @@ export class PlayEngine {
       });
       if (edited) touched.push(updated);
     }
+    if (latest && latest.name !== app.latestVersion)
+      app.latestVersion = latest.name;
+    await this.tagTopics(app.id);
+    await this.checkRating(app);
     const drafts = app.automation
       ? await this.automate(app, touched, firstSync)
       : 0;
     await this.repo.updateApp(app.id, {
       lastSyncedAt: new Date(),
       syncError: null,
+      syncErrorKind: null,
       ...(firstSync ? { firstSyncedAt: new Date() } : {}),
-      ...(latest && (!app.latestVersion || latest.name !== app.latestVersion)
-        ? { latestVersion: latest.name }
-        : {}),
+      ...(latest ? { latestVersion: app.latestVersion } : {}),
     });
     return {
       fetched: data.length,
@@ -221,6 +394,77 @@ export class PlayEngine {
     };
   }
 
+  async tagTopics(appId: string) {
+    for (const r of await this.repo.untaggedReviews(appId, 2000))
+      await this.repo.updateReview(r.id, {
+        topic: keywordTopic(r.originalText || r.text, r.stars),
+      });
+  }
+
+  pauseNote(app: PlayAppRow, now = new Date()): string | null {
+    return app.pausedUntil && app.pausedUntil > now
+      ? (app.pauseReason ?? "Auto-replies are paused by the safety pause.")
+      : null;
+  }
+
+  private async checkRating(app: PlayAppRow) {
+    const settings = this.settingsOf(app);
+    const now = new Date();
+    if (!settings.autoPause || this.pauseNote(app, now)) return;
+    const drop = ratingDrop(
+      await this.repo.reviewsSince(
+        app.id,
+        new Date(now.getTime() - 31 * 86_400_000),
+      ),
+      now,
+    );
+    if (!drop || drop.drop < 0.3) return;
+    const reason = `Safety pause: the rating fell from ${drop.baseline.toFixed(2)} to ${drop.recent.toFixed(2)} in the last 24 hours, so automatic replies wait for approval.`;
+    app.pausedUntil = new Date(now.getTime() + 86_400_000);
+    app.pauseReason = reason;
+    await this.repo.updateApp(app.id, {
+      pausedUntil: app.pausedUntil,
+      pauseReason: reason,
+    });
+    await this.repo.holdScheduled(app.id, reason);
+    await this.audit.record({
+      workspaceId: app.workspaceId,
+      actor: "system",
+      actorId: null,
+      action: "play.safety_paused",
+      target: app.id,
+      data: drop,
+    });
+  }
+
+  private async escalate(
+    app: PlayAppRow,
+    review: PlayReviewRow,
+    draft: string | null,
+    ws: PlayWorkspaceSettingsRow | null,
+  ) {
+    if (
+      review.stars !== 1 ||
+      review.escalatedAt ||
+      !this.settingsOf(app).escalate ||
+      !ws?.slackWebhookCiphertext
+    )
+      return;
+    try {
+      await this.notifier.send(this.crypto.decrypt(ws.slackWebhookCiphertext), {
+        appName: app.title,
+        author: review.authorName,
+        stars: review.stars,
+        text: review.originalText || review.text,
+        draft,
+        url: `${appUrl(this.config)}/reviews/inbox?app=${app.id}`,
+      });
+      await this.repo.updateReview(review.id, { escalatedAt: new Date() });
+    } catch (err) {
+      this.logger.warn(`Escalation failed: ${(err as Error).message}`);
+    }
+  }
+
   private async automate(
     app: PlayAppRow,
     reviews: PlayReviewRow[],
@@ -228,29 +472,39 @@ export class PlayEngine {
   ) {
     if (!reviews.length) return 0;
     const rules = (await this.repo.rules(app.id)).map(toRule);
-    if (!rules.length) return 0;
+    const ratingRules = await this.ratingRules(app);
+    const settings = { ...this.settingsOf(app), ratingRules };
     const templates = new Map(
       (await this.repo.allTemplates(app.workspaceId)).map((t) => [t.id, t]),
     );
+    const ws = await this.repo.workspaceSettings(app.workspaceId);
+    const key = this.aiKeyFrom(ws);
+    let allowance = key ? await this.aiAllowance(app.workspaceId, ws) : 0;
     let autoSentToday = await this.repo.autoRepliesSince(
       app.id,
       new Date(Date.now() - 86_400_000),
     );
+    const pausedBecause = this.pauseNote(app);
     let drafts = 0;
     for (const review of reviews.sort(
       (a, b) => a.reviewedAt.getTime() - b.reviewedAt.getTime(),
     )) {
+      if (review.skippedAt) continue;
       if (await this.repo.activeReply(review.id)) continue;
       const decision = decide({
         facts: factsOf(review),
         hasReply: Boolean(review.replyText),
         rules,
-        settings: app.settings,
+        settings,
         autoSentToday,
         firstSync,
         now: new Date(),
+        pausedBecause,
       });
-      if (decision.kind === "none") continue;
+      if (decision.kind === "none") {
+        if (!review.replyText) await this.escalate(app, review, null, ws);
+        continue;
+      }
       const base = {
         workspaceId: app.workspaceId,
         appId: app.id,
@@ -264,33 +518,53 @@ export class PlayEngine {
           status: "needs_claude",
           note: "Waiting for Claude to draft a reply.",
         });
+        await this.escalate(app, review, null, ws);
         drafts++;
         continue;
       }
-      const template = templates.get(decision.templateId);
-      if (!template) {
+      const template = decision.templateId
+        ? (templates.get(decision.templateId) ?? null)
+        : null;
+      if (decision.templateId && !template) {
         await this.repo.insertReply({
           ...base,
           source: "template",
           status: "pending_approval",
-          note: "The rule's template was deleted; write a reply or pick a template.",
+          note: "The template for this rating was deleted; write a reply or pick a template.",
         });
         drafts++;
         continue;
       }
-      const rendered = this.renderFor(template, app, review);
-      const problem = this.problemNote(rendered);
-      const auto = decision.auto && !problem;
+      const drafted = await this.draft(
+        app,
+        review,
+        template,
+        allowance > 0 ? key : null,
+      );
+      if (drafted?.source === "ai") allowance--;
+      if (!drafted) {
+        await this.repo.insertReply({
+          ...base,
+          source: "claude",
+          status: "needs_claude",
+          note: "No template is set for this rating. Draft it here or ask Claude through the connector.",
+        });
+        await this.escalate(app, review, null, ws);
+        drafts++;
+        continue;
+      }
+      const auto = decision.auto && !drafted.problem;
       await this.repo.insertReply({
         ...base,
-        text: rendered.text,
-        source: "template",
-        templateId: template.id,
+        text: drafted.text,
+        source: drafted.source,
+        templateId: drafted.templateId,
         status: auto ? "scheduled" : "pending_approval",
         auto,
         sendAt: auto ? decision.sendAt : null,
-        note: problem ?? decision.heldBecause,
+        note: drafted.problem ?? decision.heldBecause,
       });
+      await this.escalate(app, review, drafted.text, ws);
       if (auto) autoSentToday++;
       drafts++;
     }
@@ -364,6 +638,11 @@ export class PlayEngine {
         status: "failed",
         error: message,
       });
+      if (err instanceof PlayApiError && ["access", "auth"].includes(err.kind))
+        await this.repo.updateApp(app.id, {
+          syncError: message,
+          syncErrorKind: syncErrorKind(err),
+        });
       throw new ValidationError(message);
     }
   }

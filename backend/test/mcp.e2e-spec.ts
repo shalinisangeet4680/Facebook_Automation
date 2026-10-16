@@ -355,11 +355,13 @@ describe("Claude connector (OAuth + MCP)", () => {
       "apply_facebook_profile",
       "check_tracking",
       "create_campaign_draft",
+      "draft_review_reply",
       "get_account_overview",
       "get_campaign",
       "get_performance",
       "get_planning_context",
       "get_profile_checkup",
+      "get_review_analytics",
       "get_review_insights",
       "get_review_templates",
       "get_suggestions",
@@ -382,6 +384,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "store_start_upload",
       "update_campaign_plan",
       "update_daily_budget",
+      "upsert_review_template",
     ]);
   });
 
@@ -952,6 +955,61 @@ describe("Claude connector (OAuth + MCP)", () => {
     expect(all.data.data).toHaveLength(1);
   });
 
+  it("accepts a workspace access token, rotates it with a grace period and revokes it", async () => {
+    const revealed = await call(
+      app,
+      "POST",
+      "/api/v1/play/workspace/token/reveal",
+      {
+        headers: session,
+      },
+    );
+    const token = revealed.body.token as string;
+    expect(token).toMatch(/^rk_live_[0-9a-f]{36}$/);
+    const settings = await call(app, "GET", "/api/v1/play/workspace", {
+      headers: session,
+    });
+    expect(settings.body.token).toBe(
+      `${token.slice(0, 8)}••••••••••${token.slice(-3)}`,
+    );
+    expect((await rpc(token, "tools/list")).statusCode).toBe(200);
+    await tool(token, "list_play_apps");
+    const clients = await call(app, "GET", "/api/v1/play/workspace/clients", {
+      headers: session,
+    });
+    expect((clients.body.data as unknown[])[0]).toMatchObject({
+      id: "token",
+      kind: "token",
+      lastTool: "list_play_apps",
+    });
+
+    const rotated = await call(
+      app,
+      "POST",
+      "/api/v1/play/workspace/token/rotate",
+      {
+        headers: session,
+      },
+    );
+    expect(rotated.body.token).not.toBe(token);
+    expect((await rpc(token, "tools/list")).statusCode).toBe(200);
+    expect(
+      (await rpc(rotated.body.token as string, "tools/list")).statusCode,
+    ).toBe(200);
+
+    const revoked = await call(
+      app,
+      "DELETE",
+      "/api/v1/play/workspace/clients/token",
+      { headers: session },
+    );
+    expect(revoked.statusCode).toBe(204);
+    expect(
+      (await rpc(rotated.body.token as string, "tools/list")).statusCode,
+    ).toBe(401);
+    expect((await rpc("rk_live_nope", "tools/list")).statusCode).toBe(401);
+  });
+
   it("lets Claude draft and send Google Play review replies", async () => {
     const key = JSON.stringify({
       type: "service_account",
@@ -1019,7 +1077,18 @@ describe("Claude connector (OAuth + MCP)", () => {
     });
     expect(drafted.data).toEqual({
       saved: [{ review_id: crash.review_id, state: "waiting" }],
-      url: `${APP_URL}/reviews/${appId}`,
+      url: `${APP_URL}/reviews/inbox?app=${appId}`,
+    });
+
+    const blocked = await tool(accessToken, "send_review_reply", {
+      app_id: appId,
+      review_id: crash.review_id,
+      text: "Sorry Rahul, fixed in 2.3.2. Please update!",
+    });
+    expect(blocked.data.status).toBe("posting_disabled");
+    await call(app, "PUT", "/api/v1/play/workspace", {
+      headers: session,
+      body: { agentsCanPost: true },
     });
 
     const args = {
@@ -1105,7 +1174,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(17);
+    expect(names).toHaveLength(18);
     expect(names).toContain("list_play_reviews");
     expect(names).not.toContain("send_review_reply");
     expect(names).toContain("store_get_project");

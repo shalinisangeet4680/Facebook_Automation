@@ -10,6 +10,10 @@ import Redis from "ioredis";
 
 import { GrantService } from "@modules/oauth/application/grant.service";
 import { RESOURCE_SCOPES } from "@modules/oauth/domain/oauth.policy";
+import {
+  PlayWorkspaceService,
+  TOKEN_PREFIX,
+} from "@modules/play/application/play-workspace.service";
 import { REDIS } from "@shared/cache/redis";
 import { AppConfig, appUrl, mcpResourceUrl } from "@shared/config/app-config";
 import { ProtocolError } from "@shared/errors/domain-error";
@@ -30,7 +34,31 @@ export class McpAuthGuard implements CanActivate {
     private readonly grants: GrantService,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(ConfigService) private readonly config: AppConfig,
+    private readonly workspaces: PlayWorkspaceService,
   ) {}
+
+  private async accessToken(request: FastifyRequest, token: string) {
+    const owner = await this.workspaces.authenticate(token);
+    if (!owner)
+      throw this.challenge(
+        "invalid_token",
+        "This access token was rotated or revoked. Copy the current one from the Replyly MCP page.",
+      );
+    const body = request.body as
+      { method?: string; params?: { name?: unknown } } | undefined;
+    const tool =
+      body?.method === "tools/call" && typeof body.params?.name === "string"
+        ? body.params.name
+        : null;
+    await this.workspaces.touchToken(owner.workspaceId, tool);
+    return {
+      userId: owner.userId,
+      workspaceId: owner.workspaceId,
+      grantId: `token:${owner.workspaceId}`,
+      clientId: "access-token",
+      scopes: [...RESOURCE_SCOPES],
+    };
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
@@ -39,20 +67,26 @@ export class McpAuthGuard implements CanActivate {
     if (!token) throw this.challenge();
 
     let auth;
-    try {
-      auth = this.tokens.verifyMcp(token, mcpResourceUrl(this.config));
-    } catch {
-      throw this.challenge(
-        "invalid_token",
-        "The access token is invalid or expired.",
-      );
-    }
-    const grant = await this.grants.active(auth.grantId);
-    if (!grant) {
-      throw this.challenge(
-        "invalid_token",
-        "This connection was removed. Connect again.",
-      );
+    let grant: { clientName: string } | null;
+    if (token.startsWith(TOKEN_PREFIX)) {
+      auth = await this.accessToken(request, token);
+      grant = { clientName: "Access token" };
+    } else {
+      try {
+        auth = this.tokens.verifyMcp(token, mcpResourceUrl(this.config));
+      } catch {
+        throw this.challenge(
+          "invalid_token",
+          "The access token is invalid or expired.",
+        );
+      }
+      grant = await this.grants.active(auth.grantId);
+      if (!grant) {
+        throw this.challenge(
+          "invalid_token",
+          "This connection was removed. Connect again.",
+        );
+      }
     }
 
     const window = Math.floor(Date.now() / 60_000);

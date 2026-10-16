@@ -43,6 +43,11 @@ const envSchema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   ANTHROPIC_API_KEY: z.string().optional(),
+  AI_MOCK: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
+  AI_DAILY_DRAFTS: z.coerce.number().int().positive().default(300),
   SENTRY_DSN: z.string().optional(),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])

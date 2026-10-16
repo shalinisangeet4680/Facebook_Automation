@@ -27,9 +27,15 @@ import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
 import { PlayActor } from "../application/play-engine.service";
+import { PlayInboxService } from "../application/play-inbox.service";
+import { PlayWorkspaceService } from "../application/play-workspace.service";
 import { PlayService, RuleInput } from "../application/play.service";
 import {
   AddPlayAppDto,
+  AnalyticsQueryDto,
+  ApproveAllDto,
+  InboxQueryDto,
+  WorkspaceSettingsDto,
   ApproveReplyDto,
   BulkReplyDto,
   CheckTemplateDto,
@@ -42,6 +48,13 @@ import {
   UpdatePlayAppDto,
 } from "./dto/play.dto";
 import {
+  AccessTokenDto,
+  ApproveAllResultDto,
+  InboxDto,
+  InboxReviewDto,
+  McpClientListDto,
+  PlayAnalyticsDto,
+  WorkspaceSettingsViewDto,
   BulkReplyResultDto,
   ConnectResultDto,
   DiscoveryResultDto,
@@ -73,7 +86,126 @@ const id = new ParseUUIDPipe();
 @ApiDefaultResponse({ type: ErrorResponseDto })
 @Controller("play")
 export class PlayController {
-  constructor(private readonly play: PlayService) {}
+  constructor(
+    private readonly play: PlayService,
+    private readonly inboxes: PlayInboxService,
+    private readonly workspace: PlayWorkspaceService,
+  ) {}
+
+  @Get("workspace")
+  workspaceSettings(
+    @CurrentUser() ctx: TenantContext,
+  ): Promise<WorkspaceSettingsViewDto> {
+    return this.workspace.get(ctx.workspaceId);
+  }
+
+  @Put("workspace")
+  updateWorkspace(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: WorkspaceSettingsDto,
+  ): Promise<WorkspaceSettingsViewDto> {
+    return this.workspace.update(actor(ctx), body);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("workspace/token/reveal")
+  @HttpCode(HttpStatus.OK)
+  revealToken(@CurrentUser() ctx: TenantContext): Promise<AccessTokenDto> {
+    return this.workspace.reveal(actor(ctx));
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3_600_000 } })
+  @Post("workspace/token/rotate")
+  @HttpCode(HttpStatus.OK)
+  rotateToken(@CurrentUser() ctx: TenantContext): Promise<AccessTokenDto> {
+    return this.workspace.rotate(actor(ctx));
+  }
+
+  @Get("workspace/clients")
+  clients(@CurrentUser() ctx: TenantContext): Promise<McpClientListDto> {
+    return this.workspace.clients(ctx);
+  }
+
+  @Delete("workspace/clients/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  revokeClient(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id") clientId: string,
+  ): Promise<void> {
+    return this.workspace.revokeClient(ctx, clientId);
+  }
+
+  @Get("inbox")
+  inbox(
+    @CurrentUser() ctx: TenantContext,
+    @Query() query: InboxQueryDto,
+  ): Promise<InboxDto> {
+    return this.inboxes.inbox(
+      ctx.workspaceId,
+      query.filter ?? "pending",
+      query.appId,
+    );
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("inbox/approve-all")
+  @HttpCode(HttpStatus.OK)
+  approveAll(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: ApproveAllDto,
+  ): Promise<ApproveAllResultDto> {
+    return this.inboxes.approveAll(actor(ctx), body.replyIds);
+  }
+
+  @Post("reviews/:id/skip")
+  @HttpCode(HttpStatus.OK)
+  skip(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) reviewId: string,
+  ): Promise<InboxReviewDto> {
+    return this.inboxes.skip(actor(ctx), reviewId);
+  }
+
+  @Post("reviews/:id/unskip")
+  @HttpCode(HttpStatus.OK)
+  unskip(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) reviewId: string,
+  ): Promise<InboxReviewDto> {
+    return this.inboxes.unskip(actor(ctx), reviewId);
+  }
+
+  @Throttle({ default: { limit: 120, ttl: 3_600_000 } })
+  @Post("reviews/:id/draft")
+  @HttpCode(HttpStatus.OK)
+  draftReview(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) reviewId: string,
+  ): Promise<InboxReviewDto> {
+    return this.inboxes.draft(actor(ctx), reviewId, false);
+  }
+
+  @Throttle({ default: { limit: 120, ttl: 3_600_000 } })
+  @Post("reviews/:id/rewrite")
+  @HttpCode(HttpStatus.OK)
+  rewrite(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) reviewId: string,
+  ): Promise<InboxReviewDto> {
+    return this.inboxes.draft(actor(ctx), reviewId, true);
+  }
+
+  @Get("analytics")
+  analytics(
+    @CurrentUser() ctx: TenantContext,
+    @Query() query: AnalyticsQueryDto,
+  ): Promise<PlayAnalyticsDto> {
+    return this.inboxes.analytics(
+      ctx.workspaceId,
+      query.appId,
+      query.days ?? 30,
+    );
+  }
 
   @Get("connections")
   connections(
@@ -139,6 +271,25 @@ export class PlayController {
     @Body() body: UpdatePlayAppDto,
   ): Promise<PlayAppDetailDto> {
     return this.play.updateApp(actor(ctx), appId, body);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("apps/:id/recheck")
+  @HttpCode(HttpStatus.OK)
+  recheck(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+  ): Promise<PlayAppDetailDto> {
+    return this.play.recheck(actor(ctx), appId);
+  }
+
+  @Post("apps/:id/resume")
+  @HttpCode(HttpStatus.OK)
+  resume(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+  ): Promise<PlayAppDetailDto> {
+    return this.play.resume(actor(ctx), appId);
   }
 
   @Delete("apps/:id")
@@ -323,6 +474,14 @@ export class PlayController {
     @CurrentUser() ctx: TenantContext,
   ): Promise<RestoredPresetsDto> {
     return this.play.restorePresets(actor(ctx));
+  }
+
+  @Post("templates/:id/duplicate")
+  duplicateTemplate(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) templateId: string,
+  ): Promise<PlayTemplateDto> {
+    return this.play.duplicateTemplate(actor(ctx), templateId);
   }
 
   @Put("templates/:id")

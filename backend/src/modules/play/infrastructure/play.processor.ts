@@ -8,7 +8,7 @@ import { QUEUES } from "@shared/queue/queue.constants";
 import { PlayEngine } from "../application/play-engine.service";
 import { PlayService } from "../application/play.service";
 
-const SYNC_EVERY_MS = 60 * 60_000;
+const SYNC_EVERY_MS = 15 * 60_000;
 
 @Processor(QUEUES.PLAY, { concurrency: 1 })
 export class PlayProcessor extends WorkerHost {
