@@ -206,6 +206,19 @@ export class TemplateDto {
   appId?: string | null;
 }
 
+export class CheckTemplateDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => TemplateBodyDto)
+  bodies: TemplateBodyDto[];
+
+  @IsOptional()
+  @IsUUID()
+  appId?: string | null;
+}
+
 export class RuleConditionsDto {
   @IsOptional()
   @IsArray()

@@ -17,6 +17,10 @@ import type {
   ReportPreset,
   Settings,
   StoreChoice,
+  PlayAppUpdate,
+  PlayRuleInput,
+  PlayTemplateBody,
+  PlayTemplateInput,
   WorkspaceUpdate,
 } from "./types";
 
@@ -42,6 +46,14 @@ export const keys = {
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
   store: ["store"] as const,
+  play: ["play"] as const,
+  playConnections: ["play", "connections"] as const,
+  playApps: ["play", "apps"] as const,
+  playApp: (id: string) => ["play", "apps", id] as const,
+  playReviews: (id: string, filters: PlayReviewFilters) =>
+    ["play", "apps", id, "reviews", filters] as const,
+  playTemplates: (appId?: string) => ["play", "templates", appId ?? "all"] as const,
+  playRules: (id: string) => ["play", "apps", id, "rules"] as const,
   storeProject: (id: string) => ["store", id] as const,
 };
 
@@ -515,5 +527,258 @@ export function useDeleteStoreProject() {
     mutationFn: (id: string) =>
       unwrap(api.DELETE("/api/v1/store-projects/{id}", { params: { path: { id } } })),
     onSuccess: () => void client.invalidateQueries({ queryKey: keys.store }),
+  });
+}
+
+export interface PlayReviewFilters {
+  state?: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied";
+  stars?: number[];
+  language?: string;
+  version?: string;
+  q?: string;
+  page?: number;
+}
+
+function usePlayInvalidate() {
+  const client = useQueryClient();
+  return (appId?: string) => {
+    void client.invalidateQueries({ queryKey: keys.playApps, exact: true });
+    if (appId) void client.invalidateQueries({ queryKey: keys.playApp(appId) });
+  };
+}
+
+export function usePlayConnections() {
+  return useQuery({
+    queryKey: keys.playConnections,
+    queryFn: () => unwrap(api.GET("/api/v1/play/connections")),
+  });
+}
+
+export function useConnectPlay() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) => unwrap(api.POST("/api/v1/play/connections", { body: { key } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.playConnections }),
+  });
+}
+
+export function useRemovePlayConnection() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/play/connections/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function usePlayApps() {
+  return useQuery({
+    queryKey: keys.playApps,
+    queryFn: () => unwrap(api.GET("/api/v1/play/apps")),
+  });
+}
+
+export function useAddPlayApp() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { connectionId: string; packageName: string; title?: string }) =>
+      unwrap(api.POST("/api/v1/play/apps", { body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function usePlayApp(id: string) {
+  return useQuery({
+    queryKey: keys.playApp(id),
+    queryFn: () => unwrap(api.GET("/api/v1/play/apps/{id}", { params: { path: { id } } })),
+  });
+}
+
+export function useUpdatePlayApp(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PlayAppUpdate) =>
+      unwrap(api.PUT("/api/v1/play/apps/{id}", { params: { path: { id } }, body })),
+    onSuccess: (app) => {
+      client.setQueryData(keys.playApp(id), app);
+      void client.invalidateQueries({ queryKey: keys.playApps, exact: true });
+      void client.invalidateQueries({ queryKey: keys.playTemplates(id) });
+    },
+  });
+}
+
+export function useRemovePlayApp() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/play/apps/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function useSyncPlayApp(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(api.POST("/api/v1/play/apps/{id}/sync", { params: { path: { id } } })),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.playApp(id) }),
+  });
+}
+
+export function usePlayReviews(id: string, filters: PlayReviewFilters) {
+  return useQuery({
+    queryKey: keys.playReviews(id, filters),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/play/apps/{id}/reviews", {
+          params: {
+            path: { id },
+            query: {
+              state: filters.state,
+              stars: filters.stars?.length ? filters.stars.join(",") : undefined,
+              language: filters.language || undefined,
+              version: filters.version || undefined,
+              q: filters.q?.trim() || undefined,
+              page: filters.page,
+              pageSize: 20,
+            },
+          },
+        }),
+      ),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function usePreviewReply(appId: string) {
+  return useMutation({
+    mutationFn: (body: { reviewId: string; templateId: string }) =>
+      unwrap(api.POST("/api/v1/play/apps/{id}/preview", { params: { path: { id: appId } }, body })),
+  });
+}
+
+function useReviewMutation<T, R>(appId: string, run: (input: T) => Promise<R>) {
+  const invalidate = usePlayInvalidate();
+  return useMutation({ mutationFn: run, onSettled: () => invalidate(appId) });
+}
+
+export function useReplyNow(appId: string) {
+  return useReviewMutation(
+    appId,
+    (input: { reviewId: string; text: string; templateId?: string }) =>
+      unwrap(
+        api.POST("/api/v1/play/apps/{id}/reviews/{reviewId}/reply", {
+          params: { path: { id: appId, reviewId: input.reviewId } },
+          body: { text: input.text, templateId: input.templateId },
+        }),
+      ),
+  );
+}
+
+export function useSaveReplyDraft(appId: string) {
+  return useReviewMutation(
+    appId,
+    (input: { reviewId: string; text: string; templateId?: string }) =>
+      unwrap(
+        api.PUT("/api/v1/play/apps/{id}/reviews/{reviewId}/draft", {
+          params: { path: { id: appId, reviewId: input.reviewId } },
+          body: { text: input.text, templateId: input.templateId },
+        }),
+      ),
+  );
+}
+
+export function useApproveReply(appId: string) {
+  return useReviewMutation(appId, (input: { replyId: string; text?: string }) =>
+    unwrap(
+      api.POST("/api/v1/play/replies/{id}/approve", {
+        params: { path: { id: input.replyId } },
+        body: { text: input.text },
+      }),
+    ),
+  );
+}
+
+export function useDiscardReply(appId: string) {
+  return useReviewMutation(appId, (replyId: string) =>
+    unwrap(api.POST("/api/v1/play/replies/{id}/discard", { params: { path: { id: replyId } } })),
+  );
+}
+
+export function useBulkReply(appId: string) {
+  return useReviewMutation(appId, (body: { reviewIds: string[]; templateId: string }) =>
+    unwrap(
+      api.POST("/api/v1/play/apps/{id}/bulk-reply", { params: { path: { id: appId } }, body }),
+    ),
+  );
+}
+
+export function usePlayTemplates(appId?: string) {
+  return useQuery({
+    queryKey: keys.playTemplates(appId),
+    queryFn: () => unwrap(api.GET("/api/v1/play/templates", { params: { query: { appId } } })),
+  });
+}
+
+export function useCheckTemplate() {
+  return useMutation({
+    mutationFn: (body: { bodies: PlayTemplateBody[]; appId?: string | null }) =>
+      unwrap(api.POST("/api/v1/play/templates/check", { body })),
+  });
+}
+
+function useTemplateMutation<T, R>(run: (input: T) => Promise<R>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["play", "templates"] }),
+  });
+}
+
+export function useSaveTemplate() {
+  return useTemplateMutation((input: { id?: string; body: PlayTemplateInput }) =>
+    unwrap(
+      input.id
+        ? api.PUT("/api/v1/play/templates/{id}", {
+            params: { path: { id: input.id } },
+            body: input.body,
+          })
+        : api.POST("/api/v1/play/templates", { body: input.body }),
+    ),
+  );
+}
+
+export function useDeleteTemplate() {
+  return useTemplateMutation((id: string) =>
+    unwrap(api.DELETE("/api/v1/play/templates/{id}", { params: { path: { id } } })),
+  );
+}
+
+export function useRestorePresets() {
+  return useTemplateMutation(() => unwrap(api.POST("/api/v1/play/templates/presets")));
+}
+
+export function usePlayRules(appId: string) {
+  return useQuery({
+    queryKey: keys.playRules(appId),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/play/apps/{id}/rules", { params: { path: { id: appId } } })),
+  });
+}
+
+export function useSaveRules(appId: string) {
+  const client = useQueryClient();
+  const invalidate = usePlayInvalidate();
+  return useMutation({
+    mutationFn: (rules: PlayRuleInput[]) =>
+      unwrap(
+        api.PUT("/api/v1/play/apps/{id}/rules", {
+          params: { path: { id: appId } },
+          body: { rules },
+        }),
+      ),
+    onSuccess: (saved) => {
+      client.setQueryData(keys.playRules(appId), saved);
+      void client.invalidateQueries({ queryKey: ["play", "templates"] });
+      invalidate(appId);
+    },
   });
 }

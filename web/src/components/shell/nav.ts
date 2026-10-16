@@ -5,6 +5,7 @@ import {
   ListChecks,
   type LucideIcon,
   Megaphone,
+  MessageSquareReply,
   Settings,
   Smartphone,
   Sparkles,
@@ -26,6 +27,7 @@ export const NAV: NavItem[] = [
   { href: "/creatives", label: "Creatives", icon: LayoutGrid },
   { href: "/profile", label: "Page & Instagram", icon: Store },
   { href: "/store", label: "Play Store", icon: Smartphone },
+  { href: "/reviews", label: "Review replies", icon: MessageSquareReply },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

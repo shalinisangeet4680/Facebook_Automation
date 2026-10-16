@@ -24,6 +24,7 @@ import {
   AddPlayAppDto,
   ApproveReplyDto,
   BulkReplyDto,
+  CheckTemplateDto,
   ConnectPlayDto,
   PreviewDto,
   ReplaceRulesDto,
@@ -46,6 +47,7 @@ import {
   ReplyPreviewDto,
   RestoredPresetsDto,
   SyncResultDto,
+  TemplateCheckDto,
 } from "./dto/play-response.dto";
 
 const actor = (ctx: TenantContext): PlayActor => ({
@@ -241,6 +243,18 @@ export class PlayController {
     @Body() body: TemplateDto,
   ): Promise<PlayTemplateDto> {
     return this.play.createTemplate(actor(ctx), body);
+  }
+
+  @Post("templates/check")
+  @HttpCode(HttpStatus.OK)
+  checkTemplate(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: CheckTemplateDto,
+  ): Promise<TemplateCheckDto> {
+    return this.play.checkDraft(ctx.workspaceId, {
+      bodies: body.bodies,
+      appId: body.appId,
+    });
   }
 
   @Post("templates/presets")

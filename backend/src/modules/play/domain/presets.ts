@@ -30,7 +30,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         language: "hi",
         variants: [
           "धन्यवाद {{first_name|आपका}}! हमें खुशी है कि {{app_name}} आपके काम आ रहा है। – {{team_name|टीम}}",
-          "{{first_name|आपके}} इतने अच्छे रिव्यू के लिए शुक्रिया! आपका साथ हमें और बेहतर बनाने में मदद करता है। – {{team_name|टीम}}",
+          "शुक्रिया {{first_name|}}! आपके इतने अच्छे रिव्यू से हमें बहुत खुशी हुई। – {{team_name|टीम}}",
         ],
       },
     ],

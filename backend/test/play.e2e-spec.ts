@@ -343,6 +343,27 @@ describe("Play review replies", () => {
       note: "Add {{hotline}} in this app's settings, or edit the reply.",
     });
 
+    const checked = await api("POST", "/templates/check", {
+      appId,
+      bodies: [
+        {
+          language: "en",
+          variants: [
+            "Hi {{first_name}}, write to {{support_email}} {{oops}}",
+            "{{ Bad }}",
+          ],
+        },
+      ],
+    });
+    expect(checked.body.samples[0]).toMatchObject({
+      text: "Hi Priya, write to help@acme.in",
+      missing: ["oops"],
+    });
+    expect(checked.body.problems.map((p: Json) => p.problem)).toEqual([
+      "{{oops}} has no value in this app's settings and no fallback",
+      "{{ Bad }} is not a valid placeholder; use lowercase names like {{support_email}}",
+    ]);
+
     const updated = await api(
       "PUT",
       `/templates/${created.body.id as string}`,

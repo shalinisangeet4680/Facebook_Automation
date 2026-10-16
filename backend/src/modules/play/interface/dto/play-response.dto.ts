@@ -201,6 +201,19 @@ export class PlayTemplateListDto {
   suggestedVariables: string[];
 }
 
+export class TemplateSampleDto {
+  language: string;
+  variant: number;
+  text: string;
+  length: number;
+  missing: string[];
+}
+
+export class TemplateCheckDto {
+  problems: TemplateProblemDto[];
+  samples: TemplateSampleDto[];
+}
+
 export class RestoredPresetsDto {
   restored: number;
 }

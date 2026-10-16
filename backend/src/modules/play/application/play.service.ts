@@ -25,6 +25,7 @@ import {
   SUGGESTED_VARIABLES,
   VARIABLE_NAME,
   checkTemplate,
+  render,
 } from "../domain/templates";
 import {
   PlayAppRow,
@@ -824,6 +825,32 @@ export class PlayService {
     await this.record(actor, "play.template_deleted", id, {
       name: template.name,
     });
+  }
+
+  async checkDraft(
+    workspaceId: string,
+    input: { bodies: TemplateBody[]; appId?: string | null },
+  ) {
+    const app = input.appId
+      ? await this.appRow(workspaceId, input.appId)
+      : null;
+    const known = app ? this.engine.values(app, null) : {};
+    const sampleValues = { ...known, first_name: "Priya" };
+    return {
+      problems: checkTemplate(input.bodies, known),
+      samples: input.bodies.flatMap((b) =>
+        b.variants.map((variant, i) => {
+          const rendered = render(variant, sampleValues);
+          return {
+            language: b.language,
+            variant: i,
+            text: rendered.text,
+            length: charCount(rendered.text),
+            missing: rendered.missing,
+          };
+        }),
+      ),
+    };
   }
 
   async restorePresets(actor: PlayActor) {
