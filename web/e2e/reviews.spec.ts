@@ -3,171 +3,220 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { STORAGE_STATE } from "./fixtures";
 
-test.use({ storageState: STORAGE_STATE });
+test.use({ storageState: STORAGE_STATE, reducedMotion: "reduce" });
 
-const KEY = JSON.stringify({
-  type: "service_account",
-  project_id: "acme-play",
-  private_key: "-----BEGIN PRIVATE KEY-----\nMIIfake\n-----END PRIVATE KEY-----\n",
-  client_email: "autopilot@acme-play.iam.gserviceaccount.com",
+const key = (email: string) => ({
+  name: `${email.split("@")[0]}.json`,
+  mimeType: "application/json",
+  buffer: Buffer.from(
+    JSON.stringify({
+      type: "service_account",
+      project_id: "pulse-studio",
+      private_key: "-----BEGIN PRIVATE KEY-----\nMIIfake\n-----END PRIVATE KEY-----\n",
+      client_email: email,
+    }),
+  ),
 });
 
 async function audit(page: Page) {
   const results = await new AxeBuilder({ page })
-    .exclude("[data-sonner-toaster]")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(
     results.violations
       .filter((v) => v.impact === "serious" || v.impact === "critical")
-      .map(
-        (v) =>
-          `${v.id}: ${v.nodes.map((n) => `${n.target.join(" ")} (${n.failureSummary?.split("\n")[1]?.trim() ?? ""})`).join(" | ")}`,
-      ),
+      .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
   ).toEqual([]);
 }
 
-test("replies to Play reviews with drafts, templates, rules and settings", async ({
-  page,
-}, info) => {
-  const stamp = Date.now();
-  const leftovers = (await (await page.request.get("/api/v1/play/apps")).json()) as {
-    data: { id: string; title: string }[];
+async function reset(page: Page) {
+  const list = (await (await page.request.get("/api/v1/play/connections")).json()) as {
+    data: { id: string }[];
   };
-  for (const a of leftovers.data.filter((a) => a.title.startsWith("E2E Shop")))
-    await page.request.delete(`/api/v1/play/apps/${a.id}`);
-  const connected = await page.request.post("/api/v1/play/connections", { data: { key: KEY } });
-  expect(connected.ok(), await connected.text()).toBeTruthy();
-  const { id: connectionId } = (await connected.json()) as { id: string };
-  const packageName = `com.e2e.shop${stamp}`;
+  for (const c of list.data) await page.request.delete(`/api/v1/play/connections/${c.id}`);
+  await page.request.put("/api/v1/play/workspace", { data: { agentsCanPost: false } });
+}
+
+const toast = (page: Page, text: string | RegExp) =>
+  expect(page.locator(".rp-toast").filter({ hasText: text })).toBeVisible();
+
+test.describe.configure({ mode: "serial" });
+
+test("connects Google Play step by step and explains a bad key", async ({ page }, info) => {
+  await reset(page);
+  await page.goto("/reviews");
+  await expect(page).toHaveURL(/\/reviews\/connect$/);
+  await expect(page.getByRole("heading", { name: /Connect Google Play/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-disabled", "true");
+  await audit(page);
+
+  await page.getByRole("button", { name: "Done, next step" }).click();
+  await page.getByRole("button", { name: "Done, next step" }).click();
+  const file = page.locator('input[type="file"]');
+  await file.setInputFiles(key("revoked@pulse-studio.iam.gserviceaccount.com"));
+  await expect(page.getByText("revoked@pulse-studio.iam.gserviceaccount.com")).toBeVisible();
+  await page.getByRole("button", { name: "Verify & connect" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("This key can’t be read");
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove key" }).click();
+  await file.setInputFiles(key("noreporting@pulse-studio.iam.gserviceaccount.com"));
+  await page.getByRole("button", { name: "Verify & connect" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    "Reporting API is turned off",
+  );
+  await expect(page.getByRole("link", { name: "Open Cloud Console ↗" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove key" }).click();
+  await file.setInputFiles(key("discover@pulse-studio.iam.gserviceaccount.com"));
+  await page.getByRole("button", { name: "Verify & connect" }).click();
+  await toast(page, "Connected · 2 apps found");
+  await expect(page).toHaveURL(/\/reviews$/, { timeout: 15_000 });
+  await page.screenshot({ path: info.outputPath("connected.png") });
+});
+
+test("runs apps per rating and lists every app", async ({ page }, info) => {
+  await page.goto("/reviews");
+  await expect(page.getByText(/2 connected · \d+ reviews? awaiting a reply/)).toBeVisible();
+  const shop = page.getByRole("link", { name: /Discover Shop/ });
+  await expect(shop).toContainText("Approval");
+  await audit(page);
+
+  await shop.getByRole("switch", { name: "Auto-reply for Discover Shop" }).click();
+  await toast(page, "Discover Shop: auto-reply paused");
+  await expect(shop.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+  await shop.getByRole("switch").click();
+  await toast(page, "Discover Shop: auto-reply on");
+
+  await shop.click();
+  await expect(page.getByRole("heading", { name: "Discover Shop" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Reviews vs. replies · 30 days" })).toBeVisible();
+  await expect(page.getByText("Rating by version")).toBeVisible();
+  await audit(page);
+
+  await page.getByRole("tab", { name: "Automation" }).click();
+  await expect(page).toHaveURL(/tab=automation/);
+  const five = page.getByRole("radiogroup", { name: "Mode for 5-star reviews" });
+  await five.getByRole("radio", { name: "Auto" }).click();
+  await expect(five.getByRole("radio", { name: "Auto" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("combobox", { name: "Template for 1-star reviews" }).selectOption({
+    label: "AI-written, no template",
+  });
+  await page.getByRole("combobox", { name: "Posting delay" }).selectOption("1h");
+  await page.getByRole("switch", { name: "Escalate 1★ reviews" }).click();
+  await page.getByRole("textbox", { name: "support_email" }).fill("help@discover.app");
+  await page.getByRole("button", { name: "Save values" }).click();
+  await toast(page, "Placeholder values saved");
+  await page.reload();
+  await expect(
+    page
+      .getByRole("radiogroup", { name: "Mode for 5-star reviews" })
+      .getByRole("radio", { name: "Auto" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("combobox", { name: "Posting delay" })).toHaveValue("1h");
+  await expect(page.getByRole("switch", { name: "Escalate 1★ reviews" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await page.goto("/reviews");
+  await expect(page.getByRole("link", { name: /Discover Shop/ })).toContainText("Mixed");
+  await audit(page);
+  await page.screenshot({ path: info.outputPath("apps.png") });
+});
+
+test("approves, rewrites and skips drafts from one inbox", async ({ page }, info) => {
+  const connections = (await (await page.request.get("/api/v1/play/connections")).json()) as {
+    data: { id: string }[];
+  };
+  const title = `Inbox Test ${Date.now()}`;
   const added = await page.request.post("/api/v1/play/apps", {
-    data: { connectionId, packageName, title: `E2E Shop ${stamp}` },
+    data: {
+      connectionId: connections.data[0]!.id,
+      packageName: `com.e2e.inbox${Date.now()}`,
+      title,
+    },
   });
   expect(added.ok(), await added.text()).toBeTruthy();
-  const app = (await added.json()) as { id: string };
-  const templateName = `Call support ${stamp}`;
 
-  try {
-    await page.goto("/reviews");
-    const card = page.getByRole("link", { name: new RegExp(`E2E Shop ${stamp}`) });
-    await expect(card).toContainText("Needs approval");
-    await audit(page);
-    await card.click();
+  await page.goto("/reviews/inbox");
+  await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText(/\d+/);
+  await expect(page.getByRole("button", { name: /Approve all \d+/ })).toBeVisible();
+  await audit(page);
 
-    await expect(page.getByRole("heading", { name: `E2E Shop ${stamp}` })).toBeVisible();
-    const status = page.getByRole("group", { name: "Review status" });
-    await expect(status.getByRole("button", { name: /Waiting for approval/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(status.getByRole("button", { name: /Waiting for approval/ })).toContainText("8");
+  await page.getByRole("button", { name: title }).click();
+  await expect(page).toHaveURL(/app=/);
+  await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText("8");
+  const first = page.locator("article").first();
+  const before = await first.getByRole("textbox").inputValue();
+  await first.getByRole("button", { name: "Rewrite" }).click();
+  await expect(page.locator("article").first().getByRole("textbox")).not.toHaveValue(before);
 
-    const priya = page.getByRole("listitem").filter({ hasText: "Priya Sharma" });
-    const reply = priya.getByRole("textbox", { name: "Reply to Priya Sharma" });
-    await expect(reply).toHaveValue(/Priya|lovely|Thank/);
-    await reply.fill("Thank you Priya, we're so glad it helps!");
-    await expect(priya.getByText("40/350")).toBeVisible();
-    await priya.getByRole("button", { name: "Approve and send" }).click();
-    await expect(page.getByText("Reply posted on Google Play")).toBeVisible();
-    await expect(status.getByRole("button", { name: /Waiting for approval/ })).toContainText("7");
-    await page.screenshot({ path: info.outputPath("reviews.png"), fullPage: true });
-    await audit(page);
+  await page.locator("article").first().getByRole("button", { name: "Approve & post" }).click();
+  await toast(page, "Reply posted to Google Play");
+  await page.locator("article").first().getByRole("button", { name: "Skip" }).click();
+  await toast(page, "Skipped");
+  await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText("6");
 
-    await status.getByRole("button", { name: /Replied/ }).click();
-    await expect(page.getByText("Thank you Priya, we're so glad it helps!")).toBeVisible();
+  await page.getByRole("tab", { name: /Replied/ }).click();
+  await expect(page.getByText("Replied · You")).toBeVisible();
+  await expect(page.getByText(/Skipped · by you/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("inbox-replied.png"), fullPage: true });
 
-    await page.getByRole("tab", { name: "Templates" }).click();
-    await page.getByRole("button", { name: "New template" }).click();
-    const editor = page.getByRole("dialog");
-    await editor.getByLabel("Name").fill(templateName);
-    await editor.getByLabel("Wording 1").fill("Sorry ");
-    await editor.getByRole("button", { name: "{{first_name}}" }).click();
-    await editor.getByLabel("Wording 1").press("End");
-    await editor.getByLabel("Wording 1").pressSequentially("! Call {{support_phone|our team}}.");
-    await expect(editor.getByText("Sorry Priya! Call our team.")).toBeVisible();
-    await page.screenshot({ path: info.outputPath("template-editor.png") });
-    await editor.getByRole("button", { name: "Save template" }).click();
-    await expect(page.getByText("Template saved")).toBeVisible();
-    await expect(page.getByRole("heading", { name: templateName })).toBeVisible();
+  await page.getByRole("tab", { name: /Needs reply/ }).click();
+  await page.getByRole("button", { name: "Approve all 6" }).click();
+  await toast(page, "6 replies posted");
+  await expect(page.getByRole("heading", { name: /Inbox zero/ })).toBeVisible();
+  await audit(page);
+});
 
-    await page.getByRole("tab", { name: "Rules" }).click();
-    const thanks = page.getByRole("listitem").filter({ hasText: "Thank happy reviewers" });
-    await expect(thanks).toContainText("When 4★ 5★ → Reply with “Thank you” · after I approve");
-    await thanks.getByRole("button", { name: "Edit" }).click();
-    const open = page
-      .getByRole("listitem")
-      .filter({ has: page.getByRole("button", { name: "Done" }) });
-    await expect(open.getByRole("textbox", { name: "Rule name" })).toHaveValue(
-      "Thank happy reviewers",
-    );
-    await open.getByRole("radio", { name: "Automatically" }).click();
-    await expect(open.getByText("Replies from this rule go out on their own")).toBeVisible();
-    await page.getByRole("button", { name: "Save rules" }).click();
-    await expect(page.getByText("Rules saved")).toBeVisible();
-    await expect(page.getByText("Auto-send on")).toBeVisible();
-    await page.screenshot({ path: info.outputPath("rules.png"), fullPage: true });
-    await audit(page);
+test("duplicates a pre-built template and edits the copy", async ({ page }) => {
+  await page.goto("/reviews/templates");
+  await expect(page.getByText("Read-only")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Template name" })).toHaveValue("Grateful thanks");
+  await page.getByRole("button", { name: "{support_email}" }).click();
+  await toast(page, "Duplicate to edit a pre-built template");
+  await audit(page);
 
-    await page.getByRole("tab", { name: "Insights" }).click();
-    await expect(page.getByText("Average rating").first()).toBeVisible();
-    await page.getByRole("button", { name: "Import history" }).click();
-    const header =
-      "Package Name,App Version Code,App Version Name,Reviewer Language,Device,Review Submit Date and Time,Review Submit Millis Since Epoch,Review Last Update Date and Time,Review Last Update Millis Since Epoch,Star Rating,Review Title,Review Text,Developer Reply Date and Time,Developer Reply Millis Since Epoch,Developer Reply Text,Review Link";
-    const rows = Array.from({ length: 24 }, (_, i) => {
-      const at = Date.now() - (i + 8) * 86_400_000;
-      const stars = [5, 4, 5, 1, 3, 2][i % 6];
-      const text =
-        stars <= 2
-          ? "Login fails after update, payment stuck"
-          : stars >= 4
-            ? "Fast delivery, easy checkout"
-            : "";
-      return `${packageName},${210 + (i % 3)},2.${1 + (i % 3)}.0,${i % 4 ? "en" : "hi"},a05m,,${at},,${at},${stars},,"${text}",,,,http://x/review-details?reviewId=gp:HIST${stamp}${i}`;
-    });
-    const csv = [header, ...rows].join("\n");
-    await page.getByLabel("Choose review report files").setInputFiles({
-      name: `reviews_${packageName}_202609.csv`,
-      mimeType: "text/csv",
-      buffer: Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(csv, "utf16le")]),
-    });
-    await expect(page.getByText("24 reviews imported")).toBeVisible();
-    await page
-      .getByRole("group", { name: "Period" })
-      .getByRole("button", { name: "90 days" })
-      .click();
-    await expect(page.getByRole("img", { name: "Reviews by star rating over time" })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Common words in unhappy reviews" })).toContainText(
-      "login",
-    );
-    const versions = page.getByRole("region", { name: "Rating by app version" });
-    await versions.getByRole("button", { name: "Table" }).click();
-    await expect(versions.getByRole("cell", { name: "2.1.0" })).toBeVisible();
-    await page.screenshot({ path: info.outputPath("insights-light.png"), fullPage: true });
-    await audit(page);
-    await page.emulateMedia({ colorScheme: "dark" });
-    await page.evaluate(() => document.documentElement.classList.add("dark"));
-    await page.waitForTimeout(400);
-    await page.screenshot({ path: info.outputPath("insights-dark.png"), fullPage: true });
-    await audit(page);
-    await page.evaluate(() => document.documentElement.classList.remove("dark"));
-    await page.emulateMedia({ colorScheme: "light" });
+  await page.getByRole("button", { name: "Duplicate" }).click();
+  await toast(page, "Duplicated — now editable");
+  const name = page.getByRole("textbox", { name: "Template name" });
+  await expect(name).toHaveValue("Grateful thanks copy");
+  await name.fill("Warm thanks");
+  await page.getByRole("button", { name: "4★", exact: true }).click();
+  const body = page.getByRole("textbox", { name: "Template text" });
+  await body.fill("Thanks ");
+  await page.getByRole("button", { name: "{user_name}" }).click();
+  await expect(page.getByText("Thanks Maya")).toBeVisible();
+  await expect(page.getByText("Saved")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: /Warm thanks/ }).click();
+  await expect(page.getByRole("textbox", { name: "Template text" })).toHaveValue(
+    "Thanks {user_name}",
+  );
+  await page.getByRole("button", { name: "Delete" }).click();
+  await toast(page, "Template deleted");
+});
 
-    await page.goto("/reviews");
-    await expect(page.getByText("Need a reply").first()).toBeVisible();
-    await page.screenshot({ path: info.outputPath("apps.png"), fullPage: true });
-    await page.getByRole("link", { name: new RegExp(`E2E Shop ${stamp}`) }).click();
+test("shows analytics, MCP access and the state gallery", async ({ page }) => {
+  await page.goto("/reviews/analytics");
+  await expect(page.getByText("Reply rate")).toBeVisible();
+  await expect(page.getByText("What reviewers talk about")).toBeVisible();
+  await page.getByRole("tab", { name: "7d" }).click();
+  await expect(page.getByRole("tab", { name: "7d" })).toHaveAttribute("aria-selected", "true");
+  await audit(page);
 
-    await page.getByRole("tab", { name: "Settings" }).click();
-    await page.getByLabel("Value for support_email").fill("help@e2e.shop");
-    await page.getByRole("button", { name: "Save settings" }).click();
-    await expect(page.getByText("Settings saved")).toBeVisible();
-    await audit(page);
-  } finally {
-    await page.request.delete(`/api/v1/play/apps/${app.id}`);
-    const templates = (await (await page.request.get("/api/v1/play/templates")).json()) as {
-      data: { id: string; name: string }[];
-    };
-    for (const t of templates.data.filter((t) => t.name.startsWith("Call support")))
-      await page.request.delete(`/api/v1/play/templates/${t.id}`);
-  }
+  await page.goto("/reviews/mcp");
+  await page.getByRole("button", { name: "Reveal" }).click();
+  await expect(page.getByText(/rk_live_[0-9a-f]{36}/).first()).toBeVisible();
+  await page.getByRole("switch", { name: "Allow agents to post replies" }).click();
+  await toast(page, "Agents can post replies");
+  await page.reload();
+  await expect(page.getByText("Access token").last()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Revoke" })).toBeVisible();
+  await audit(page);
+
+  await page.goto("/reviews/states");
+  await expect(page.getByText("Verifying your key")).toBeVisible();
+  await expect(page.getByText("Inbox zero. Nice.")).toBeVisible();
+  await reset(page);
 });

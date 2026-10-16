@@ -358,7 +358,7 @@ export class ReplaceRulesDto {
   rules: RuleDto[];
 }
 
-export class InboxQueryDto {
+export class PlayInboxQueryDto {
   @IsOptional()
   @IsIn(["pending", "replied", "all"])
   filter?: "pending" | "replied" | "all";

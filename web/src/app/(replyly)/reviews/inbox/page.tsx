@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { ReviewAppView } from "@/features/reviews/app-page";
+import { InboxPage } from "@/features/replyly/inbox-page";
 
-export const metadata: Metadata = { title: "Review replies" };
+export const metadata: Metadata = { title: "Inbox" };
 
 export default function Page() {
   return (
     <Suspense>
-      <ReviewAppView />
+      <InboxPage />
     </Suspense>
   );
 }

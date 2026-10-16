@@ -244,7 +244,7 @@ export class GooglePlayClient implements PlayApi {
         )
           throw new PlayApiError(
             "disabled",
-            `Turn on the Google Play Developer Reporting API for project ${key.projectId} so Autopilot can find your apps: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${encodeURIComponent(key.projectId)}`,
+            `Turn on the Google Play Developer Reporting API for project ${key.projectId} so your apps can be found automatically: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${encodeURIComponent(key.projectId)}`,
           );
         if (res.status === 401 || res.status === 403)
           throw new PlayApiError(

@@ -209,7 +209,7 @@ export class MockPlayApi implements PlayApi {
     if (key.clientEmail.startsWith("noreporting"))
       throw new PlayApiError(
         "disabled",
-        `Turn on the Google Play Developer Reporting API for project ${key.projectId} so Autopilot can find your apps: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${key.projectId}`,
+        `Turn on the Google Play Developer Reporting API for project ${key.projectId} so your apps can be found automatically: https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=${key.projectId}`,
       );
     if (!key.clientEmail.startsWith("discover")) return [];
     return [

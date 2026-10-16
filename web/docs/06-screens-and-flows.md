@@ -115,17 +115,18 @@ A project page has:
 
 The page polls every 4 seconds until the set is uploaded, so images appear while the plugin uploads them.
 
-## 14. Review replies (`/reviews`, `/reviews/:id`)
+## 14. Review replies — Replyly (`/reviews/*`)
 
-The sidebar groups Meta ads (Campaigns, Creatives, Page & Instagram, Reports) and Google Play (Store listing, Review replies). Review replies shows a count of reviews that need a reply.
+The Autopilot sidebar's Review replies link opens Replyly, a full-screen section with its own look: warm off-white background, Instrument Serif headings, Geist and Geist Mono, a 220px sidebar (Apps, Inbox with a pending count, Templates, Analytics, MCP), and at the bottom Back to Autopilot, System states and the workspace with its app count. On phones the sidebar becomes a scrolling top bar. Toasts are a dark pill at the bottom centre. Code lives in `src/features/replyly`; styles are in `replyly.css`, scoped to `.rp`.
 
-- **Apps page:** a guided connect card until a Google Play service account is connected (connecting finds and adds every app the account can see and shows what it found); then a summary row (30-day average rating across apps, need a reply, waiting for approval, waiting for Claude), one card per app (rating with change, 8-week rating sparkline, queues, mode, last check) and the connected accounts, each with Find apps, when it last looked, and any problem with a link to fix it. Add by package name stays as a fallback.
-- **App page tabs:**
-  - **Reviews:** status chips with counts, star, language, version and search filters, review cards with a rating-coloured edge, the reply composer (fill from template with live preview, 350-character counter, approve, save, discard, edit a posted reply), scheduled and Claude states, bulk reply, pages.
-  - **Insights:** period chips, stat tiles with change against the previous period, reviews by rating over time, average rating, star breakdown, rating by version, languages, common words in unhappy and happy reviews; every chart has a table view. Import history uploads Play Console reports.
-  - **Templates:** library with category, scope, languages, usage and problems; editor with languages, several wordings, placeholder chips and a live preview.
-  - **Rules:** automation switch, safeguard summary, rules as one-line summaries that expand to edit, reorder, save.
-  - **Settings:** app name, placeholder values, quiet hours and time zone, daily limit, never-auto words, edited reviews, translation, remove app.
+- **Connect (`/reviews/connect`):** three steps (create a service account, invite it in Play Console, upload the key and verify). Verifying animates key → API → Play Console access, and stops at the step that failed with the fix (`invalid_key`, `api_disabled`, `no_permission` from the API's error details). The illustration on the right follows the step. When an account is already connected it opens on step 2, with a card to add one app by package name. Without a connection, `/reviews` redirects here and the other sections are disabled.
+- **Apps (`/reviews`):** summary line, Sync now (syncs each app in turn with a striped progress bar and review count) and Add app, then a table: app tile, package, rating, awaiting, mode chip (Auto, Approval, Manual, Mixed, Needs access, plus Safety pause), 14-day replies sparkline, and the auto-reply switch.
+- **App (`/reviews/:id`):** Overview has the 30-day stats, reviews vs replies chart (hover tooltip, table for screen readers), rating mix, Open inbox for this app, then rating by version, languages and Import older reviews. Automation (`?tab=automation`) has Reply mode cards, Rules by rating (mode and template per star, or AI-written), Behavior switches, posting delay and voice, then an Advanced divider with keyword rules (run first), placeholder values, safeguards, AI & integrations (AI drafting mode and own key, Slack webhook and channel) and Remove app. An app without reply permission shows the 403 state with Check again and Copy service account email. Banners show a safety pause (Resume now) and lost connections.
+- **Inbox (`/reviews/inbox`):** Needs reply / Replied / All with counts, app chips, and one card per review: reviewer, stars, app, age, language, topic chip, original text with its translation, and the draft editor (character count, Skip, Rewrite or Draft, Approve & post), failed replies with Retry, and replied or skipped reviews with who sent them (Undo for skips). Approve all posts every ready draft in view. Empty views show Inbox zero.
+- **Templates (`/reviews/templates`):** Yours and Pre-built lists with their ratings; the editor has the name, Use for rating chips, language and wording switches, the body with placeholder chips, a 350-character count and a Google Play preview. Pre-built templates are read-only and can be duplicated; your templates save as you type.
+- **Analytics (`/reviews/analytics`):** app picker and 7d/30d/90d, five stats with change against the previous period (time saved is an estimate), reviews vs replies with the average rating, rating mix, and topics with their change.
+- **MCP (`/reviews/mcp`):** server URL, the workspace access token (reveal, rotate with a 10-minute grace period), the Allow agents to post replies switch, config snippets for Claude Desktop, Cursor and Claude Code, the tools, and connected clients with Revoke.
+- **System states (`/reviews/states`):** a gallery of every progress, error and empty illustration.
 
 ## 15. States everywhere
 

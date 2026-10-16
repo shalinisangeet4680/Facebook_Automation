@@ -244,19 +244,19 @@ export class PlayReviewDto {
   draft: ReplyViewDto | null;
 }
 
-export class InboxReviewDto extends PlayReviewDto {
+export class PlayInboxReviewDto extends PlayReviewDto {
   appId: string;
 }
 
-export class InboxCountsDto {
+export class PlayInboxCountsDto {
   pending: number;
   replied: number;
   all: number;
 }
 
-export class InboxDto {
-  data: InboxReviewDto[];
-  counts: InboxCountsDto;
+export class PlayInboxDto {
+  data: PlayInboxReviewDto[];
+  counts: PlayInboxCountsDto;
   approvable: string[];
 }
 

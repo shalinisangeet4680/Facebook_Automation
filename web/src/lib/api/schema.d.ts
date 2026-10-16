@@ -772,6 +772,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_workspaceSettings_v1"];
+        put: operations["PlayController_updateWorkspace_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/workspace/token/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_revealToken_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/workspace/token/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_rotateToken_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/workspace/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_clients_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/workspace/clients/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["PlayController_revokeClient_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_inbox_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/inbox/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_approveAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/reviews/{id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_skip_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/reviews/{id}/unskip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_unskip_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/reviews/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_draftReview_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/reviews/{id}/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_rewrite_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_analytics_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/connections": {
         parameters: {
             query?: never;
@@ -847,6 +1039,38 @@ export interface paths {
         put: operations["PlayController_updateApp_v1"];
         post?: never;
         delete: operations["PlayController_removeApp_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/apps/{id}/recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_recheck_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/apps/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_resume_v1"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1054,6 +1278,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["PlayController_restorePresets_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/templates/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_duplicateTemplate_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1846,12 +2086,160 @@ export interface components {
         AddedCreativesDto: {
             data: components["schemas"]["CreativeDto"][];
         };
+        WorkspaceSettingsViewDto: {
+            /** @enum {string} */
+            aiMode: "platform" | "own" | "off";
+            platformAi: boolean;
+            aiKeyHint: string | null;
+            aiReady: boolean;
+            model: string;
+            dailyDrafts: number;
+            draftsToday: number;
+            slackConnected: boolean;
+            slackChannel: string | null;
+            agentsCanPost: boolean;
+            mcpUrl: string;
+            token: string | null;
+            tokenCreatedAt: string | null;
+            apps: number;
+            connected: boolean;
+        };
+        WorkspaceSettingsDto: {
+            /** @enum {string} */
+            aiMode?: "platform" | "own" | "off";
+            aiKey?: string | null;
+            slackWebhook?: string | null;
+            slackChannel?: string | null;
+            agentsCanPost?: boolean;
+        };
+        AccessTokenDto: {
+            token: string;
+        };
+        McpClientDto: {
+            /** @enum {string} */
+            kind: "token" | "oauth";
+            id: string;
+            name: string;
+            lastUsedAt: string | null;
+            lastTool: string | null;
+            connectedAt: string | null;
+        };
+        McpClientListDto: {
+            data: components["schemas"]["McpClientDto"][];
+        };
+        PostedReplyDto: {
+            text: string;
+            repliedAt: string | null;
+        };
+        SentViaDto: {
+            /** @enum {string} */
+            source: "template" | "claude" | "manual" | "ai";
+            auto: boolean;
+            sentAt: string | null;
+        };
+        ReplyViewDto: {
+            /** @enum {string} */
+            status: "pending_approval" | "needs_claude" | "scheduled" | "sent" | "failed" | "discarded";
+            /** @enum {string} */
+            source: "template" | "claude" | "manual" | "ai";
+            id: string;
+            text: string;
+            templateId: string | null;
+            ruleId: string | null;
+            auto: boolean;
+            note: string | null;
+            error: string | null;
+            sendAt: string | null;
+            sentAt: string | null;
+        };
+        PlayInboxReviewDto: {
+            /** @enum {string} */
+            state: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied" | "skipped";
+            appId: string;
+            id: string;
+            reviewId: string;
+            authorName: string;
+            stars: number;
+            text: string;
+            originalText: string | null;
+            language: string | null;
+            appVersionName: string | null;
+            device: string | null;
+            androidVersion: number | null;
+            thumbsUp: number;
+            reviewedAt: string;
+            reply: components["schemas"]["PostedReplyDto"] | null;
+            editedAfterReply: boolean;
+            starsBeforeEdit: number | null;
+            canReply: boolean;
+            topic: string | null;
+            skippedAt: string | null;
+            sentVia: components["schemas"]["SentViaDto"] | null;
+            draft: components["schemas"]["ReplyViewDto"] | null;
+        };
+        PlayInboxCountsDto: {
+            pending: number;
+            replied: number;
+            all: number;
+        };
+        PlayInboxDto: {
+            data: components["schemas"]["PlayInboxReviewDto"][];
+            counts: components["schemas"]["PlayInboxCountsDto"];
+            approvable: string[];
+        };
+        ApproveAllDto: {
+            replyIds: string[];
+        };
+        ApproveAllFailureDto: {
+            replyId: string;
+            error: string;
+        };
+        ApproveAllResultDto: {
+            sent: number;
+            failed: components["schemas"]["ApproveAllFailureDto"][];
+        };
+        PeriodStatsDto: {
+            reviews: number;
+            written: number;
+            replied: number;
+            replyRate: number | null;
+            medianResponseMinutes: number | null;
+            rating: number | null;
+        };
+        SeriesPointDto: {
+            day: string;
+            reviews: number;
+            replied: number;
+            rating: number | null;
+        };
+        DistributionDto: {
+            stars: number;
+            count: number;
+            pct: number;
+        };
+        TopicTrendDto: {
+            topic: string;
+            count: number;
+            previous: number;
+            change: number | null;
+            negative: boolean;
+        };
+        PlayAnalyticsDto: {
+            days: number;
+            current: components["schemas"]["PeriodStatsDto"];
+            previous: components["schemas"]["PeriodStatsDto"];
+            repliesSent: number;
+            timeSavedHours: number;
+            series: components["schemas"]["SeriesPointDto"][];
+            distribution: components["schemas"]["DistributionDto"][];
+            topics: components["schemas"]["TopicTrendDto"][];
+        };
         PlayConnectionDto: {
             id: string;
             clientEmail: string;
             projectId: string;
             /** @enum {string} */
-            status: "error" | "active";
+            status: "active" | "error";
             error?: string | null;
             checkedAt?: string | null;
             discoveredAt?: string | null;
@@ -1890,7 +2278,7 @@ export interface components {
             clientEmail: string;
             projectId: string;
             /** @enum {string} */
-            status: "error" | "active";
+            status: "active" | "error";
             error?: string | null;
             checkedAt?: string | null;
             discoveredAt?: string | null;
@@ -1899,6 +2287,11 @@ export interface components {
             discovery: components["schemas"]["DiscoveryResultDto"];
         };
         PlayAppDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual" | "mixed" | "needs_access";
+            replies14d: number[];
+            /** @enum {string|null} */
+            syncErrorKind: "no_permission" | "api_disabled" | "disconnected" | "quota" | "error" | null;
             trend: (number | null)[];
             id: string;
             packageName: string;
@@ -1906,17 +2299,20 @@ export interface components {
             iconUrl: string | null;
             connectionId: string;
             connectionEmail: string | null;
-            /** @enum {string} */
-            mode: "approval" | "auto" | "off";
+            enabled: boolean;
             rating: number | null;
+            overallRating: number | null;
             previousRating: number | null;
             reviews30d: number;
             needsReply: number;
             waiting: number;
             needsClaude: number;
             scheduled: number;
+            failed: number;
             lastSyncedAt: string | null;
             syncError: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
         };
         PlayAppListDto: {
             data: components["schemas"]["PlayAppDto"][];
@@ -1931,13 +2327,29 @@ export interface components {
             start: string;
             end: string;
         };
+        RatingRuleViewDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual";
+            rating: number;
+            templateId: string | null;
+        };
         PlaySettingsViewDto: {
+            /** @enum {string} */
+            delay: "instant" | "15m" | "1h" | "6h";
+            /** @enum {string} */
+            tone: "friendly" | "professional" | "concise";
             timezone: string;
             quietHours: components["schemas"]["QuietHoursViewDto"] | null;
             dailyAutoLimit: number;
             neverAutoWords: string[];
             translateTo: string;
             replyToEdited: boolean;
+            ratingRules: components["schemas"]["RatingRuleViewDto"][];
+            translate: boolean;
+            personalize: boolean;
+            skipEmpty: boolean;
+            escalate: boolean;
+            autoPause: boolean;
         };
         SyncResultDto: {
             fetched: number;
@@ -1945,7 +2357,22 @@ export interface components {
             updated: number;
             drafts: number;
         };
+        AppOverviewDto: {
+            reviews: number;
+            written: number;
+            replied: number;
+            replyRate: number | null;
+            medianResponseMinutes: number | null;
+            rating: number | null;
+            series: components["schemas"]["SeriesPointDto"][];
+            distribution: components["schemas"]["DistributionDto"][];
+        };
         PlayAppDetailDto: {
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual" | "mixed" | "needs_access";
+            replies14d: number[];
+            /** @enum {string|null} */
+            syncErrorKind: "no_permission" | "api_disabled" | "disconnected" | "quota" | "error" | null;
             trend: (number | null)[];
             variables: {
                 [key: string]: string;
@@ -1956,29 +2383,50 @@ export interface components {
             builtInVariables: string[];
             suggestedVariables: string[];
             firstSync?: components["schemas"]["SyncResultDto"] | null;
+            overview: components["schemas"]["AppOverviewDto"];
             id: string;
             packageName: string;
             title: string;
             iconUrl: string | null;
             connectionId: string;
             connectionEmail: string | null;
-            /** @enum {string} */
-            mode: "approval" | "auto" | "off";
+            enabled: boolean;
             rating: number | null;
+            overallRating: number | null;
             previousRating: number | null;
             reviews30d: number;
             needsReply: number;
             waiting: number;
             needsClaude: number;
             scheduled: number;
+            failed: number;
             lastSyncedAt: string | null;
             syncError: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
+        };
+        RatingRuleDto: {
+            rating: number;
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual";
+            /** Format: uuid */
+            templateId: string | null;
         };
         QuietHoursDto: {
             start: string;
             end: string;
         };
         PlaySettingsDto: {
+            ratingRules?: components["schemas"]["RatingRuleDto"][];
+            /** @enum {string} */
+            delay?: "instant" | "15m" | "1h" | "6h";
+            /** @enum {string} */
+            tone?: "friendly" | "professional" | "concise";
+            translate?: boolean;
+            personalize?: boolean;
+            skipEmpty?: boolean;
+            escalate?: boolean;
+            autoPause?: boolean;
             timezone?: string;
             quietHours?: components["schemas"]["QuietHoursDto"] | null;
             dailyAutoLimit?: number;
@@ -2040,28 +2488,9 @@ export interface components {
             from: string;
             to: string;
         };
-        PostedReplyDto: {
-            text: string;
-            repliedAt: string | null;
-        };
-        ReplyViewDto: {
-            /** @enum {string} */
-            status: "pending_approval" | "needs_claude" | "scheduled" | "sent" | "failed" | "discarded";
-            /** @enum {string} */
-            source: "template" | "claude" | "manual";
-            id: string;
-            text: string;
-            templateId: string | null;
-            ruleId: string | null;
-            auto: boolean;
-            note: string | null;
-            error: string | null;
-            sendAt: string | null;
-            sentAt: string | null;
-        };
         PlayReviewDto: {
             /** @enum {string} */
-            state: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied";
+            state: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied" | "skipped";
             id: string;
             reviewId: string;
             authorName: string;
@@ -2078,6 +2507,9 @@ export interface components {
             editedAfterReply: boolean;
             starsBeforeEdit: number | null;
             canReply: boolean;
+            topic: string | null;
+            skippedAt: string | null;
+            sentVia: components["schemas"]["SentViaDto"] | null;
             draft: components["schemas"]["ReplyViewDto"] | null;
         };
         ReviewCountsDto: {
@@ -2087,6 +2519,7 @@ export interface components {
             scheduled: number;
             failed: number;
             replied: number;
+            skipped: number;
         };
         PlayReviewListDto: {
             data: components["schemas"]["PlayReviewDto"][];
@@ -2155,11 +2588,13 @@ export interface components {
         PlayTemplateDto: {
             /** @enum {string} */
             category: "positive" | "negative" | "bug" | "feature" | "billing" | "updated" | "neutral" | "custom";
+            ratings: number[];
             id: string;
             name: string;
             bodies: components["schemas"]["TemplateBodyViewDto"][];
             appId: string | null;
             presetKey: string | null;
+            builtIn: boolean;
             usedBy: components["schemas"]["TemplateUsageDto"][];
             problems: components["schemas"]["TemplateProblemDto"][];
             updatedAt: string;
@@ -2177,7 +2612,8 @@ export interface components {
         TemplateDto: {
             name: string;
             /** @enum {string} */
-            category: "positive" | "negative" | "bug" | "feature" | "billing" | "updated" | "neutral" | "custom";
+            category?: "positive" | "negative" | "bug" | "feature" | "billing" | "updated" | "neutral" | "custom";
+            ratings?: number[];
             bodies: components["schemas"]["TemplateBodyDto"][];
             /** Format: uuid */
             appId?: string | null;
@@ -4039,6 +4475,379 @@ export interface operations {
             };
         };
     };
+    PlayController_workspaceSettings_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSettingsViewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_updateWorkspace_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSettingsViewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_revealToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessTokenDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_rotateToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessTokenDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_clients_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpClientListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_revokeClient_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_inbox_v1: {
+        parameters: {
+            query?: {
+                filter?: "pending" | "replied" | "all";
+                appId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInboxDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_approveAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAllDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveAllResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_skip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInboxReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_unskip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInboxReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_draftReview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInboxReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_rewrite_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInboxReviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_analytics_v1: {
+        parameters: {
+            query?: {
+                appId?: string;
+                days?: 7 | 30 | 90;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayAnalyticsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     PlayController_connections_v1: {
         parameters: {
             query?: never;
@@ -4300,6 +5109,64 @@ export interface operations {
             };
         };
     };
+    PlayController_recheck_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayAppDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_resume_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayAppDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     PlayController_sync_v1: {
         parameters: {
             query?: never;
@@ -4399,7 +5266,7 @@ export interface operations {
     PlayController_reviews_v1: {
         parameters: {
             query?: {
-                state?: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied";
+                state?: "unreplied" | "waiting" | "claude" | "scheduled" | "failed" | "replied" | "skipped";
                 stars?: string;
                 language?: string;
                 version?: string;
@@ -4735,6 +5602,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RestoredPresetsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_duplicateTemplate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayTemplateDto"];
                 };
             };
             default: {

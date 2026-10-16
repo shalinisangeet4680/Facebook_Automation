@@ -34,7 +34,7 @@ import {
   AddPlayAppDto,
   AnalyticsQueryDto,
   ApproveAllDto,
-  InboxQueryDto,
+  PlayInboxQueryDto,
   WorkspaceSettingsDto,
   ApproveReplyDto,
   BulkReplyDto,
@@ -50,8 +50,8 @@ import {
 import {
   AccessTokenDto,
   ApproveAllResultDto,
-  InboxDto,
-  InboxReviewDto,
+  PlayInboxDto,
+  PlayInboxReviewDto,
   McpClientListDto,
   PlayAnalyticsDto,
   WorkspaceSettingsViewDto,
@@ -138,8 +138,8 @@ export class PlayController {
   @Get("inbox")
   inbox(
     @CurrentUser() ctx: TenantContext,
-    @Query() query: InboxQueryDto,
-  ): Promise<InboxDto> {
+    @Query() query: PlayInboxQueryDto,
+  ): Promise<PlayInboxDto> {
     return this.inboxes.inbox(
       ctx.workspaceId,
       query.filter ?? "pending",
@@ -162,7 +162,7 @@ export class PlayController {
   skip(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) reviewId: string,
-  ): Promise<InboxReviewDto> {
+  ): Promise<PlayInboxReviewDto> {
     return this.inboxes.skip(actor(ctx), reviewId);
   }
 
@@ -171,7 +171,7 @@ export class PlayController {
   unskip(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) reviewId: string,
-  ): Promise<InboxReviewDto> {
+  ): Promise<PlayInboxReviewDto> {
     return this.inboxes.unskip(actor(ctx), reviewId);
   }
 
@@ -181,7 +181,7 @@ export class PlayController {
   draftReview(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) reviewId: string,
-  ): Promise<InboxReviewDto> {
+  ): Promise<PlayInboxReviewDto> {
     return this.inboxes.draft(actor(ctx), reviewId, false);
   }
 
@@ -191,7 +191,7 @@ export class PlayController {
   rewrite(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) reviewId: string,
-  ): Promise<InboxReviewDto> {
+  ): Promise<PlayInboxReviewDto> {
     return this.inboxes.draft(actor(ctx), reviewId, true);
   }
 
