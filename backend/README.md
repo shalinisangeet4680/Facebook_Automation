@@ -32,4 +32,5 @@ API: `http://localhost:4000/api/v1` · OpenAPI docs (development only): `http://
 | [Local development](docs/10-local-development.md) | Setup, environment variables, commands, testing |
 | [Roadmap](docs/11-roadmap.md) | MVP scope, build order, later phases |
 | [Play Store creatives](docs/15-store-creatives.md) | Store listing projects, plugin uploads, style choice, MCP tools |
-| [Google Play review replies](docs/16-play-review-replies.md) | Replyly: connections, per-rating automation, AI drafts, inbox, analytics, safeguards, history import, MCP tokens and tools |
+| [Google Play review replies](docs/16-play-review-replies.md) | Play Reviews: connections, per-rating automation, AI drafts, inbox, analytics, safeguards, history import, MCP tokens and tools |
+| [Google Business Profile](docs/17-google-business.md) | Google sign-in, locations, review replies, posts, insights, business info, API access steps, MCP tools |

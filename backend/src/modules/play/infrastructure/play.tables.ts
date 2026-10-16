@@ -20,7 +20,6 @@ import {
 } from "../../../shared/database/columns";
 import { users, workspaces } from "../../iam/infrastructure/iam.tables";
 import {
-  AI_MODES,
   ReplySettings,
   REPLY_SOURCES,
   REPLY_STATUSES,
@@ -243,44 +242,6 @@ export const playReplies = pgTable(
   ],
 );
 
-export const playAiModes = pgEnum("play_ai_mode", AI_MODES);
-
-export const playWorkspaceSettings = pgTable(
-  "play_workspace_settings",
-  {
-    workspaceId: uuid("workspace_id")
-      .primaryKey()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    aiMode: playAiModes("ai_mode").notNull().default("platform"),
-    aiKeyCiphertext: text("ai_key_ciphertext"),
-    aiKeyHint: text("ai_key_hint"),
-    slackWebhookCiphertext: text("slack_webhook_ciphertext"),
-    slackChannel: text("slack_channel"),
-    agentsCanPost: boolean("agents_can_post").notNull().default(false),
-    tokenHash: text("token_hash"),
-    tokenCiphertext: text("token_ciphertext"),
-    tokenUserId: uuid("token_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    tokenCreatedAt: timestamp("token_created_at", { withTimezone: true }),
-    tokenLastUsedAt: timestamp("token_last_used_at", { withTimezone: true }),
-    tokenLastTool: text("token_last_tool"),
-    previousTokenHash: text("previous_token_hash"),
-    previousTokenExpiresAt: timestamp("previous_token_expires_at", {
-      withTimezone: true,
-    }),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-  (t) => [
-    uniqueIndex("play_workspace_settings_token_hash_uq")
-      .on(t.tokenHash)
-      .where(sql`token_hash is not null`),
-  ],
-);
-
-export type PlayWorkspaceSettingsRow =
-  typeof playWorkspaceSettings.$inferSelect;
 export type PlayConnectionRow = typeof playConnections.$inferSelect;
 export type PlayAppRow = typeof playApps.$inferSelect;
 export type PlayReviewRow = typeof playReviews.$inferSelect;

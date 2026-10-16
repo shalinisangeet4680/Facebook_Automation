@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { workspaceAutomationSettings } from "@modules/engine/infrastructure/engine.tables";
 import {
   and,
   asc,
@@ -32,7 +33,6 @@ import {
   playReviews,
   playRules,
   playTemplates,
-  playWorkspaceSettings,
 } from "./play.tables";
 
 @Injectable()
@@ -598,21 +598,21 @@ export class PlayRepository {
     return firstOrNull(
       await this.db
         .select()
-        .from(playWorkspaceSettings)
-        .where(eq(playWorkspaceSettings.workspaceId, workspaceId))
+        .from(workspaceAutomationSettings)
+        .where(eq(workspaceAutomationSettings.workspaceId, workspaceId))
         .limit(1),
     );
   }
 
   async saveWorkspaceSettings(
     workspaceId: string,
-    values: Partial<typeof playWorkspaceSettings.$inferInsert>,
+    values: Partial<typeof workspaceAutomationSettings.$inferInsert>,
   ) {
     const [row] = await this.db
-      .insert(playWorkspaceSettings)
+      .insert(workspaceAutomationSettings)
       .values({ ...values, workspaceId })
       .onConflictDoUpdate({
-        target: playWorkspaceSettings.workspaceId,
+        target: workspaceAutomationSettings.workspaceId,
         set: { ...values, updatedAt: new Date() },
       })
       .returning();
@@ -623,13 +623,13 @@ export class PlayRepository {
     return firstOrNull(
       await this.db
         .select()
-        .from(playWorkspaceSettings)
+        .from(workspaceAutomationSettings)
         .where(
           or(
-            eq(playWorkspaceSettings.tokenHash, hash),
+            eq(workspaceAutomationSettings.tokenHash, hash),
             and(
-              eq(playWorkspaceSettings.previousTokenHash, hash),
-              gte(playWorkspaceSettings.previousTokenExpiresAt, now),
+              eq(workspaceAutomationSettings.previousTokenHash, hash),
+              gte(workspaceAutomationSettings.previousTokenExpiresAt, now),
             ),
           ),
         )

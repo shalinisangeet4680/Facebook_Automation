@@ -50,6 +50,8 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   AI_MOCK: z
     .string()

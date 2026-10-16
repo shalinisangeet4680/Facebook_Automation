@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { WorkspaceAutomationRow } from "@modules/engine/infrastructure/engine.tables";
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
@@ -12,7 +13,6 @@ import { TenantContext } from "@shared/tenant/tenant-context";
 
 import { AI_MODES, AiMode } from "@modules/engine/domain/engine.types";
 import { REPLY_MODEL } from "@modules/engine/infrastructure/anthropic-reply.ai";
-import { PlayWorkspaceSettingsRow } from "../infrastructure/play.tables";
 import { PlayActor, PlayEngine } from "./play-engine.service";
 
 export const TOKEN_PREFIX = "rk_live_";
@@ -58,7 +58,7 @@ export class PlayWorkspaceService {
   }
 
   private view(
-    ws: PlayWorkspaceSettingsRow | null,
+    ws: WorkspaceAutomationRow | null,
     used: number,
     apps: number,
     connected: boolean,
@@ -102,7 +102,7 @@ export class PlayWorkspaceService {
   }
 
   async update(actor: PlayActor, input: WorkspaceUpdate) {
-    const values: Partial<PlayWorkspaceSettingsRow> = {};
+    const values: Partial<WorkspaceAutomationRow> = {};
     if (input.aiMode !== undefined) {
       if (!AI_MODES.includes(input.aiMode))
         throw new ValidationError("Choose platform, own or off.");

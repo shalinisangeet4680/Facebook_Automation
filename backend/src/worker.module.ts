@@ -7,6 +7,7 @@ import { InboxWorkerModule } from "@modules/inbox/inbox-worker.module";
 import { MaintenanceModule } from "@modules/maintenance/maintenance.module";
 import { MetaWorkerModule } from "@modules/meta/meta-worker.module";
 import { PlayWorkerModule } from "@modules/play/play-worker.module";
+import { BusinessWorkerModule } from "@modules/business/business-worker.module";
 import { SocialWorkerModule } from "@modules/social/social-worker.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -33,6 +34,7 @@ import { SecurityModule } from "@shared/security/security.module";
     InboxWorkerModule,
     MaintenanceModule,
     PlayWorkerModule,
+    BusinessWorkerModule,
   ],
 })
 export class WorkerModule {}

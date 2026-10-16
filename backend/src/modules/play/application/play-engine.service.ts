@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { WorkspaceAutomationRow } from "@modules/engine/infrastructure/engine.tables";
 import { ConfigService } from "@nestjs/config";
 
 import { AuditService } from "@modules/audit/application/audit.service";
@@ -6,6 +7,7 @@ import { AppConfig, appUrl } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
+import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
 import { decide, ratingDrop } from "@modules/engine/domain/automation";
 import {
   ESCALATION_NOTIFIER,
@@ -49,7 +51,6 @@ import {
   PlayReviewRow,
   PlayRuleRow,
   PlayTemplateRow,
-  PlayWorkspaceSettingsRow,
 } from "../infrastructure/play.tables";
 
 export interface PlayActor {
@@ -114,6 +115,7 @@ export class PlayEngine {
     @Inject(ESCALATION_NOTIFIER) private readonly notifier: EscalationNotifier,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    private readonly workspaceAi: WorkspaceAiService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -149,24 +151,16 @@ export class PlayEngine {
     return this.aiKeyFrom(ws);
   }
 
-  aiKeyFrom(ws: PlayWorkspaceSettingsRow | null): string | null {
-    const mode = ws?.aiMode ?? "platform";
-    if (mode === "off") return null;
-    if (mode === "own")
-      return ws?.aiKeyCiphertext
-        ? this.crypto.decrypt(ws.aiKeyCiphertext)
-        : null;
-    if (this.config.get("AI_MOCK", { infer: true })) return "mock";
-    return this.config.get("ANTHROPIC_API_KEY", { infer: true }) ?? null;
+  aiKeyFrom(ws: WorkspaceAutomationRow | null): string | null {
+    return this.workspaceAi.keyFrom(ws);
   }
 
-  async aiAllowance(workspaceId: string, ws: PlayWorkspaceSettingsRow | null) {
-    if ((ws?.aiMode ?? "platform") !== "platform") return Infinity;
+  async aiAllowance(workspaceId: string, ws: WorkspaceAutomationRow | null) {
     const used = await this.repo.aiDraftsSince(
       workspaceId,
       new Date(Date.now() - 86_400_000),
     );
-    return this.config.get("AI_DAILY_DRAFTS", { infer: true }) - used;
+    return this.workspaceAi.allowance(ws, used);
   }
 
   async draft(
@@ -471,7 +465,7 @@ export class PlayEngine {
     app: PlayAppRow,
     review: PlayReviewRow,
     draft: string | null,
-    ws: PlayWorkspaceSettingsRow | null,
+    ws: WorkspaceAutomationRow | null,
   ) {
     if (
       review.stars !== 1 ||

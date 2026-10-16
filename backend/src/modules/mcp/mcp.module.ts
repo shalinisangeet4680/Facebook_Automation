@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { AdsModule } from "@modules/ads/ads.module";
+import { BusinessModule } from "@modules/business/business.module";
+import { EngineModule } from "@modules/engine/engine.module";
 import { CreativesModule } from "@modules/creatives/creatives.module";
 import { InboxModule } from "@modules/inbox/inbox.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
@@ -25,6 +27,8 @@ import { McpController } from "./interface/mcp.controller";
     ProfileModule,
     StoreModule,
     PlayModule,
+    BusinessModule,
+    EngineModule,
   ],
   controllers: [McpController],
   providers: [McpServerFactory, McpAuthGuard],

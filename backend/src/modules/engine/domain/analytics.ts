@@ -19,6 +19,10 @@ export const NEGATIVE_TOPICS: Topic[] = [
   "Performance",
   "Ads",
   "Support",
+  "Staff",
+  "Price",
+  "Wait time",
+  "Cleanliness",
 ];
 
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;

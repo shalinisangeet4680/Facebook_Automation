@@ -354,10 +354,13 @@ describe("Claude connector (OAuth + MCP)", () => {
       "activate",
       "apply_facebook_profile",
       "check_tracking",
+      "create_business_post",
       "create_campaign_draft",
       "delete_review_template",
       "draft_review_reply",
       "get_account_overview",
+      "get_business_insights",
+      "get_business_profile",
       "get_campaign",
       "get_performance",
       "get_planning_context",
@@ -368,6 +371,8 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_review_templates",
       "get_suggestions",
       "import_review_history",
+      "list_business_locations",
+      "list_business_reviews",
       "list_campaign_plans",
       "list_campaigns",
       "list_creatives",
@@ -378,16 +383,21 @@ describe("Claude connector (OAuth + MCP)", () => {
       "propose_campaign_plan",
       "publish_post",
       "save_ad_creative",
+      "save_business_review_drafts",
       "save_profile_draft",
       "save_review_drafts",
       "search_targeting",
+      "send_business_review_reply",
       "send_review_reply",
       "set_review_rules",
       "set_template_hidden",
       "store_get_project",
       "store_save_project",
       "store_start_upload",
+      "sync_business",
       "sync_play_apps",
+      "update_business_info",
+      "update_business_reply_settings",
       "update_campaign_plan",
       "update_daily_budget",
       "update_review_settings",
@@ -1359,7 +1369,9 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(19);
+    expect(names).toHaveLength(23);
+    expect(names).toContain("list_business_reviews");
+    expect(names).not.toContain("send_business_review_reply");
     expect(names).toContain("list_play_reviews");
     expect(names).not.toContain("send_review_reply");
     expect(names).toContain("store_get_project");
