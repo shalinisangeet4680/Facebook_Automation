@@ -1,0 +1,383 @@
+import { Inject, Injectable, Logger } from "@nestjs/common";
+
+import { AuditService } from "@modules/audit/application/audit.service";
+import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
+import { CryptoService } from "@shared/security/crypto.service";
+
+import { decide } from "../domain/automation";
+import {
+  PLAY_API,
+  PlayApi,
+  PlayApiError,
+  PlayReviewData,
+  ServiceAccountKey,
+} from "../domain/ports/play-api";
+import { REPLY_MAX, ReviewFacts, Rule } from "../domain/play.types";
+import {
+  charCount,
+  firstName,
+  pickBody,
+  pickVariant,
+  render,
+  Rendered,
+} from "../domain/templates";
+import { PlayRepository } from "../infrastructure/play.repository";
+import {
+  PlayAppRow,
+  PlayReplyRow,
+  PlayReviewRow,
+  PlayRuleRow,
+  PlayTemplateRow,
+} from "../infrastructure/play.tables";
+
+export interface PlayActor {
+  userId: string | null;
+  workspaceId: string;
+  via: string;
+}
+
+export const toRule = (r: PlayRuleRow): Rule => ({
+  id: r.id,
+  name: r.name,
+  enabled: r.enabled,
+  conditions: r.conditions,
+  action: r.action,
+  mode: r.mode,
+  delayMinutes: r.delayMinutes,
+});
+
+export const factsOf = (r: PlayReviewRow): ReviewFacts => ({
+  reviewId: r.reviewId,
+  authorName: r.authorName,
+  stars: r.stars,
+  text: r.text,
+  originalText: r.originalText,
+  language: r.language,
+  appVersionName: r.appVersionName,
+  editedAfterReply: r.editedAfterReply,
+});
+
+export interface RenderedReply extends Rendered {
+  language: string | null;
+}
+
+@Injectable()
+export class PlayEngine {
+  private readonly logger = new Logger(PlayEngine.name);
+
+  constructor(
+    readonly repo: PlayRepository,
+    @Inject(PLAY_API) readonly api: PlayApi,
+    private readonly crypto: CryptoService,
+    private readonly audit: AuditService,
+  ) {}
+
+  async keyFor(app: PlayAppRow): Promise<ServiceAccountKey> {
+    const connection = await this.repo.connectionById(app.connectionId);
+    if (!connection)
+      throw new NotFoundError("This app's Google Play connection was removed.");
+    return JSON.parse(
+      this.crypto.decrypt(connection.keyCiphertext),
+    ) as ServiceAccountKey;
+  }
+
+  values(app: PlayAppRow, review: Pick<PlayReviewRow, "authorName"> | null) {
+    return {
+      ...app.variables,
+      first_name: review ? firstName(review.authorName) : "",
+      app_name: app.title,
+      latest_version: app.latestVersion ?? "",
+    };
+  }
+
+  renderFor(
+    template: PlayTemplateRow,
+    app: PlayAppRow,
+    review: PlayReviewRow,
+  ): RenderedReply {
+    const body = pickBody(template.bodies, review.language);
+    if (!body) return { text: "", missing: [], tooLong: false, language: null };
+    const variant = pickVariant(
+      body.variants,
+      `${review.reviewId}:${template.id}`,
+    );
+    return {
+      ...render(variant, this.values(app, review)),
+      language: body.language,
+    };
+  }
+
+  problemNote(rendered: Rendered): string | null {
+    if (rendered.missing.length)
+      return `Add ${rendered.missing.map((m) => `{{${m}}}`).join(", ")} in this app's settings, or edit the reply.`;
+    if (rendered.tooLong)
+      return `The reply is over ${REPLY_MAX} characters; shorten it.`;
+    if (!rendered.text) return "The template produced an empty reply.";
+    return null;
+  }
+
+  async sync(app: PlayAppRow, options: { firstSync?: boolean } = {}) {
+    const key = await this.keyFor(app);
+    let data: PlayReviewData[];
+    try {
+      data = await this.api.listReviews(key, app.packageName, {
+        translationLanguage: app.settings.translateTo || undefined,
+      });
+    } catch (err) {
+      const message =
+        err instanceof PlayApiError
+          ? err.message
+          : "Reviews couldn't be fetched.";
+      await this.repo.updateApp(app.id, {
+        syncError: message,
+        lastSyncedAt: new Date(),
+      });
+      throw err instanceof PlayApiError ? new ValidationError(message) : err;
+    }
+    const existing = new Map(
+      (
+        await this.repo.reviewsByGoogleIds(
+          app.id,
+          data.map((d) => d.reviewId),
+        )
+      ).map((r) => [r.reviewId, r]),
+    );
+    const touched: PlayReviewRow[] = [];
+    let created = 0;
+    let latest: { code: number; name: string } | null = null;
+    for (const d of data) {
+      if (
+        d.appVersionCode &&
+        d.appVersionName &&
+        (!latest || d.appVersionCode > latest.code)
+      )
+        latest = { code: d.appVersionCode, name: d.appVersionName };
+      const row = existing.get(d.reviewId);
+      const fields = {
+        authorName: d.authorName,
+        stars: d.stars,
+        text: d.text,
+        originalText: d.originalText,
+        language: d.language,
+        appVersionName: d.appVersionName,
+        appVersionCode: d.appVersionCode,
+        device: d.device,
+        androidVersion: d.androidVersion,
+        thumbsUp: d.thumbsUp,
+        reviewedAt: d.lastModified,
+      };
+      if (!row) {
+        touched.push(
+          await this.repo.insertReview(this.repo.db, {
+            ...fields,
+            workspaceId: app.workspaceId,
+            appId: app.id,
+            reviewId: d.reviewId,
+            replyText: d.reply?.text ?? null,
+            repliedAt: d.reply?.lastModified ?? null,
+          }),
+        );
+        created++;
+        continue;
+      }
+      const edited = d.lastModified.getTime() > row.reviewedAt.getTime();
+      const replyChanged = d.reply && d.reply.text !== row.replyText;
+      if (!edited && !replyChanged && row.thumbsUp === d.thumbsUp) continue;
+      const repliedAt = d.reply?.lastModified ?? row.repliedAt;
+      const editedAfterReply =
+        edited &&
+        Boolean(row.replyText ?? d.reply) &&
+        Boolean(repliedAt && d.lastModified > repliedAt);
+      const updated = await this.repo.updateReview(row.id, {
+        ...fields,
+        replyText: d.reply?.text ?? row.replyText,
+        repliedAt,
+        editedAfterReply:
+          editedAfterReply || (row.editedAfterReply && !replyChanged),
+        starsBeforeEdit:
+          editedAfterReply && row.stars !== d.stars
+            ? row.stars
+            : row.starsBeforeEdit,
+      });
+      if (edited) touched.push(updated);
+    }
+    const drafts = app.automation
+      ? await this.automate(app, touched, Boolean(options.firstSync))
+      : 0;
+    await this.repo.updateApp(app.id, {
+      lastSyncedAt: new Date(),
+      syncError: null,
+      ...(latest && (!app.latestVersion || latest.name !== app.latestVersion)
+        ? { latestVersion: latest.name }
+        : {}),
+    });
+    return {
+      fetched: data.length,
+      created,
+      updated: touched.length - created,
+      drafts,
+    };
+  }
+
+  private async automate(
+    app: PlayAppRow,
+    reviews: PlayReviewRow[],
+    firstSync: boolean,
+  ) {
+    if (!reviews.length) return 0;
+    const rules = (await this.repo.rules(app.id)).map(toRule);
+    if (!rules.length) return 0;
+    const templates = new Map(
+      (await this.repo.allTemplates(app.workspaceId)).map((t) => [t.id, t]),
+    );
+    let autoSentToday = await this.repo.autoRepliesSince(
+      app.id,
+      new Date(Date.now() - 86_400_000),
+    );
+    let drafts = 0;
+    for (const review of reviews.sort(
+      (a, b) => a.reviewedAt.getTime() - b.reviewedAt.getTime(),
+    )) {
+      if (await this.repo.activeReply(review.id)) continue;
+      const decision = decide({
+        facts: factsOf(review),
+        hasReply: Boolean(review.replyText),
+        rules,
+        settings: app.settings,
+        autoSentToday,
+        firstSync,
+        now: new Date(),
+      });
+      if (decision.kind === "none") continue;
+      const base = {
+        workspaceId: app.workspaceId,
+        appId: app.id,
+        reviewId: review.id,
+        ruleId: decision.ruleId,
+      };
+      if (decision.kind === "claude") {
+        await this.repo.insertReply({
+          ...base,
+          source: "claude",
+          status: "needs_claude",
+          note: "Waiting for Claude to draft a reply.",
+        });
+        drafts++;
+        continue;
+      }
+      const template = templates.get(decision.templateId);
+      if (!template) {
+        await this.repo.insertReply({
+          ...base,
+          source: "template",
+          status: "pending_approval",
+          note: "The rule's template was deleted; write a reply or pick a template.",
+        });
+        drafts++;
+        continue;
+      }
+      const rendered = this.renderFor(template, app, review);
+      const problem = this.problemNote(rendered);
+      const auto = decision.auto && !problem;
+      await this.repo.insertReply({
+        ...base,
+        text: rendered.text,
+        source: "template",
+        templateId: template.id,
+        status: auto ? "scheduled" : "pending_approval",
+        auto,
+        sendAt: auto ? decision.sendAt : null,
+        note: problem ?? decision.heldBecause,
+      });
+      if (auto) autoSentToday++;
+      drafts++;
+    }
+    return drafts;
+  }
+
+  async send(reply: PlayReplyRow, actor: PlayActor): Promise<PlayReplyRow> {
+    const text = reply.text.trim();
+    if (!text) throw new ValidationError("Write a reply first.");
+    if (charCount(text) > REPLY_MAX)
+      throw new ValidationError(
+        `Replies can be at most ${REPLY_MAX} characters.`,
+      );
+    const [review, app] = await Promise.all([
+      this.repo.reviewById(reply.reviewId),
+      this.repo.appById(reply.appId),
+    ]);
+    if (!review || !app)
+      throw new NotFoundError("This review no longer exists.");
+    try {
+      const sent = await this.api.reply(
+        await this.keyFor(app),
+        app.packageName,
+        review.reviewId,
+        text,
+      );
+      await this.repo.updateReview(review.id, {
+        replyText: sent.text,
+        repliedAt: sent.lastModified,
+        editedAfterReply: false,
+        starsBeforeEdit: null,
+      });
+      const row = await this.repo.updateReply(reply.id, {
+        text,
+        status: "sent",
+        sentAt: new Date(),
+        sentBy: actor.userId,
+        error: null,
+      });
+      await this.audit.record({
+        workspaceId: app.workspaceId,
+        actor: actor.userId ? "user" : "system",
+        actorId: actor.userId,
+        action: "play.reply_sent",
+        target: review.id,
+        data: {
+          app: app.packageName,
+          stars: review.stars,
+          auto: reply.auto,
+          source: reply.source,
+          via: actor.via,
+        },
+      });
+      return row;
+    } catch (err) {
+      const message =
+        err instanceof PlayApiError
+          ? err.message
+          : "The reply couldn't be sent.";
+      if (!(err instanceof PlayApiError))
+        this.logger.error(
+          "Reply failed",
+          err instanceof Error ? err.stack : String(err),
+        );
+      await this.repo.updateReply(reply.id, {
+        text,
+        status: "failed",
+        error: message,
+      });
+      throw new ValidationError(message);
+    }
+  }
+
+  async sendDue(limit = 50) {
+    const due = await this.repo.dueReplies(new Date(), limit);
+    let sent = 0;
+    let failed = 0;
+    for (const reply of due) {
+      try {
+        await this.send(reply, {
+          userId: null,
+          workspaceId: reply.workspaceId,
+          via: "automation",
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+    return { due: due.length, sent, failed };
+  }
+}

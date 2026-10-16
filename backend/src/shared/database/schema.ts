@@ -12,3 +12,4 @@ export * from "../../modules/social/infrastructure/social.tables";
 export * from "../../modules/inbox/infrastructure/inbox.tables";
 export * from "../../modules/profile/infrastructure/profile.tables";
 export * from "../../modules/store/infrastructure/store.tables";
+export * from "../../modules/play/infrastructure/play.tables";

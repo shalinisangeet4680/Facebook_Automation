@@ -6,6 +6,7 @@ export const QUEUES = {
   SOCIAL: "social",
   NOTIFICATIONS: "notifications",
   MAINTENANCE: "maintenance",
+  PLAY: "play",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

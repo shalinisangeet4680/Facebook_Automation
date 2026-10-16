@@ -38,6 +38,7 @@ jobs:
       JWT_ACCESS_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
       TOKEN_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       META_MOCK: "true"
+      PLAY_MOCK: "true"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

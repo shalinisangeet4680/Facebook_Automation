@@ -18,6 +18,7 @@ import { PlansModule } from "@modules/plans/plans.module";
 import { ReportsModule } from "@modules/reports/reports.module";
 import { SettingsModule } from "@modules/settings/settings.module";
 import { SocialModule } from "@modules/social/social.module";
+import { PlayModule } from "@modules/play/play.module";
 import { StoreModule } from "@modules/store/store.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -66,6 +67,7 @@ import { SecurityModule } from "@shared/security/security.module";
     ProfileModule,
     PlansModule,
     StoreModule,
+    PlayModule,
     McpModule,
   ],
   providers: [
