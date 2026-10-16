@@ -12,7 +12,7 @@ A Claude Code plugin that turns a developer's Android app into Google Play scree
   4. render_set                   → every card × language × size + feature graphics in .store-creatives/output/
 ```
 
-The skill (`skills/store-creatives/SKILL.md`) is the workflow Claude follows, including the file formats and copy rules. The MCP server (`src/server.ts`) exposes the rendering tools. Claude does everything else (reading code, running Gradle and adb) with its own tools.
+The skill (`skills/store-creatives/SKILL.md`) is the workflow Claude follows, including the file formats and copy rules. The MCP server (`src/server.ts`) exposes the rendering tools. The `device_*` tools drive the emulator; Claude reads code and runs Gradle with its own tools.
 
 ## MCP tools
 
@@ -22,6 +22,11 @@ The skill (`skills/store-creatives/SKILL.md`) is the workflow Claude follows, in
 | `check_project` | Validates `product.json`, the cards file, screenshots and logo; lists every problem |
 | `render_preview` | One card in every style, a contact sheet and an `index.html` gallery |
 | `render_set` | Chosen styles × languages × sizes, feature graphics and a contact sheet per set |
+| `device_list`, `device_start_emulator`, `device_stop_emulator` | Devices and AVDs; boot an AVD and wait until it is ready; stop an emulator (never a phone) |
+| `device_install`, `device_launch`, `device_demo_mode` | Install an APK, open the app by package, clean status bar |
+| `device_screen` | Preview image plus labelled and tappable elements with centers in device pixels, foreground app, keyboard and lock state |
+| `device_tap`, `device_type`, `device_key`, `device_swipe` | Tap by element, text or coordinates; type ASCII; keys; scroll. Each can return the new screen |
+| `device_capture` | Save the full-resolution screen to `.store-creatives/screens/<name>.png`, closing the keyboard first |
 | `upload_to_platform` | Sends screens, previews or the set straight to an Autopilot store project with the upload token from `store_save_project` |
 
 Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`. Sizes: `phone` 1080x1920, `tablet7` 1920x1080, `tablet10` 3840x2160. PNGs are flattened to RGB because Google Play rejects screenshots with alpha.
@@ -35,12 +40,17 @@ Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`
 | `src/render.ts` | Remotion bundle and still rendering, flattening, contact sheets, preview page |
 | `src/studio.ts` | `checkProject`, `renderPreview`, `renderSet` |
 | `src/upload.ts` | Collects screens, previews and the set and uploads them to Autopilot |
+| `src/device/` | adb and emulator control: SDK lookup, device selection, UI hierarchy parsing, input, the `device_*` tools |
 | `src/server.ts` | stdio MCP server |
 | `templates/` | Remotion compositions `StoreCard` and `FeatureGraphic` (moved from money-shorts) with the bundled Montserrat font |
 | `skills/store-creatives/` | The skill |
 | `.claude-plugin/plugin.json`, `.mcp.json` | Plugin manifest and MCP server declaration |
 
 Templates are React rendered by Remotion in headless Chrome. Remotion downloads Chrome Headless Shell on the first render.
+
+## Devices
+
+The device tools find `adb` and `emulator` in `ANDROID_HOME`, `ANDROID_SDK_ROOT`, the default SDK folders or `PATH`. They never pick a device when several are connected, refuse to stop physical devices, wake the screen before reading it and report when the lock screen needs a PIN. `uiautomator dump` takes about 2 seconds, so a screen read takes 2 to 3 seconds. Typing goes through `adb shell input text`, which only handles ASCII. Headless emulators (`-no-window`) on some recent system images render a black screen; use a window.
 
 ## Develop
 
@@ -80,8 +90,7 @@ With the Autopilot connector added to Claude Code, the skill saves a store proje
 
 ## Next steps
 
-1. Device tools: emulator control as MCP tools (`device_screenshot`, `device_tap`, `ui_dump`) instead of raw adb in the skill.
-2. Upload to Play Console through the Google Play Developer API with the developer's service account.
+1. Upload to Play Console through the Google Play Developer API with the developer's service account.
 
 ## Open questions
 

@@ -5,7 +5,7 @@ description: Make Google Play screenshots and feature graphics for the user's An
 
 # Store creatives
 
-You turn the user's app into a Google Play screenshot set with the `store-creatives` MCP tools: `list_styles`, `check_project`, `render_preview`, `render_set` and `upload_to_platform`. Reading code, capturing and rendering run on the user's machine.
+You turn the user's app into a Google Play screenshot set with the `store-creatives` MCP tools: `list_styles`, `check_project`, `render_preview`, `render_set` and `upload_to_platform` for the store images, and the `device_*` tools to drive an emulator. Reading code, capturing and rendering run on the user's machine.
 
 If the Autopilot connector is available (its tools include `store_save_project`), the project also lives in Autopilot: the user chooses the style there, downloads the set, and can reuse the screenshots in ads. Without the connector, do everything locally and skip the Autopilot steps; mention once that connecting Autopilot lets them choose styles and keep the set in their workspace.
 
@@ -85,19 +85,15 @@ Each card's `screen` needs `.store-creatives/screens/<screen>.png`. Ask the user
 
 **They provide them.** They drop the files into `screens/` with the right names.
 
-**Capture from an emulator or device.** Check `adb devices`. If none is running, list AVDs with `emulator -list-avds` and start one in the background with `emulator -avd <name>`, then `adb wait-for-device`. Install the app the way the project builds it, usually `./gradlew installDebug`, and ask for any test login. Make the status bar clean:
+**Capture from an emulator or device** with the `device_*` tools:
 
-```bash
-adb shell settings put global sysui_demo_allowed 1
-adb shell am broadcast -a com.android.systemui.demo -e command enter
-adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941
-adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
-adb shell am broadcast -a com.android.systemui.demo -e command network -e mobile show -e level 4 -e datatype none
-adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
-adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-```
-
-For each screen, get there (ask the user to navigate, or tap yourself: `adb exec-out uiautomator dump /dev/tty` shows element bounds, `adb shell input tap <x> <y>` taps, `adb shell input text` types). Capture with `adb exec-out screencap -p > .store-creatives/screens/<screen>.png`, then look at the image. Retake it if it shows a loading state, an empty list, an error, a keyboard, personal data, or a different screen. Empty screens sell badly, so ask the user to add sample data when needed. When done, exit demo mode with `adb shell am broadcast -a com.android.systemui.demo -e command exit`.
+1. `device_list` shows connected devices and the AVDs. With no device running, `device_start_emulator` with an AVD (prefer a recent phone image) and keep the returned `serial`. When several devices are connected, always pass `serial`; never act on the user's physical phone unless they ask.
+2. Build and install the app the way the project does, usually `./gradlew installDebug` (or `./gradlew assembleDebug` then `device_install`). Find the `applicationId` in `app/build.gradle(.kts)` and open the app with `device_launch`.
+3. `device_demo_mode` for a clean status bar (9:41, full battery, no notification icons).
+4. Look with `device_screen`: a preview plus the elements with their index, text and center. Act with `device_tap` (by `element` index, `text`, or device-pixel `x`, `y`), `device_type` (ASCII only; tap the field first), `device_key` (`back` also closes the keyboard) and `device_swipe` (`scroll: "down"` to see more). Tap, key and swipe return the new screen. Use `wait_for` on `device_screen` after logins and loads.
+5. If the result says the screen is locked and shows a PIN pad, ask the user to unlock it. Ask for test login details once; never invent them.
+6. On each target screen, check the preview: no loading state, empty list, error, dialog, keyboard or personal data. Empty screens sell badly, so ask the user to add sample data when needed. Then `device_capture` with `name` set to the card's `screen`; it closes the keyboard and saves the full-resolution PNG in `.store-creatives/screens/`. Check the returned preview and retake if needed.
+7. When done, `device_demo_mode` with `on: false`. Stop an emulator you started with `device_stop_emulator` only if the user wants.
 
 **Autopilot:** upload the screens with `upload_to_platform` and `parts: ["screens"]`.
 

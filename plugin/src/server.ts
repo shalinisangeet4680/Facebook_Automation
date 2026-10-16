@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { registerDeviceTools } from "./device/tools.js";
 import { SIZES, STYLES, Size, Style } from "./jobs.js";
 import { ProjectError } from "./project.js";
 import { PACKAGE_ROOT } from "./render.js";
@@ -223,5 +224,7 @@ server.registerTool(
       ),
     ),
 );
+
+registerDeviceTools(server);
 
 await server.connect(new StdioServerTransport());

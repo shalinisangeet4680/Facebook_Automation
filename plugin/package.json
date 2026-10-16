@@ -1,6 +1,6 @@
 {
   "name": "store-creatives",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Claude Code plugin that renders Google Play screenshots and feature graphics from your app's screens",
   "type": "module",
