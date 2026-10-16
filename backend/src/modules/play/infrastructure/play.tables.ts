@@ -21,7 +21,7 @@ import {
 import { users, workspaces } from "../../iam/infrastructure/iam.tables";
 import {
   AI_MODES,
-  AppSettings,
+  ReplySettings,
   REPLY_SOURCES,
   REPLY_STATUSES,
   RULE_MODES,
@@ -29,7 +29,7 @@ import {
   RuleConditions,
   TEMPLATE_CATEGORIES,
   TemplateBody,
-} from "../domain/play.types";
+} from "@modules/engine/domain/engine.types";
 
 export const playConnectionStatus = pgEnum("play_connection_status", [
   "active",
@@ -88,7 +88,7 @@ export const playApps = pgTable(
     title: text("title").notNull(),
     iconUrl: text("icon_url"),
     automation: boolean("automation").notNull().default(false),
-    settings: jsonb("settings").$type<AppSettings>().notNull(),
+    settings: jsonb("settings").$type<ReplySettings>().notNull(),
     variables: jsonb("variables")
       .$type<Record<string, string>>()
       .notNull()

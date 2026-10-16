@@ -46,6 +46,10 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+  GBP_MOCK: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
   ANTHROPIC_API_KEY: z.string().optional(),
   AI_MOCK: z
     .string()

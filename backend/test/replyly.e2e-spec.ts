@@ -5,15 +5,15 @@ import Redis from "ioredis";
 import { otpChallenges } from "@modules/auth/infrastructure/auth.tables";
 import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
 import { PlayEngine } from "@modules/play/application/play-engine.service";
-import { ESCALATION_NOTIFIER } from "@modules/play/domain/ports/notifier";
-import { REPLY_AI } from "@modules/play/domain/ports/reply-ai";
+import { ESCALATION_NOTIFIER } from "@modules/engine/domain/ports/notifier";
+import { REPLY_AI } from "@modules/engine/domain/ports/reply-ai";
 import {
   addMockReview,
   resetMockPlay,
 } from "@modules/play/infrastructure/mock-play.api";
-import { MockReplyAi } from "@modules/play/infrastructure/mock-reply.ai";
+import { MockReplyAi } from "@modules/engine/infrastructure/mock-reply.ai";
 import { playApps } from "@modules/play/infrastructure/play.tables";
-import { MockNotifier } from "@modules/play/infrastructure/slack.notifier";
+import { MockNotifier } from "@modules/engine/infrastructure/slack.notifier";
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
@@ -127,7 +127,7 @@ describe("Replyly inbox, AI drafts and analytics", () => {
     const ai = app.get<MockReplyAi>(REPLY_AI);
     expect(ai.calls.length).toBeGreaterThanOrEqual(8);
     expect(ai.calls[0]).toMatchObject({
-      appName: "Acme Notes",
+      subjectName: "Acme Notes",
       tone: "friendly",
       translate: true,
       personalize: true,
@@ -256,7 +256,7 @@ describe("Replyly inbox, AI drafts and analytics", () => {
     expect(notifier.sent[0]).toMatchObject({
       webhookUrl: "https://hooks.slack.com/services/T0/B0/xyz",
       escalation: {
-        appName: "Acme Notes",
+        subjectName: "Acme Notes",
         stars: 1,
         text: "Lost all my notes",
       },

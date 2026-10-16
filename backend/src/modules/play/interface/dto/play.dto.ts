@@ -25,7 +25,7 @@ import {
   RULE_MODES,
   TEMPLATE_CATEGORIES,
   TONES,
-} from "../../domain/play.types";
+} from "@modules/engine/domain/engine.types";
 import { REVIEW_STATES } from "../../application/play.service";
 
 export class ConnectPlayDto {

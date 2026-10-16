@@ -1,4 +1,4 @@
-import { Topic } from "./play.types";
+import { Topic } from "./engine.types";
 
 export interface AnalyticsReview {
   stars: number;

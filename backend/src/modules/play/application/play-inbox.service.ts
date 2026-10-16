@@ -9,9 +9,14 @@ import {
   distribution,
   periodStats,
   topicTrends,
-} from "../domain/analytics";
-import { normalizeSettings, REPLY_MAX } from "../domain/play.types";
-import { charCount, pickVariant, render } from "../domain/templates";
+} from "@modules/engine/domain/analytics";
+import { normalizeSettings } from "@modules/engine/domain/engine.types";
+import { REPLY_MAX } from "../domain/play.types";
+import {
+  charCount,
+  pickVariant,
+  render,
+} from "@modules/engine/domain/templates";
 import { PlayReplyRow, PlayReviewRow } from "../infrastructure/play.tables";
 import { PlayActor, PlayEngine } from "./play-engine.service";
 import { PlayService } from "./play.service";

@@ -6,14 +6,18 @@ import { AppConfig, appUrl } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
-import { decide, ratingDrop } from "../domain/automation";
+import { decide, ratingDrop } from "@modules/engine/domain/automation";
 import {
   ESCALATION_NOTIFIER,
   EscalationNotifier,
-} from "../domain/ports/notifier";
-import { REPLY_AI, ReplyAi, ReplyAiError } from "../domain/ports/reply-ai";
+} from "@modules/engine/domain/ports/notifier";
+import {
+  REPLY_AI,
+  ReplyAi,
+  ReplyAiError,
+} from "@modules/engine/domain/ports/reply-ai";
 import { RATING_PRESETS } from "../domain/presets";
-import { keywordTopic } from "../domain/topics";
+import { keywordTopic } from "@modules/engine/domain/topics";
 import {
   PLAY_API,
   PlayApi,
@@ -22,14 +26,13 @@ import {
   ServiceAccountKey,
 } from "../domain/ports/play-api";
 import {
-  AppSettings,
+  ReplySettings,
   normalizeSettings,
-  PlayErrorKindView,
-  REPLY_MAX,
   RatingRule,
   ReviewFacts,
   Rule,
-} from "../domain/play.types";
+} from "@modules/engine/domain/engine.types";
+import { PlayErrorKindView, REPLY_MAX } from "../domain/play.types";
 import {
   charCount,
   firstName,
@@ -38,7 +41,7 @@ import {
   pickVariant,
   render,
   Rendered,
-} from "../domain/templates";
+} from "@modules/engine/domain/templates";
 import { PlayRepository } from "../infrastructure/play.repository";
 import {
   PlayAppRow,
@@ -114,7 +117,7 @@ export class PlayEngine {
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
-  settingsOf(app: PlayAppRow): AppSettings {
+  settingsOf(app: PlayAppRow): ReplySettings {
     return normalizeSettings(app.settings);
   }
 
@@ -185,7 +188,8 @@ export class PlayEngine {
       const values = this.values(app, review);
       try {
         const out = await this.ai.draft(key, {
-          appName: app.title,
+          channel: "google_play",
+          subjectName: app.title,
           developerName: lookup(values, "developer_name") || null,
           supportEmail: lookup(values, "support_email") || null,
           latestVersion: app.latestVersion,
@@ -478,7 +482,7 @@ export class PlayEngine {
       return;
     try {
       await this.notifier.send(this.crypto.decrypt(ws.slackWebhookCiphertext), {
-        appName: app.title,
+        subjectName: app.title,
         author: review.authorName,
         stars: review.stars,
         text: review.originalText || review.text,

@@ -2,7 +2,11 @@ import { Injectable } from "@nestjs/common";
 
 import { ValidationError } from "@shared/errors/domain-error";
 
-import { AiMode, AppSettings, RatingRule } from "../domain/play.types";
+import {
+  AiMode,
+  ReplySettings,
+  RatingRule,
+} from "@modules/engine/domain/engine.types";
 import { PlayActor, PlayEngine } from "./play-engine.service";
 import { AppUpdate, PlayService, RuleInput } from "./play.service";
 import { PlayWorkspaceService } from "./play-workspace.service";
@@ -174,7 +178,7 @@ export class PlayAgentService {
           `${next.rating}★ template: ${name(before.templateId)} → ${name(next.templateId)}`,
         );
     }
-    const plain: [keyof AppSettings, string][] = [
+    const plain: [keyof ReplySettings, string][] = [
       ["delay", "Posting delay"],
       ["tone", "Voice"],
       ["timezone", "Time zone"],

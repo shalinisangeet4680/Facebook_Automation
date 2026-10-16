@@ -1,4 +1,4 @@
-import { PRESET_TEMPLATES } from "./presets";
+import { PRESET_TEMPLATES } from "@modules/play/domain/presets";
 import {
   checkTemplate,
   firstName,
@@ -31,6 +31,18 @@ describe("render", () => {
     expect(render("a".repeat(350), {}).tooLong).toBe(false);
     expect(render("a".repeat(351), {}).tooLong).toBe(true);
     expect(render("😀".repeat(176), {}).tooLong).toBe(true);
+  });
+
+  it("allows longer replies on Google Business", () => {
+    expect(render("a".repeat(4096), {}, "google_business").tooLong).toBe(false);
+    expect(render("a".repeat(4097), {}, "google_business").tooLong).toBe(true);
+    expect(
+      checkTemplate(
+        [{ language: "en", variants: ["a".repeat(500)] }],
+        {},
+        "google_business",
+      ),
+    ).toEqual([]);
   });
 
   it("lists placeholders with their fallbacks", () => {

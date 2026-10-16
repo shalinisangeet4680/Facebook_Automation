@@ -13,4 +13,14 @@ describe("keywordTopic", () => {
     expect(keywordTopic("Doesn't feel like homework", 5)).toBe("Praise");
     expect(keywordTopic("Charged twice, want a refund", 1)).toBe("Payment");
   });
+
+  it("uses business topics for Google Business reviews", () => {
+    const biz = (text: string, stars: number) =>
+      keywordTopic(text, stars, "google_business");
+    expect(biz("Waited 2 hours for my appointment", 2)).toBe("Wait time");
+    expect(biz("Receptionist was rude", 1)).toBe("Staff");
+    expect(biz("Too expensive for what you get", 2)).toBe("Price");
+    expect(biz("Lovely place", 5)).toBe("Praise");
+    expect(biz("App keeps crashing", 1)).toBe("Other");
+  });
 });

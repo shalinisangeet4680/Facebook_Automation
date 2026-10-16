@@ -1,9 +1,10 @@
-import { Tone, Topic } from "../play.types";
+import { Channel, Tone, Topic } from "../engine.types";
 
 export const REPLY_AI = Symbol("REPLY_AI");
 
 export interface ReplyAiInput {
-  appName: string;
+  channel: Channel;
+  subjectName: string;
   developerName: string | null;
   supportEmail: string | null;
   latestVersion: string | null;

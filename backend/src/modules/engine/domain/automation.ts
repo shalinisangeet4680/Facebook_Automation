@@ -1,11 +1,11 @@
 import {
-  AppSettings,
+  ReplySettings,
   DELAYS,
   QuietHours,
   ReviewFacts,
   Rule,
   RuleConditions,
-} from "./play.types";
+} from "./engine.types";
 
 const lower = (s: string) => s.toLowerCase();
 const langBase = (l: string) => lower(l).split(/[-_]/)[0] ?? "";
@@ -93,7 +93,7 @@ export function minutesUntilQuietEnds(
 export function sendTime(
   now: Date,
   delayMinutes: number,
-  settings: Pick<AppSettings, "quietHours" | "timezone">,
+  settings: Pick<ReplySettings, "quietHours" | "timezone">,
 ): Date {
   const base = new Date(now.getTime() + delayMinutes * 60_000);
   const wait = minutesUntilQuietEnds(
@@ -122,7 +122,7 @@ export function decide(input: {
   facts: ReviewFacts;
   hasReply: boolean;
   rules: Rule[];
-  settings: AppSettings;
+  settings: ReplySettings;
   autoSentToday: number;
   firstSync: boolean;
   now: Date;

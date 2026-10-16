@@ -1,4 +1,4 @@
-import { Topic } from "./play.types";
+import { Channel, Topic } from "./engine.types";
 
 const RULES: [Topic, string[]][] = [
   [
@@ -105,9 +105,45 @@ const RULES: [Topic, string[]][] = [
   ],
 ];
 
-export function keywordTopic(text: string, stars: number): Topic {
+const BUSINESS_RULES: [Topic, string[]][] = [
+  ["Wait time", ["wait", "waited", "queue", "late", "delay", "slow service"]],
+  [
+    "Staff",
+    [
+      "staff",
+      "rude",
+      "behaviour",
+      "behavior",
+      "doctor",
+      "receptionist",
+      "waiter",
+      "manager",
+    ],
+  ],
+  [
+    "Price",
+    ["price", "expensive", "overcharg", "costly", "cheap", "fees", "bill"],
+  ],
+  ["Cleanliness", ["clean", "dirty", "hygien", "smell", "washroom", "toilet"]],
+  ["Booking", ["appointment", "booking", "book ", "reservation", "slot"]],
+  [
+    "Location",
+    ["parking", "location", "address", "hard to find", "directions"],
+  ],
+  ["Quality", ["quality", "taste", "food", "treatment", "result", "product"]],
+  ["Support", ["no response", "no reply", "call back", "phone", "not picking"]],
+  ["Service", ["service", "experience", "helpful", "staff were"]],
+];
+
+export function keywordTopic(
+  text: string,
+  stars: number,
+  channel: Channel = "google_play",
+): Topic {
   const t = ` ${text.toLowerCase()} `;
-  for (const [topic, words] of RULES)
+  for (const [topic, words] of channel === "google_business"
+    ? BUSINESS_RULES
+    : RULES)
     if (words.some((w) => t.includes(w))) return topic;
   return stars >= 4 ? "Praise" : "Other";
 }

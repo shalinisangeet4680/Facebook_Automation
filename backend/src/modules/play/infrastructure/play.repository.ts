@@ -22,7 +22,7 @@ import {
   firstOrNull,
 } from "@shared/database/database";
 
-import { ACTIVE_REPLY_STATUSES } from "../domain/play.types";
+import { ACTIVE_REPLY_STATUSES } from "@modules/engine/domain/engine.types";
 import {
   PlayReplyRow,
   PlayReviewRow,

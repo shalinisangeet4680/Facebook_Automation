@@ -6,8 +6,13 @@ import {
   minutesUntilQuietEnds,
   sendTime,
 } from "./automation";
-import { AppSettings, DEFAULT_SETTINGS, ReviewFacts, Rule } from "./play.types";
-import { BUG_WORDS, PRESET_RULES } from "./presets";
+import {
+  ReplySettings,
+  DEFAULT_SETTINGS,
+  ReviewFacts,
+  Rule,
+} from "./engine.types";
+import { BUG_WORDS, PRESET_RULES } from "@modules/play/domain/presets";
 
 const facts = (over: Partial<ReviewFacts> = {}): ReviewFacts => ({
   reviewId: "r1",
@@ -123,7 +128,7 @@ describe("quiet hours", () => {
 describe("decide", () => {
   const now = new Date("2026-10-16T06:30:00Z");
   const auto = rules.map((r) => ({ ...r, mode: "auto" as const }));
-  const settings: AppSettings = {
+  const settings: ReplySettings = {
     ...DEFAULT_SETTINGS,
     delay: "1h",
     ratingRules: [

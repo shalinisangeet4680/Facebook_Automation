@@ -7,13 +7,13 @@ export class SlackNotifier implements EscalationNotifier {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        text: `${stars} review for ${e.appName}`,
+        text: `${stars} review for ${e.subjectName}`,
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*${stars} ${e.appName}* · ${e.author || "A Google user"}\n>${(e.text || "(rating only)").replace(/\n/g, "\n>")}`,
+              text: `*${stars} ${e.subjectName}* · ${e.author || "A Google user"}\n>${(e.text || "(rating only)").replace(/\n/g, "\n>")}`,
             },
           },
           ...(e.draft

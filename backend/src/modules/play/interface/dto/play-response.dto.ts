@@ -7,10 +7,10 @@ import {
   REPLY_SOURCES,
   REPLY_STATUSES,
   RULE_MODES,
-  SYNC_ERROR_KINDS,
   TEMPLATE_CATEGORIES,
   TONES,
-} from "../../domain/play.types";
+} from "@modules/engine/domain/engine.types";
+import { SYNC_ERROR_KINDS } from "../../domain/play.types";
 import { REVIEW_STATES } from "../../application/play.service";
 
 export class PlayConnectionDto {

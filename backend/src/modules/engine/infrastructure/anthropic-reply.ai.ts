@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
-import { TOPICS } from "../domain/play.types";
+import { Channel, topicsFor } from "../domain/engine.types";
 import {
   ReplyAi,
   ReplyAiError,
@@ -12,11 +12,26 @@ import {
 
 export const REPLY_MODEL = "claude-opus-5";
 
-const Draft = z.object({
-  reply: z.string(),
-  language: z.string(),
-  topic: z.enum(TOPICS),
-});
+const draftSchema = (channel: Channel) =>
+  z.object({
+    reply: z.string(),
+    language: z.string(),
+    topic: z.enum(topicsFor(channel) as [string, ...string[]]),
+  });
+
+const SUBJECT: Record<Channel, (name: string) => string> = {
+  google_play: (name) =>
+    `You write public developer replies to Google Play reviews for the app "${name}".`,
+  google_business: (name) =>
+    `You write public owner replies to Google reviews of the business "${name}" on its Google Business Profile.`,
+};
+
+const NO_EMAIL: Record<Channel, string> = {
+  google_play:
+    "There is no support email; point people to the app's Help section instead.",
+  google_business:
+    "There is no support email; invite people to call or visit the business instead.",
+};
 
 const TONES = {
   friendly: "warm and friendly, like a person on the team",
@@ -26,13 +41,13 @@ const TONES = {
 
 function system(input: ReplyAiInput) {
   return [
-    `You write public developer replies to Google Play reviews for the app "${input.appName}".`,
+    SUBJECT[input.channel](input.subjectName),
     `Voice: ${TONES[input.tone]}.`,
     `Hard limits: plain text, no markdown, no emoji unless the reviewer used them, at most ${input.maxLength} characters.`,
     "Never promise refunds, dates or fixes that the facts below don't state, and never ask for passwords or payment details.",
     input.supportEmail
       ? `Support email: ${input.supportEmail}.`
-      : "There is no support email; point people to the app's Help section instead.",
+      : NO_EMAIL[input.channel],
     input.developerName
       ? `Sign off as ${input.developerName} when a sign-off fits.`
       : "",
@@ -78,7 +93,10 @@ export class AnthropicReplyAi implements ReplyAi {
         fallbacks: "default",
         system: system(input),
         messages: [{ role: "user", content: prompt(input) }],
-        output_config: { effort: "low", format: betaZodOutputFormat(Draft) },
+        output_config: {
+          effort: "low",
+          format: betaZodOutputFormat(draftSchema(input.channel)),
+        },
       });
     } catch (err) {
       if (err instanceof Anthropic.AuthenticationError)
@@ -108,7 +126,7 @@ export class AnthropicReplyAi implements ReplyAi {
     return {
       text: out.reply.trim(),
       language: out.language || null,
-      topic: out.topic,
+      topic: out.topic as ReplyAiResult["topic"],
     };
   }
 }

@@ -1,5 +1,5 @@
 import { computeInsights, topWords, words } from "./insights";
-import { parseReport } from "./report-csv";
+import { parseReport } from "@modules/play/domain/report-csv";
 
 const DAY = 86_400_000;
 const now = new Date("2026-10-16T12:00:00Z");

@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 
-import { REPLY_MAX, TemplateBody } from "./play.types";
+import { Channel, REPLY_LIMITS, TemplateBody } from "./engine.types";
 
 export const charCount = (text: string) => text.length;
 
@@ -96,6 +96,7 @@ export interface Rendered {
 export function render(
   template: string,
   values: Record<string, string | null | undefined>,
+  channel: Channel = "google_play",
 ): Rendered {
   const missing = new Set<string>();
   const text = template
@@ -124,7 +125,7 @@ export function render(
   return {
     text,
     missing: [...missing],
-    tooLong: charCount(text) > REPLY_MAX,
+    tooLong: charCount(text) > REPLY_LIMITS[channel].max,
   };
 }
 
@@ -168,7 +169,9 @@ export interface TemplateCheck {
 export function checkTemplate(
   bodies: TemplateBody[],
   known: Record<string, string | null | undefined>,
+  channel: Channel = "google_play",
 ): TemplateCheck[] {
+  const limit = REPLY_LIMITS[channel];
   const problems: TemplateCheck[] = [];
   const languages = new Set<string>();
   bodies.forEach((body) => {
@@ -204,12 +207,16 @@ export function checkTemplate(
             problem: `${p.raw} has no value in this app's settings and no fallback`,
           });
       }
-      const longest = render(variant, { ...SAMPLE_VALUES, ...filled(known) });
+      const longest = render(
+        variant,
+        { ...SAMPLE_VALUES, ...filled(known) },
+        channel,
+      );
       if (longest.tooLong)
         problems.push({
           language: body.language,
           variant: i,
-          problem: `Can reach ${charCount(longest.text)} characters; Google Play allows ${REPLY_MAX}`,
+          problem: `Can reach ${charCount(longest.text)} characters; ${limit.platform} allows ${limit.max}`,
         });
     });
   });

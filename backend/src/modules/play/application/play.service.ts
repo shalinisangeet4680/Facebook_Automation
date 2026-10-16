@@ -9,13 +9,11 @@ import { CryptoService } from "@shared/security/crypto.service";
 import { PlayApiError, ServiceAccountKey } from "../domain/ports/play-api";
 import {
   ACTIVE_REPLY_STATUSES,
-  AppSettings,
+  ReplySettings,
   DEFAULT_SETTINGS,
   DELAYS,
-  PlayErrorKindView,
   RATING_MODES,
   RatingRule,
-  REPLY_MAX,
   TONES,
   RuleAction,
   RuleConditions,
@@ -23,21 +21,22 @@ import {
   TEMPLATE_CATEGORIES,
   TemplateBody,
   TemplateCategory,
-} from "../domain/play.types";
-import { computeInsights } from "../domain/insights";
+} from "@modules/engine/domain/engine.types";
+import { PlayErrorKindView, REPLY_MAX } from "../domain/play.types";
+import { computeInsights } from "@modules/engine/domain/insights";
 import {
   dailySeries,
   distribution,
   periodStats,
   replySparkline,
-} from "../domain/analytics";
+} from "@modules/engine/domain/analytics";
 import { PRESET_RULES, PRESET_TEMPLATES } from "../domain/presets";
-import { keywordTopic } from "../domain/topics";
+import { keywordTopic } from "@modules/engine/domain/topics";
 import {
   suggestFromListing,
   suggestFromReplies,
   VariableSuggestion,
-} from "../domain/variable-suggestions";
+} from "@modules/engine/domain/variable-suggestions";
 import { parseReport, ReportRow } from "../domain/report-csv";
 import {
   parseReportsBucket,
@@ -52,7 +51,7 @@ import {
   VARIABLE_NAME,
   checkTemplate,
   render,
-} from "../domain/templates";
+} from "@modules/engine/domain/templates";
 import {
   PlayAppRow,
   PlayReplyRow,
@@ -104,7 +103,7 @@ export interface TemplateInput {
 export interface AppUpdate {
   title?: string;
   automation?: boolean;
-  settings?: Partial<AppSettings>;
+  settings?: Partial<ReplySettings>;
   variables?: Record<string, string>;
 }
 
@@ -1009,7 +1008,7 @@ export class PlayService {
     if (input.settings) {
       const given = Object.fromEntries(
         Object.entries(input.settings).filter(([, v]) => v !== undefined),
-      ) as Partial<AppSettings>;
+      ) as Partial<ReplySettings>;
       const s = { ...this.engine.settingsOf(app), ...given };
       if (!validTimezone(s.timezone))
         throw new ValidationError(`${s.timezone} isn't a time zone.`);

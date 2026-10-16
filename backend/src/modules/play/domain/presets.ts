@@ -3,7 +3,7 @@ import {
   RuleMode,
   TemplateBody,
   TemplateCategory,
-} from "./play.types";
+} from "@modules/engine/domain/engine.types";
 
 export interface PresetTemplate {
   key: string;

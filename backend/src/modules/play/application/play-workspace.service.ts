@@ -10,8 +10,8 @@ import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
-import { AI_MODES, AiMode } from "../domain/play.types";
-import { REPLY_MODEL } from "../infrastructure/anthropic-reply.ai";
+import { AI_MODES, AiMode } from "@modules/engine/domain/engine.types";
+import { REPLY_MODEL } from "@modules/engine/infrastructure/anthropic-reply.ai";
 import { PlayWorkspaceSettingsRow } from "../infrastructure/play.tables";
 import { PlayActor, PlayEngine } from "./play-engine.service";
 
