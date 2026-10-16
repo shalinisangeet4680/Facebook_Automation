@@ -1,0 +1,30 @@
+name: plugin
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["plugin/**", ".github/workflows/plugin.yml"]
+  pull_request:
+    paths: ["plugin/**", ".github/workflows/plugin.yml"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:render

@@ -6,6 +6,7 @@ An AI marketing manager for small businesses: it connects to a business's Meta a
 |---|---|---|
 | `backend/` | NestJS API and worker: auth, data, Meta integration, background jobs | [backend/README.md](backend/README.md) |
 | `web/` | Next.js web app: every screen, no business logic | [web/README.md](web/README.md) |
+| `plugin/` | Claude Code plugin, run on the developer's machine: Google Play screenshots and feature graphics from their app | [plugin/README.md](plugin/README.md) |
 
 ## Run locally
 

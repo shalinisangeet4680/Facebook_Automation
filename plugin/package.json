@@ -1,0 +1,51 @@
+{
+  "name": "store-creatives",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Claude Code plugin that renders Google Play screenshots and feature graphics from your app's screens",
+  "type": "module",
+  "bin": {
+    "store-creatives-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "skills",
+    ".claude-plugin",
+    ".mcp.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "studio": "remotion studio templates/index.ts",
+    "lint": "oxlint --type-aware --deny-warnings src/ test/ templates/",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"templates/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"templates/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p templates/tsconfig.json",
+    "test": "vitest run",
+    "test:render": "vitest run --config vitest.render.config.mts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@remotion/bundler": "4.0.536",
+    "@remotion/renderer": "4.0.536",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.536",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.536",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "oxlint": "^1.58.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "prettier": "^3.4.2",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}
