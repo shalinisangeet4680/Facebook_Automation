@@ -66,7 +66,7 @@ for (const theme of ["light", "dark"] as const) {
         });
         await page.goto(`/oauth/authorize?${params}`);
         await expect(page.getByRole("button", { name: "Allow" })).toBeVisible();
-        await expect(page.getByText("Connect Claude to Autopilot")).toBeVisible();
+        await expect(page.getByText("Connect Claude to TreeVook")).toBeVisible();
         await page.waitForTimeout(600);
         await audit(page);
       });

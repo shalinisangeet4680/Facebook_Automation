@@ -218,7 +218,7 @@ function NoAccess({ app }: { app: PlayAppDetail }) {
           403 · PERMISSION_DENIED
         </span>
         <h2 className="rp-serif" style={{ fontSize: 30, lineHeight: 1.1 }}>
-          Replyly can see this app, but can’t reply yet.
+          TreeVook can see this app, but can’t reply yet.
         </h2>
         <p style={{ color: "#55534E", lineHeight: 1.55, textWrap: "pretty" }}>
           In Play Console → Users and permissions, open the service account and tick{" "}

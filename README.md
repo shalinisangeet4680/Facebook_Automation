@@ -1,6 +1,12 @@
-# facebook_automation
+# TreeVook AI
 
-An AI marketing manager for small businesses: it connects to a business's Meta account, plans and runs Facebook and Instagram ads, and asks the owner to approve every launch and budget change.
+One platform for a small business's automations, run from one dashboard at [treevook.com](https://treevook.com). AI does the work and the owner approves anything that matters.
+
+| Product | Path | Standalone host |
+|---|---|---|
+| Meta Ads: plans and runs Facebook and Instagram ads | `/setup` | `ads.treevook.com` |
+| Play Reviews: Google Play review replies and store listing images | `/reviews` | `playreview.treevook.com` |
+| Google Business: reviews, posts, insights and business info | `/business` | `googlebusiness.treevook.com` |
 
 | Folder | What it is | Docs |
 |---|---|---|
@@ -18,3 +24,13 @@ cd web && npm install && npm run dev
 ```
 
 Open `http://localhost:3200` and sign in with `8434230999`, code `963101`.
+
+## Hosting products on their own subdomain
+
+Every product also runs on its own subdomain from the same deployment. The web app reads the first label of the host (see `web/src/lib/products.ts`), sends `/` to that product's home and sends paths of other products to `ROOT_URL`.
+
+1. Point `treevook.com` and each product subdomain at the web app.
+2. Web: `ROOT_URL=https://treevook.com`.
+3. Backend: `COOKIE_DOMAIN=.treevook.com` so one sign-in works on every subdomain, and list every host in `WEB_ORIGINS`.
+
+Locally, `http://playreview.localhost:3200` and `http://googlebusiness.localhost:3200` work without any DNS setup.

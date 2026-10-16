@@ -12,7 +12,7 @@ const serif = Instrument_Serif({
   variable: "--font-instrument",
 });
 
-export const metadata: Metadata = { title: { default: "Replyly", template: "%s · Replyly" } };
+export const metadata: Metadata = { title: { default: "Play Reviews · TreeVook AI", template: "%s · Play Reviews · TreeVook AI" } };
 
 export default function ReplylyLayout({ children }: { children: React.ReactNode }) {
   return <ReplylyShell fontClass={serif.variable}>{children}</ReplylyShell>;

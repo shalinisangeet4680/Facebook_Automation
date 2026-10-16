@@ -343,7 +343,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       clientInfo: { name: "test", version: "1" },
     });
     expect(init.statusCode).toBe(200);
-    expect(init.body.result.serverInfo.name).toBe("ads-autopilot");
+    expect(init.body.result.serverInfo.name).toBe("treevook");
     expect(init.body.result.instructions).toContain("confirm_token");
 
     const list = await rpc(accessToken, "tools/list");

@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { FEATURE_LABELS, SIZE_LABELS, STATUS, STYLE_LABELS, languageName } from "./labels";
 import { BackToStore } from "./store-projects";
 
-const RENDER_PROMPT = "Render the Play Store set I chose in Autopilot and upload it.";
+const RENDER_PROMPT = "Render the Play Store set I chose in TreeVook and upload it.";
 
 export function StoreProjectView() {
   const { id } = useParams<{ id: string }>();
@@ -536,7 +536,7 @@ function DeleteProject({ project }: { project: StoreProjectDetail }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           title={`Delete ${project.name}?`}
-          description="Its screens, previews and screenshots are removed from Autopilot. Images already added to Creatives stay there, and the files on your computer aren't touched."
+          description="Its screens, previews and screenshots are removed from TreeVook. Images already added to Creatives stay there, and the files on your computer aren't touched."
         >
           <div className="flex justify-end gap-2">
             <DialogClose asChild>

@@ -309,7 +309,7 @@ export class PlayEngine {
       if (lost) {
         await this.repo.holdScheduled(
           app.id,
-          "Replyly lost access to this app on Google Play.",
+          "TreeVook lost access to this app on Google Play.",
         );
         await this.audit.record({
           workspaceId: app.workspaceId,

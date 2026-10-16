@@ -7,7 +7,7 @@ description: Make Google Play screenshots and feature graphics for the user's An
 
 You turn the user's app into a Google Play screenshot set with the `store-creatives` MCP tools: `list_styles`, `check_project`, `render_preview`, `render_set` and `upload_to_platform` for the store images, and the `device_*` tools to drive an emulator. Reading code, capturing and rendering run on the user's machine.
 
-If the Autopilot connector is available (its tools include `store_save_project`), the project also lives in Autopilot: the user chooses the style there, downloads the set, and can reuse the screenshots in ads. Without the connector, do everything locally and skip the Autopilot steps; mention once that connecting Autopilot lets them choose styles and keep the set in their workspace.
+If the TreeVook connector is available (its tools include `store_save_project`), the project also lives in TreeVook: the user chooses the style there, downloads the set, and can reuse the screenshots in ads. Without the connector, do everything locally and skip the TreeVook steps; mention once that connecting TreeVook lets them choose styles and keep the set in their workspace.
 
 Project path: use the path the user gave ($ARGUMENTS), otherwise the current working directory. Always pass it as an absolute `project_path`.
 
@@ -77,7 +77,7 @@ Copy rules:
 
 Show the user the card list (screen, headline, callouts) and adjust it before capturing anything.
 
-**Autopilot:** call `store_save_project` with the app name and the card languages. Keep `projectId`, `url`, `upload_url` and `upload_token` for the next steps. Tokens last two hours; if an upload says the token expired, call `store_start_upload` with the project id and retry.
+**TreeVook:** call `store_save_project` with the app name and the card languages. Keep `projectId`, `url`, `upload_url` and `upload_token` for the next steps. Tokens last two hours; if an upload says the token expired, call `store_start_upload` with the project id and retry.
 
 ## 3. Get the screenshots
 
@@ -95,13 +95,13 @@ Each card's `screen` needs `.store-creatives/screens/<screen>.png`. Ask the user
 6. On each target screen, check the preview: no loading state, empty list, error, dialog, keyboard or personal data. Empty screens sell badly, so ask the user to add sample data when needed. Then `device_capture` with `name` set to the card's `screen`; it closes the keyboard and saves the full-resolution PNG in `.store-creatives/screens/`. Check the returned preview and retake if needed.
 7. When done, `device_demo_mode` with `on: false`. Stop an emulator you started with `device_stop_emulator` only if the user wants.
 
-**Autopilot:** upload the screens with `upload_to_platform` and `parts: ["screens"]`.
+**TreeVook:** upload the screens with `upload_to_platform` and `parts: ["screens"]`.
 
 ## 4. Let the user choose a style
 
 Run `check_project` until it has no problems. Call `render_preview` (it renders the first card in every style; pass `card` or `lang` to preview another).
 
-**Autopilot:** upload the previews with `upload_to_platform` and `parts: ["preview"]`, give the user the project `url`, and ask them to choose the style, languages and sizes there and tell you when they're done. Then read the choice with `store_get_project` and go to step 5.
+**TreeVook:** upload the previews with `upload_to_platform` and `parts: ["preview"]`, give the user the project `url`, and ask them to choose the style, languages and sizes there and tell you when they're done. Then read the choice with `store_get_project` and go to step 5.
 
 **Locally:** open the returned `page` for the user (`open <page>` on macOS, `xdg-open <page>` on Linux), describe the styles in one line each from `list_styles`, and ask which style they want (recommend `callouts` when the cards have good callouts), plus which languages and sizes (`phone`, `tablet7`, `tablet10`). Preview the tablet sizes with `size: "tablet7"` if they want tablets.
 
@@ -109,7 +109,7 @@ Run `check_project` until it has no problems. Call `render_preview` (it renders 
 
 Call `render_set` with the chosen `styles`, `langs` and `sizes`. It also renders two feature graphics (`dark` and `bold`, 1024x500).
 
-**Autopilot:** upload with `upload_to_platform`, `parts: ["set"]` and the same `styles`, `langs` and `sizes`. Report any `failed` files. Tell the user the set is in Autopilot at the project `url`, where they can download it or add screenshots to Creatives for app-install ads.
+**TreeVook:** upload with `upload_to_platform`, `parts: ["set"]` and the same `styles`, `langs` and `sizes`. Report any `failed` files. Tell the user the set is in TreeVook at the project `url`, where they can download it or add screenshots to Creatives for app-install ads.
 
 Show the user a contact sheet from the result, give them the output folder, and remind them:
 - Play needs 2 to 8 phone screenshots per language; upload them in card order.

@@ -123,7 +123,7 @@ export class GraphProfileClient extends GraphApiClient implements MetaProfile {
     );
     if (!page.access_token)
       throw metaRejected(
-        "Autopilot can't manage this Page. Give the system user full control of the Page.",
+        "TreeVook can't manage this Page. Give the system user full control of the Page.",
       );
     return page.access_token;
   }

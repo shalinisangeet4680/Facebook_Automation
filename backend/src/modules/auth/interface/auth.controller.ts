@@ -13,7 +13,7 @@ import { Throttle } from "@nestjs/throttler";
 import { FastifyReply, FastifyRequest } from "fastify";
 
 import { AuditService } from "@modules/audit/application/audit.service";
-import { isProduction } from "@shared/config/app-config";
+import { cookieOptions } from "@shared/config/app-config";
 import { DomainError } from "@shared/errors/domain-error";
 import { Env } from "@shared/config/env.validation";
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
@@ -28,6 +28,7 @@ import { sessionEnded } from "../domain/auth.errors";
 import { DeliveredTokens, IssuedTokens } from "../domain/auth.types";
 import {
   clearAuthCookies,
+  CookieScope,
   clientKind,
   readRefreshCookie,
   requestMeta,
@@ -48,7 +49,7 @@ const HOUR = 3_600_000;
 @ApiDefaultResponse({ type: ErrorResponseDto })
 @Controller("auth")
 export class AuthController {
-  private readonly secureCookies: boolean;
+  private readonly cookies: CookieScope;
 
   constructor(
     config: ConfigService<Env, true>,
@@ -57,7 +58,7 @@ export class AuthController {
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
   ) {
-    this.secureCookies = isProduction(config);
+    this.cookies = cookieOptions(config);
   }
 
   @Public()
@@ -103,7 +104,7 @@ export class AuthController {
         ? body.refreshToken
         : readRefreshCookie(request);
     if (!raw) {
-      clearAuthCookies(reply, this.secureCookies);
+      clearAuthCookies(reply, this.cookies);
       throw sessionEnded();
     }
     try {
@@ -111,7 +112,7 @@ export class AuthController {
       return this.deliver(request, reply, tokens);
     } catch (err) {
       if (err instanceof DomainError && err.httpStatus === 401) {
-        clearAuthCookies(reply, this.secureCookies);
+        clearAuthCookies(reply, this.cookies);
       }
       throw err;
     }
@@ -124,7 +125,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     await this.sessions.logout(ctx.sessionId);
-    clearAuthCookies(reply, this.secureCookies);
+    clearAuthCookies(reply, this.cookies);
     await this.audit.record({
       workspaceId: ctx.workspaceId,
       actor: "user",
@@ -140,7 +141,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     await this.sessions.logoutAll(ctx.userId);
-    clearAuthCookies(reply, this.secureCookies);
+    clearAuthCookies(reply, this.cookies);
     await this.audit.record({
       workspaceId: ctx.workspaceId,
       actor: "user",
@@ -162,7 +163,7 @@ export class AuthController {
         refreshTokenExpiresIn: tokens.refreshTokenExpiresIn,
       };
     }
-    setAuthCookies(reply, tokens, this.secureCookies);
+    setAuthCookies(reply, tokens, this.cookies);
     return { accessTokenExpiresIn: tokens.accessTokenExpiresIn };
   }
 }

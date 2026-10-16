@@ -1,6 +1,14 @@
 "use client";
 
-import { CheckCircle2, Lock, Pause, Rocket, Sparkles, TrendingUp } from "lucide-react";
+import {
+  CheckCircle2,
+  Lock,
+  MapPin,
+  MessageSquareReply,
+  Pause,
+  Rocket,
+  Sparkles,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
@@ -17,11 +25,11 @@ const CARDS = [
     action: "Approve",
   },
   {
-    icon: TrendingUp,
+    icon: MessageSquareReply,
     tone: "bg-emerald-500/15 text-emerald-200",
-    kicker: "Recommendation",
-    title: "Scale ad B by 25%",
-    body: "Cost per lead down 32% this week",
+    kicker: "Play review reply",
+    title: "Reply drafted for ★★☆☆☆",
+    body: "“Login fails after update” · ClinicPro",
     action: "Approve",
   },
   {
@@ -33,19 +41,19 @@ const CARDS = [
     action: "View",
   },
   {
-    icon: Sparkles,
+    icon: MapPin,
     tone: "bg-fuchsia-500/15 text-fuchsia-200",
-    kicker: "Morning briefing",
-    title: "Yesterday at a glance",
-    body: "₹2,140 spent · 6 leads · ₹357 per lead",
+    kicker: "Google Business",
+    title: "Diwali offer post scheduled",
+    body: "Patna clinic · Goes live Fri 10:00",
     action: "Open",
   },
 ];
 
 const POINTS = [
-  { icon: CheckCircle2, text: "You approve every launch and budget change." },
-  { icon: Sparkles, text: "Built for Facebook and Instagram ads." },
-  { icon: Lock, text: "Your Meta access is encrypted and never shown again." },
+  { icon: CheckCircle2, text: "You approve every launch, reply and post that matters." },
+  { icon: Sparkles, text: "Meta ads, Google Play and Google Business in one place." },
+  { icon: Lock, text: "Every key and sign-in is encrypted and never shown again." },
 ];
 
 export function BrandPanel() {

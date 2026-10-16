@@ -35,7 +35,7 @@ const STEPS = [
     items: [
       "Go to Users and permissions → Invite new users.",
       "Paste the service account email (client_email inside your JSON).",
-      "Under App permissions, add the apps Replyly should manage.",
+      "Under App permissions, add the apps TreeVook should manage.",
       "Tick View app information and Reply to reviews, then send the invite.",
     ],
   },
@@ -170,7 +170,7 @@ export function ConnectPage() {
           : "verify";
   const caption =
     step === 0
-      ? "Create the account, then download a JSON key. That file is all Replyly needs."
+      ? "Create the account, then download a JSON key. That file is all TreeVook needs."
       : step === 1
         ? "Paste the service account email and grant exactly two permissions."
         : error
@@ -202,7 +202,7 @@ export function ConnectPage() {
           Connect Google Play, <span style={{ fontStyle: "italic" }}>once.</span>
         </h1>
         <p style={{ color: "#55534E", lineHeight: 1.55, textWrap: "pretty" }}>
-          Replyly reads and replies to reviews through a service account you own. No passwords,
+          TreeVook reads and replies to reviews through a service account you own. No passwords,
           revoke any time from Play Console.
         </p>
       </div>

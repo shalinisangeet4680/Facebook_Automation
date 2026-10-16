@@ -40,14 +40,14 @@ function mediaSrc(url: string): string {
 export function PostsPanel() {
   return (
     <div className="grid gap-8">
-      <AutopilotPosts />
+      <TreeVookPosts />
       <LibrarySection platform="facebook" title="On your Facebook Page" />
       <LibrarySection platform="instagram" title="On Instagram" />
     </div>
   );
 }
 
-function AutopilotPosts() {
+function TreeVookPosts() {
   const posts = usePosts();
   const cancel = useCancelPost();
   const retry = useRetryPost();
@@ -62,7 +62,7 @@ function AutopilotPosts() {
   return (
     <section aria-labelledby="autopilot-posts">
       <h2 id="autopilot-posts" className="mb-3 text-[15px] font-semibold">
-        Posted from Autopilot
+        Posted from TreeVook
       </h2>
       {posts.isPending ? (
         <Skeleton className="h-24 w-full" />

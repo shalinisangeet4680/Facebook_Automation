@@ -199,7 +199,7 @@ export class GooglePlayClient implements PlayApi {
     if (res.status === 429)
       throw new PlayApiError(
         "quota",
-        "Google Play's review limit was reached. Autopilot will try again later.",
+        "Google Play's review limit was reached. TreeVook will try again later.",
       );
     if (res.status >= 500)
       throw new PlayApiError(

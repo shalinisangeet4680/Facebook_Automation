@@ -325,7 +325,7 @@ export class GraphPublishingClient
     );
     if (!page.access_token) {
       throw metaRejected(
-        "Autopilot can't post to this Page. Give the system user full control of the Page and the pages_manage_posts permission.",
+        "TreeVook can't post to this Page. Give the system user full control of the Page and the pages_manage_posts permission.",
       );
     }
     return page.access_token;

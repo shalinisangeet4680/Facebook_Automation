@@ -149,7 +149,7 @@ export function CreativesPage() {
               <span className="text-small text-muted mt-1 max-w-md">
                 Images (PNG, JPEG, WebP up to 8 MB) or vertical videos for Reels (MP4 up to 200 MB).
                 Square 1080 × 1080 images work everywhere. Or ask Claude: “Design a square ad image
-                for my clinic app and save it to Autopilot.”
+                for my clinic app and save it to TreeVook.”
               </span>
             </button>
           ) : (

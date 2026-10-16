@@ -83,7 +83,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
     const document = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .setTitle("Ads Autopilot API")
+        .setTitle("TreeVook AI API")
         .setVersion("1.0.0")
         .addBearerAuth()
         .addCookieAuth("access_token")

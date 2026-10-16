@@ -10,6 +10,11 @@ import {
 
 import { IssuedTokens, RequestMeta } from "../domain/auth.types";
 
+export interface CookieScope {
+  secure: boolean;
+  domain?: string;
+}
+
 const ACCESS_PATH = "/api";
 const REFRESH_PATH = "/api/v1/auth";
 
@@ -28,9 +33,9 @@ export function requestMeta(request: FastifyRequest): RequestMeta {
 export function setAuthCookies(
   reply: FastifyReply,
   tokens: IssuedTokens,
-  secure: boolean,
+  options: CookieScope,
 ): void {
-  const base = { httpOnly: true, secure, sameSite: "lax" as const };
+  const base = { httpOnly: true, ...options, sameSite: "lax" as const };
   void reply.setCookie(ACCESS_COOKIE, tokens.accessToken, {
     ...base,
     path: ACCESS_PATH,
@@ -48,8 +53,11 @@ export function setAuthCookies(
   });
 }
 
-export function clearAuthCookies(reply: FastifyReply, secure: boolean): void {
-  const base = { httpOnly: true, secure, sameSite: "lax" as const };
+export function clearAuthCookies(
+  reply: FastifyReply,
+  options: CookieScope,
+): void {
+  const base = { httpOnly: true, ...options, sameSite: "lax" as const };
   void reply.clearCookie(ACCESS_COOKIE, { ...base, path: ACCESS_PATH });
   void reply.clearCookie(REFRESH_COOKIE, { ...base, path: REFRESH_PATH });
   void reply.clearCookie(SESSION_HINT_COOKIE, { ...base, path: "/" });

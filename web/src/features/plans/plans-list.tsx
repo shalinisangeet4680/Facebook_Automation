@@ -36,7 +36,7 @@ export function PlansList() {
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-semibold">Plan a campaign with Claude</h2>
             <p className="text-small text-muted mt-0.5">
-              In Claude with the Autopilot connector on, paste this. The plan appears here for
+              In Claude with the TreeVook connector on, paste this. The plan appears here for
               review.
             </p>
             <p className="bg-surface-muted border-border mt-3 rounded-lg border px-3 py-2 text-[13px]">

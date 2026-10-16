@@ -1,5 +1,8 @@
 export const BRAND = {
-  name: "Autopilot",
-  tagline: "Your AI marketing manager",
-  description: "Plans, launches and optimises your Meta ads. You just approve.",
+  name: "TreeVook AI",
+  short: "TreeVook",
+  domain: "treevook.com",
+  tagline: "Every business automation, one dashboard",
+  description:
+    "Meta ads, Google Play reviews and your Google Business Profile, run by AI. You just approve.",
 } as const;

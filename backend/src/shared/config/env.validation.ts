@@ -31,6 +31,10 @@ const envSchema = z.object({
     .url()
     .default("http://localhost:3200")
     .transform((v) => v.replace(/\/+$/, "")),
+  COOKIE_DOMAIN: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined),
   MEDIA_DIR: z.string().default("storage/media"),
   ADS_MAX_DAILY_BUDGET: z.coerce.number().positive().default(10_000),
   META_GRAPH_VERSION: z.string().default("v23.0"),

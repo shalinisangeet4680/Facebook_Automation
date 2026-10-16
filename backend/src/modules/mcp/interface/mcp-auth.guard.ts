@@ -42,7 +42,7 @@ export class McpAuthGuard implements CanActivate {
     if (!owner)
       throw this.challenge(
         "invalid_token",
-        "This access token was rotated or revoked. Copy the current one from the Replyly MCP page.",
+        "This access token was rotated or revoked. Copy the current one from the Play Reviews MCP page.",
       );
     const body = request.body as
       { method?: string; params?: { name?: unknown } } | undefined;
@@ -128,7 +128,7 @@ export class McpAuthGuard implements CanActivate {
       {
         error: error ?? "unauthorized",
         error_description:
-          description ?? "Sign in to Ads Autopilot to use this connector.",
+          description ?? "Sign in to TreeVook AI to use this connector.",
       },
       { "WWW-Authenticate": `Bearer ${parts.join(", ")}` },
     );

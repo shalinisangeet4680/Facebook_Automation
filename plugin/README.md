@@ -27,7 +27,7 @@ The skill (`skills/store-creatives/SKILL.md`) is the workflow Claude follows, in
 | `device_screen` | Preview image plus labelled and tappable elements with centers in device pixels, foreground app, keyboard and lock state |
 | `device_tap`, `device_type`, `device_key`, `device_swipe` | Tap by element, text or coordinates; type ASCII; keys; scroll. Each can return the new screen |
 | `device_capture` | Save the full-resolution screen to `.store-creatives/screens/<name>.png`, closing the keyboard first |
-| `upload_to_platform` | Sends screens, previews or the set straight to an Autopilot store project with the upload token from `store_save_project` |
+| `upload_to_platform` | Sends screens, previews or the set straight to an TreeVook store project with the upload token from `store_save_project` |
 
 Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`. Sizes: `phone` 1080x1920, `tablet7` 1920x1080, `tablet10` 3840x2160. PNGs are flattened to RGB because Google Play rejects screenshots with alpha.
 
@@ -39,7 +39,7 @@ Styles: `callouts`, `light`, `bold`, `minimal`. Feature graphics: `dark`, `bold`
 | `src/jobs.ts` | Style and size catalog; expands cards into render jobs |
 | `src/render.ts` | Remotion bundle and still rendering, flattening, contact sheets, preview page |
 | `src/studio.ts` | `checkProject`, `renderPreview`, `renderSet` |
-| `src/upload.ts` | Collects screens, previews and the set and uploads them to Autopilot |
+| `src/upload.ts` | Collects screens, previews and the set and uploads them to TreeVook |
 | `src/device/` | adb and emulator control: SDK lookup, device selection, UI hierarchy parsing, input, the `device_*` tools |
 | `src/server.ts` | stdio MCP server |
 | `templates/` | Remotion compositions `StoreCard` and `FeatureGraphic` (moved from money-shorts) with the bundled Montserrat font |
@@ -84,9 +84,9 @@ The repo stays private; only this folder is published.
 
 Claude Code does not run install scripts for plugins. Our native dependencies (`sharp`, Remotion's compositor) ship prebuilt platform packages, so they work without them.
 
-## Autopilot
+## TreeVook
 
-With the Autopilot connector added to Claude Code, the skill saves a store project in the user's workspace, uploads screens and previews, waits for the owner to choose the style at `/store/:id`, then renders and uploads the set. Without it everything stays local. See `backend/docs/15-store-creatives.md`.
+With the TreeVook connector added to Claude Code, the skill saves a store project in the user's workspace, uploads screens and previews, waits for the owner to choose the style at `/store/:id`, then renders and uploads the set. Without it everything stays local. See `backend/docs/15-store-creatives.md`.
 
 ## Next steps
 

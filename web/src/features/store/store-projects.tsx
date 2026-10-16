@@ -63,7 +63,7 @@ function GetStarted() {
           <h2 className="text-[17px] font-semibold">Make your store listing images</h2>
           <ol className="text-muted mt-4 grid list-decimal gap-3 pl-5">
             <li>
-              Connect Autopilot to Claude Code on the{" "}
+              Connect TreeVook to Claude Code on the{" "}
               <Link href="/claude" className="text-accent font-medium underline underline-offset-4">
                 Claude page
               </Link>

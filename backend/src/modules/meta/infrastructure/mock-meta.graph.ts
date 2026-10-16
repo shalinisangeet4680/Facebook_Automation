@@ -15,7 +15,7 @@ import {
 export class MockMetaGraph implements MetaGraph {
   identity(token: string): Promise<GraphIdentity> {
     if (token.includes("invalid")) return Promise.reject(metaTokenInvalid());
-    return Promise.resolve({ id: "61550000000001", name: "Ads Autopilot" });
+    return Promise.resolve({ id: "61550000000001", name: "TreeVook AI" });
   }
 
   grantedPermissions(token: string): Promise<string[]> {

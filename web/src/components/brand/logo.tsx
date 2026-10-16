@@ -6,20 +6,12 @@ export function LogoMark({ className }: { className?: string }) {
     <svg viewBox="0 0 32 32" aria-hidden className={cn("size-8", className)}>
       <rect width="32" height="32" rx="9" fill="var(--accent)" />
       <path
-        d="M9 21.5 15.2 9.6c.3-.6 1.2-.6 1.5 0L23 21.5"
+        d="M16 24V8.5M16 18.5l-5.5-5.5M16 15.5l5.5-5.5"
         fill="none"
         stroke="var(--accent-foreground)"
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <path
-        d="M11.8 17.2h8.4"
-        fill="none"
-        stroke="var(--accent-foreground)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        opacity="0.75"
       />
     </svg>
   );

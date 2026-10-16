@@ -29,7 +29,7 @@ export class SlackNotifier implements EscalationNotifier {
             elements: [
               {
                 type: "button",
-                text: { type: "plain_text", text: "Open in Replyly" },
+                text: { type: "plain_text", text: "Open in TreeVook" },
                 url: e.url,
               },
             ],

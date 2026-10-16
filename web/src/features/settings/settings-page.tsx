@@ -184,7 +184,7 @@ function WorkspaceForm({ settings }: { settings: Settings }) {
       <SectionCard
         icon={<Building2 className="size-5" />}
         title="Workspace and budget"
-        description="These limits apply everywhere: in Autopilot, in Claude and in suggestions."
+        description="These limits apply everywhere: in TreeVook, in Claude and in suggestions."
       >
         <Field label="Workspace name" error={errors.name}>
           {(p) => (
@@ -395,7 +395,7 @@ function Security() {
     <SectionCard
       icon={<ShieldCheck className="size-5" />}
       title="Security"
-      description="Sign out of Autopilot on every phone and computer, including this one. Claude connections are not affected."
+      description="Sign out of TreeVook on every phone and computer, including this one. Claude connections are not affected."
     >
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>

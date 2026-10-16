@@ -43,7 +43,7 @@ export function HistoryCard({ app }: { app: PlayAppDetail }) {
           </span>
           {h.error ? (
             <span style={{ fontSize: 12.5, color: "#B42318", lineHeight: 1.5 }}>
-              {h.error} Replyly checks again every hour and imports as soon as access works.
+              {h.error} TreeVook checks again every hour and imports as soon as access works.
             </span>
           ) : null}
           <div style={{ display: "flex", gap: 8, marginTop: "auto", flexWrap: "wrap" }}>

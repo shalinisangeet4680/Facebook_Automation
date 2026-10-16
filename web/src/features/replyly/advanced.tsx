@@ -801,7 +801,7 @@ function AiAndIntegrations() {
                 ? `Uses your Anthropic key${w.aiKeyHint ? ` (${w.aiKeyHint})` : ""} with ${w.model}.`
                 : w.platformAi
                   ? `Included: ${w.draftsToday} of ${w.dailyDrafts} drafts used today, with ${w.model}.`
-                  : "Replyly’s key isn’t set up on this server. Use your own key, or draft through the connector."
+                  : "TreeVook’s key isn’t set up on this server. Use your own key, or draft through the connector."
           }
         >
           <Select
@@ -812,7 +812,7 @@ function AiAndIntegrations() {
               run({ aiMode: v as "platform" | "own" | "off" }, "AI drafting updated")
             }
             options={[
-              { value: "platform", label: "Replyly AI" },
+              { value: "platform", label: "TreeVook AI" },
               { value: "own", label: "My Anthropic key" },
               { value: "off", label: "Off" },
             ]}
@@ -916,7 +916,7 @@ function RemoveApp({ app }: { app: PlayAppDetail }) {
   return (
     <Section
       title="Remove app"
-      desc="Stops syncing and deletes this app’s reviews, drafts and rules from Replyly. Replies already on Google Play stay."
+      desc="Stops syncing and deletes this app’s reviews, drafts and rules from TreeVook. Replies already on Google Play stay."
     >
       <div style={{ display: "flex", gap: 8 }}>
         {sure ? (

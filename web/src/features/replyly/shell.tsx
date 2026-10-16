@@ -53,18 +53,27 @@ function Logo() {
           height: 28,
           borderRadius: 8,
           background: "#191917",
-          color: "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "var(--rp-serif)",
-          fontStyle: "italic",
-          fontSize: 19,
+          flexShrink: 0,
         }}
       >
-        r
+        <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden>
+          <path
+            d="M16 24V8.5M16 18.5l-5.5-5.5M16 15.5l5.5-5.5"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </span>
-      <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-.01em" }}>Replyly</span>
+      <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+        <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-.01em" }}>TreeVook</span>
+        <span style={{ fontSize: 11.5, color: "#6C6962" }}>Play Reviews</span>
+      </span>
     </div>
   );
 }
@@ -125,7 +134,7 @@ function Footer() {
   return (
     <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
       <Link href="/setup" className="rp-nav rp-nav-small">
-        ← Back to Autopilot
+        ← All TreeVook products
       </Link>
       <div
         style={{
@@ -152,7 +161,7 @@ export function ReplylyShell({ children, fontClass }: { children: ReactNode; fon
   return (
     <div className={`rp ${fontClass}`}>
       <ToastProvider>
-        <aside className="rp-aside" aria-label="Replyly">
+        <aside className="rp-aside" aria-label="Play Reviews">
           <Logo />
           <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Suspense>
@@ -163,7 +172,7 @@ export function ReplylyShell({ children, fontClass }: { children: ReactNode; fon
             <Footer />
           </Suspense>
         </aside>
-        <nav className="rp-mobile-bar" aria-label="Replyly">
+        <nav className="rp-mobile-bar" aria-label="Play Reviews">
           <span style={{ marginRight: 8 }}>
             <Logo />
           </span>

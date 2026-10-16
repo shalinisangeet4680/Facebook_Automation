@@ -12,6 +12,14 @@ export function webOrigins(config: AppConfig): string[] {
   return config.get("WEB_ORIGINS", { infer: true });
 }
 
+export function cookieOptions(config: AppConfig): {
+  secure: boolean;
+  domain?: string;
+} {
+  const domain = config.get("COOKIE_DOMAIN", { infer: true });
+  return { secure: isProduction(config), ...(domain ? { domain } : {}) };
+}
+
 export function appUrl(config: AppConfig): string {
   return config.get("APP_URL", { infer: true });
 }

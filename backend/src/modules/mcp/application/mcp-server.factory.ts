@@ -35,7 +35,7 @@ import { FACEBOOK_PARTS } from "@modules/profile/domain/profile.draft";
 import { DomainError, ValidationError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
-const INSTRUCTIONS = `Ads Autopilot connects you to the user's Meta (Facebook and Instagram) ad account.
+const INSTRUCTIONS = `TreeVook AI is one platform for the user's business automations: Meta (Facebook and Instagram) ads, Google Play store listings and review replies, and Google Business Profile.
 
 How to work:
 - Start with get_account_overview to learn the ad account, currency, Page, Pixel and guardrails.
@@ -44,12 +44,12 @@ How to work:
 - activate and update_daily_budget are two-step. The first call returns a summary and a confirm_token. Show the summary to the user, wait for an explicit yes in this conversation, then call again with the same arguments plus confirm_token. Never confirm on the user's behalf.
 - pause takes effect immediately and is always safe.
 - Use search_targeting to find city, region and interest keys before drafting.
-- To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in Autopilot; do not call create_campaign_draft for a proposed plan unless the user asks.
+- To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in TreeVook; do not call create_campaign_draft for a proposed plan unless the user asks.
 - To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
-- To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in Autopilot or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from Autopilot's Profile page into the Instagram app.
-- Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in Autopilot. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
-- Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in Autopilot, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints. To change how an app replies, read get_review_settings first, then use update_review_settings (per-rating mode and template, behavior, safeguards, placeholders), set_review_rules (advanced keyword rules) or update_review_workspace (AI drafting mode, Slack channel); each is two-step: show the summary, wait for an explicit yes, call again with confirm_token. sync_play_apps fetches new reviews and newly shared apps; import_review_history pulls older months.
+- To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in TreeVook or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from TreeVook's Profile page into the Instagram app.
+- Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in TreeVook. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
+- Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in TreeVook, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints. To change how an app replies, read get_review_settings first, then use update_review_settings (per-rating mode and template, behavior, safeguards, placeholders), set_review_rules (advanced keyword rules) or update_review_workspace (AI drafting mode, Slack channel); each is two-step: show the summary, wait for an explicit yes, call again with confirm_token. sync_play_apps fetches new reviews and newly shared apps; import_review_history pulls older months.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -88,7 +88,7 @@ export class McpServerFactory {
 
   create(auth: McpAuth, clientName: string): McpServer {
     const server = new McpServer(
-      { name: "ads-autopilot", title: "Ads Autopilot", version: "1.0.0" },
+      { name: "treevook", title: "TreeVook AI", version: "1.0.0" },
       { instructions: INSTRUCTIONS, capabilities: { tools: {} } },
     );
     const ws = auth.workspaceId;
@@ -249,7 +249,7 @@ export class McpServerFactory {
       {
         title: "List creatives",
         description:
-          "Images in the Autopilot creatives library with their public url, size and source.",
+          "Images in the TreeVook creatives library with their public url, size and source.",
         annotations: readOnly,
       },
       () => run(() => this.creatives.list(ws)),
@@ -260,7 +260,7 @@ export class McpServerFactory {
       {
         title: "List Page and Instagram posts",
         description:
-          "Recent posts on the connected Facebook Page and Instagram account with likes and comments, plus posts scheduled or published through Autopilot.",
+          "Recent posts on the connected Facebook Page and Instagram account with likes and comments, plus posts scheduled or published through TreeVook.",
         annotations: readOnly,
       },
       () =>
@@ -277,9 +277,9 @@ export class McpServerFactory {
     server.registerTool(
       "get_suggestions",
       {
-        title: "Autopilot suggestions",
+        title: "TreeVook suggestions",
         description:
-          "Open suggestions from Autopilot's daily checks (ads to pause, ad sets to scale, creative fatigue, landing page drop-off, silent Pixel, budget pacing) with evidence, plus plans waiting for review and failed posts. Use refresh=true to re-run the checks now.",
+          "Open suggestions from TreeVook's daily checks (ads to pause, ad sets to scale, creative fatigue, landing page drop-off, silent Pixel, budget pacing) with evidence, plus plans waiting for review and failed posts. Use refresh=true to re-run the checks now.",
         inputSchema: { refresh: z.boolean().default(false) },
         annotations: readOnly,
       },
@@ -306,7 +306,7 @@ export class McpServerFactory {
       {
         title: "Store listing project",
         description:
-          "A Google Play store listing project: status, the style, languages and sizes the owner chose in Autopilot, image counts, screen names and what to do next. Without project_id, lists all projects.",
+          "A Google Play store listing project: status, the style, languages and sizes the owner chose in TreeVook, image counts, screen names and what to do next. Without project_id, lists all projects.",
         inputSchema: { project_id: z.string().uuid().optional() },
         annotations: readOnly,
       },
@@ -433,7 +433,7 @@ export class McpServerFactory {
       {
         title: "Draft a reply with the owner's template and voice",
         description:
-          "Let Replyly draft a reply for one review using the template set for its star rating, the owner's voice and language settings. The draft lands in the owner's inbox; nothing is posted. Set rewrite to get a different wording than the current draft.",
+          "Let TreeVook draft a reply for one review using the template set for its star rating, the owner's voice and language settings. The draft lands in the owner's inbox; nothing is posted. Set rewrite to get a different wording than the current draft.",
         inputSchema: {
           review_id: z.string().uuid(),
           rewrite: z.boolean().default(false),
@@ -476,7 +476,7 @@ export class McpServerFactory {
         return {
           status: "auto_needs_permission",
           message:
-            'Auto mode posts replies without approval, and the owner hasn\'t allowed agents to post. Ask them to turn on "Allow agents to post replies" on the Replyly MCP page, or keep these ratings on approval.',
+            'Auto mode posts replies without approval, and the owner hasn\'t allowed agents to post. Ask them to turn on "Allow agents to post replies" on the Play Reviews MCP page, or keep these ratings on approval.',
           changes: p.changes,
         };
       if (!token)
@@ -665,7 +665,7 @@ export class McpServerFactory {
         title:
           "Change workspace AI drafting or Slack channel (needs confirmation)",
         description:
-          "Change workspace-wide settings: ai_mode (platform = Replyly's AI, own = the owner's saved Anthropic key, off = templates only) and the Slack channel name used for 1-star escalations. API keys, the Slack webhook and agent posting permission can only be changed by the owner in Replyly. Two steps with confirm_token.",
+          "Change workspace-wide settings: ai_mode (platform = TreeVook's AI, own = the owner's saved Anthropic key, off = templates only) and the Slack channel name used for 1-star escalations. API keys, the Slack webhook and agent posting permission can only be changed by the owner in TreeVook. Two steps with confirm_token.",
         inputSchema: {
           ai_mode: z.enum(["platform", "own", "off"]).optional(),
           slack_channel: z.string().max(81).nullable().optional(),
@@ -806,7 +806,7 @@ export class McpServerFactory {
       {
         title: "Import older reviews from the Play Console reports",
         description:
-          "Import an app's monthly review reports from the Play Console reports bucket the owner connected (only new or changed months). Needs the reports URI to be set in Replyly.",
+          "Import an app's monthly review reports from the Play Console reports bucket the owner connected (only new or changed months). Needs the reports URI to be set in TreeVook.",
         inputSchema: { app_id: appId },
         annotations: {
           readOnlyHint: false,
@@ -891,7 +891,7 @@ export class McpServerFactory {
       {
         title: "Save review reply drafts",
         description:
-          "Save up to 25 reply drafts for the owner to approve in Autopilot. Nothing is posted. Returns each review's new state and the review page url to share.",
+          "Save up to 25 reply drafts for the owner to approve in TreeVook. Nothing is posted. Returns each review's new state and the review page url to share.",
         inputSchema: {
           app_id: appId,
           drafts: z
@@ -952,7 +952,7 @@ export class McpServerFactory {
             return {
               status: "posting_disabled",
               message:
-                'The owner hasn\'t allowed agents to post replies. Save the reply with save_review_drafts so they can approve it in their inbox, or ask them to turn on "Allow agents to post replies" on the Replyly MCP page.',
+                'The owner hasn\'t allowed agents to post replies. Save the reply with save_review_drafts so they can approve it in their inbox, or ask them to turn on "Allow agents to post replies" on the Play Reviews MCP page.',
               url: this.play.reviewsUrl(a.app_id),
             };
           const args = {
@@ -1001,7 +1001,7 @@ export class McpServerFactory {
       {
         title: "Save a store listing project",
         description:
-          "Create or update the Google Play store listing project for an app (matched by slug, which defaults to the name) and get an upload token. Pass upload_url and upload_token to the store-creatives plugin's upload_to_platform tool; the files go straight from the user's machine to Autopilot. Share url with the user to choose a style. The token lasts two hours.",
+          "Create or update the Google Play store listing project for an app (matched by slug, which defaults to the name) and get an upload token. Pass upload_url and upload_token to the store-creatives plugin's upload_to_platform tool; the files go straight from the user's machine to TreeVook. Share url with the user to choose a style. The token lasts two hours.",
         inputSchema: {
           name: z.string().min(1).max(80),
           slug: z.string().regex(SLUG).optional(),
@@ -1046,7 +1046,7 @@ export class McpServerFactory {
       {
         title: "Save profile draft",
         description:
-          "Save proposed profile changes for the owner to review in Autopilot. facebook: about (short description, max 255), description (longer), website, phone, email, pictureCreativeId, coverCreativeId. instagram: name (max 30), bio (max 150), website, pictureCreativeId. Creative ids come from save_ad_creative or list_creatives. Send the full draft each time.",
+          "Save proposed profile changes for the owner to review in TreeVook. facebook: about (short description, max 255), description (longer), website, phone, email, pictureCreativeId, coverCreativeId. instagram: name (max 30), bio (max 150), website, pictureCreativeId. Creative ids come from save_ad_creative or list_creatives. Send the full draft each time.",
         inputSchema: {
           facebook: z
             .object({
@@ -1212,7 +1212,7 @@ export class McpServerFactory {
       "save_ad_creative",
       {
         title: "Save an ad image",
-        description: `Render an SVG design to a PNG and save it in the Autopilot creatives library. Formats: ${Object.entries(
+        description: `Render an SVG design to a PNG and save it in the TreeVook creatives library. Formats: ${Object.entries(
           SVG_FORMATS,
         )
           .map(([k, v]) => `${k} ${v.width}x${v.height}`)
@@ -1253,7 +1253,7 @@ export class McpServerFactory {
       {
         title: "Propose a campaign plan",
         description:
-          "Save a complete campaign plan for the owner to review in Autopilot. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
+          "Save a complete campaign plan for the owner to review in TreeVook. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
         inputSchema: planSchema,
         annotations: {
           readOnlyHint: false,

@@ -98,7 +98,7 @@ export function InboxPage() {
     <>
       <PageHeader
         title="Inbox"
-        description="What needs your attention. Autopilot checks your ads every morning at 7:30 and suggests what to change."
+        description="What needs your attention. TreeVook checks your ads every morning at 7:30 and suggests what to change."
         actions={
           <Button
             variant="secondary"
@@ -141,7 +141,7 @@ export function InboxPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium">Review plan: {p.name}</p>
                     <p className="text-caption text-muted">
-                      {p.source.startsWith("mcp:") ? `From ${p.source.slice(4)}` : "From Autopilot"}{" "}
+                      {p.source.startsWith("mcp:") ? `From ${p.source.slice(4)}` : "From TreeVook"}{" "}
                       · {date.format(new Date(p.createdAt))}
                     </p>
                   </div>

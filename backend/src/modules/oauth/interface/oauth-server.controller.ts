@@ -54,7 +54,7 @@ export class OAuthServerController {
       authorization_servers: [appUrl(this.config)],
       scopes_supported: RESOURCE_SCOPES,
       bearer_methods_supported: ["header"],
-      resource_name: "Ads Autopilot",
+      resource_name: "TreeVook AI",
     };
   }
 

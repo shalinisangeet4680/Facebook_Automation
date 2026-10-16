@@ -58,5 +58,5 @@ export function money(amount: number, currency: string): string {
 
 export function sourceLabel(source: string): string {
   if (source.startsWith("mcp:")) return `Proposed by ${source.slice(4)}`;
-  return "Created in Autopilot";
+  return "Created in TreeVook";
 }

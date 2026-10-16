@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   Inbox,
   LayoutGrid,
   ListChecks,
@@ -17,14 +18,14 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   soon?: boolean;
-  group?: "Meta ads" | "Google Play";
+  group?: "Meta ads" | "Google Play" | "Google Business";
   badge?: "reviews";
 }
 
 export const NAV: NavItem[] = [
-  { href: "/setup", label: "Setup", icon: ListChecks },
   { href: "/claude", label: "Claude", icon: Sparkles },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/setup", label: "Setup", icon: ListChecks, group: "Meta ads" },
+  { href: "/inbox", label: "Inbox", icon: Inbox, group: "Meta ads" },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone, group: "Meta ads" },
   { href: "/creatives", label: "Creatives", icon: LayoutGrid, group: "Meta ads" },
   { href: "/profile", label: "Page & Instagram", icon: Store, group: "Meta ads" },
@@ -36,6 +37,13 @@ export const NAV: NavItem[] = [
     icon: MessageSquareReply,
     group: "Google Play",
     badge: "reviews",
+  },
+  {
+    href: "/business",
+    label: "Business Profile",
+    icon: Building2,
+    group: "Google Business",
+    soon: true,
   },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

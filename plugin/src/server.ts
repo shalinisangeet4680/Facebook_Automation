@@ -192,9 +192,9 @@ server.registerTool(
 server.registerTool(
   "upload_to_platform",
   {
-    title: "Upload to Autopilot",
+    title: "Upload to TreeVook",
     description:
-      "Uploads images from .store-creatives straight to the Autopilot store listing project, without passing them through the conversation. Get upload_url and upload_token from the Autopilot connector's store_save_project or store_start_upload tool. parts: screens (the screenshots in screens/), preview (every rendered style preview), set (the rendered screenshots and feature graphics, filtered by styles, langs and sizes). Re-uploading replaces the same image.",
+      "Uploads images from .store-creatives straight to the TreeVook store listing project, without passing them through the conversation. Get upload_url and upload_token from the TreeVook connector's store_save_project or store_start_upload tool. parts: screens (the screenshots in screens/), preview (every rendered style preview), set (the rendered screenshots and feature graphics, filtered by styles, langs and sizes). Re-uploading replaces the same image.",
     inputSchema: {
       project_path: projectPath,
       cards,

@@ -162,7 +162,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export function normalizeSettings(
   raw: Partial<AppSettings> | null | undefined,
 ): AppSettings {
-  return { ...DEFAULT_SETTINGS, ...(raw ?? {}) };
+  return { ...DEFAULT_SETTINGS, ...raw };
 }
 
 export interface ReviewFacts {

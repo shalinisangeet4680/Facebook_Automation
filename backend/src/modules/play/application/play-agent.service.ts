@@ -32,9 +32,9 @@ const show = (v: unknown) =>
         : "off"
       : Array.isArray(v)
         ? v.join(", ") || "(none)"
-        : typeof v === "object"
-          ? JSON.stringify(v)
-          : String(v);
+        : typeof v === "string" || typeof v === "number"
+          ? String(v)
+          : JSON.stringify(v);
 
 export interface SettingsPreview {
   changes: string[];
