@@ -22,7 +22,8 @@ Module: `src/modules/play` (domain, application, infrastructure, interface, work
 - Every review gets a **topic** (Crash, Sync, Login, Payment, Performance, Ads, Feature request, Support, Praise, Other) from keywords when it arrives; an AI draft replaces it with Claude's choice.
 - A review edited after our reply is flagged `edited_after_reply` with `stars_before_edit`, and goes through the rules again if the app allows replying to edited reviews.
 - Replies posted in Play Console are picked up as the review's reply.
-- **History**: Play Console's monthly reviews reports (Download reports → Reviews, UTF-16 CSV) can be uploaded per app. Imported reviews never trigger rules. Rows without a review link get a `csv:` id and can't be replied to through the API; star-only ratings count in Insights but never appear in the reply inbox.
+- **History from the reports bucket**: Play Console keeps monthly review reports in `gs://pubsite_prod_<developer id>/reviews/reviews_<package>_<YYYYMM>.csv`. Saving that URI on a connection (`PUT /play/connections/:id/reports`, checked by listing the bucket) lets `POST /play/apps/:id/history` read the app's files through the Cloud Storage JSON API (scope `devstorage.read_only`; the service account needs **View app information and download bulk reports** in Play Console's account permissions, which can take up to a day). Each file's `updated` stamp is kept in `play_apps.report_files`, so only new or changed months are downloaded (`?all=true` re-reads everything); the worker refreshes every app with a bucket once a day. Imported rows go through the same path as uploads.
+- **History by upload**: Play Console's monthly reviews reports (Download reports → Reviews, UTF-16 CSV) can be uploaded per app. Imported reviews never trigger rules. Rows without a review link get a `csv:` id and can't be replied to through the API; star-only ratings count in Insights but never appear in the reply inbox.
 
 ## Templates
 
@@ -54,7 +55,7 @@ Module: `src/modules/play` (domain, application, infrastructure, interface, work
 ## Inbox and analytics
 
 - `GET /play/inbox?filter=pending|replied|all&appId=` lists reviews across apps: Needs reply (no reply, not skipped, with text or a draft), Replied (replied or skipped), with counts and the ids of drafts ready for **Approve all** (`POST /play/inbox/approve-all`, up to 50).
-- `GET /play/analytics?days=7|30|90&appId=` returns the period's reviews, reply rate, median response and rating against the period before, replies sent and time saved (1.6 minutes per reply, an estimate), daily reviews vs replies with a running average rating, the rating mix, and the top topics with their change.
+- `GET /play/analytics?days=7|30|90&appId=` (or `from=YYYY-MM-DD&to=YYYY-MM-DD` read in the app's time zone, or `all=true` from the first review with no comparison) returns the period's reviews, reply rate, median response and rating against the period before, replies sent and time saved (1.6 minutes per reply, an estimate), reviews vs replies per day (per week past 92 days, per month past two years) with a running average rating, the rating mix, and the top topics with their change.
 - App cards include the mode, a 14-day replies sparkline and pause state; the app detail adds the 30-day overview.
 
 ## Insights
@@ -76,6 +77,13 @@ Clients connect with OAuth (the Claude connector) or with the workspace **access
 | `save_review_drafts` | write | Up to 25 drafts into the inbox |
 | `upsert_review_template` | write | Create or edit the owner's templates |
 | `send_review_reply` | write | Two-step confirmed public reply, only when agents may post |
+| `get_review_settings` | read | An app's auto-reply switch, per-rating modes and templates, behavior, safeguards, placeholders, advanced rules, templates and workspace AI/Slack status |
+| `update_review_settings` | write | Two-step: change any of those app settings; turning a rating to auto is refused unless agents may post |
+| `set_review_rules` | write | Two-step: replace the advanced keyword rules; new auto rules need agent posting |
+| `update_review_workspace` | write | Two-step: AI drafting mode and Slack channel (never keys, the webhook or agent posting) |
+| `delete_review_template` | write | Two-step: delete one of the owner's templates |
+| `sync_play_apps` | write | Find newly shared apps, then fetch reviews for every app or one |
+| `import_review_history` | write | Import new or changed months from the reports bucket |
 
 ## API
 

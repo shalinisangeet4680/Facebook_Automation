@@ -26,12 +26,13 @@ import {
 } from "@modules/play/application/play.service";
 import { PlayInboxService } from "@modules/play/application/play-inbox.service";
 import { PlayWorkspaceService } from "@modules/play/application/play-workspace.service";
+import { PlayAgentService } from "@modules/play/application/play-agent.service";
 import { StoreService } from "@modules/store/application/store.service";
 import { LANG, SLUG } from "@modules/store/domain/store.rules";
 import { InboxService } from "@modules/inbox/application/inbox.service";
 import { ProfileService } from "@modules/profile/application/profile.service";
 import { FACEBOOK_PARTS } from "@modules/profile/domain/profile.draft";
-import { DomainError } from "@shared/errors/domain-error";
+import { DomainError, ValidationError } from "@shared/errors/domain-error";
 import { McpAuth } from "@shared/security/jwt-claims";
 
 const INSTRUCTIONS = `Ads Autopilot connects you to the user's Meta (Facebook and Instagram) ad account.
@@ -48,7 +49,7 @@ How to work:
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
 - To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in Autopilot or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from Autopilot's Profile page into the Instagram app.
 - Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in Autopilot. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
-- Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in Autopilot, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints.
+- Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in Autopilot, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints. To change how an app replies, read get_review_settings first, then use update_review_settings (per-rating mode and template, behavior, safeguards, placeholders), set_review_rules (advanced keyword rules) or update_review_workspace (AI drafting mode, Slack channel); each is two-step: show the summary, wait for an explicit yes, call again with confirm_token. sync_play_apps fetches new reviews and newly shared apps; import_review_history pulls older months.
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
 const DATE_PRESETS = [
@@ -82,6 +83,7 @@ export class McpServerFactory {
     private readonly play: PlayService,
     private readonly playInbox: PlayInboxService,
     private readonly playWorkspace: PlayWorkspaceService,
+    private readonly playAgent: PlayAgentService,
   ) {}
 
   create(auth: McpAuth, clientName: string): McpServer {
@@ -389,16 +391,39 @@ export class McpServerFactory {
       {
         title: "Review analytics across apps",
         description:
-          "Reviews, reply rate, median response time and average rating for the last 7, 30 or 90 days against the period before, daily reviews vs replies, the rating mix and the topics reviewers mention most with their change. Omit app_id for all apps.",
+          "Reviews, reply rate, median response time and average rating for the last 7, 30 or 90 days, a from/to date range (YYYY-MM-DD, both required), or all time (all: true), against the period before, daily reviews vs replies, the rating mix and the topics reviewers mention most with their change. Omit app_id for all apps.",
         inputSchema: {
           app_id: appId.optional(),
           days: z
             .union([z.literal(7), z.literal(30), z.literal(90)])
             .default(30),
+          from: date.optional(),
+          to: date.optional(),
+          all: z.boolean().optional(),
         },
         annotations: readOnly,
       },
-      (a) => run(() => this.playInbox.analytics(ws, a.app_id, a.days)),
+      (a) =>
+        run(() =>
+          this.playInbox.analytics(ws, a.app_id, {
+            days: a.days,
+            from: a.from,
+            to: a.to,
+            all: a.all,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "get_review_settings",
+      {
+        title: "Review reply settings for an app",
+        description:
+          "Everything the owner can set for one app: auto-reply on/off, mode and template per star rating, behavior (posting delay, voice, translate, personalize, skip star-only, escalate 1-star, safety pause, reply to edited), safeguards (time zone, quiet hours, daily automatic limit, never-auto words), placeholder values, advanced keyword rules, the templates to choose from, and workspace AI drafting and Slack status. Read this before proposing changes.",
+        inputSchema: { app_id: appId },
+        annotations: readOnly,
+      },
+      (a) => run(() => this.playAgent.settingsForClaude(ws, a.app_id)),
     );
 
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
@@ -437,17 +462,287 @@ export class McpServerFactory {
         }),
     );
 
+    const confirmed = async (
+      tool: string,
+      args: Record<string, unknown>,
+      token: string | undefined,
+      preview: () => Promise<{ changes: string[]; enablesAuto: boolean }>,
+      apply: () => Promise<unknown>,
+    ) => {
+      const p = await preview();
+      if (!p.changes.length)
+        return { status: "no_changes", message: "Nothing to change." };
+      if (p.enablesAuto && !(await this.playAgent.agentsCanPost(ws)))
+        return {
+          status: "auto_needs_permission",
+          message:
+            'Auto mode posts replies without approval, and the owner hasn\'t allowed agents to post. Ask them to turn on "Allow agents to post replies" on the Replyly MCP page, or keep these ratings on approval.',
+          changes: p.changes,
+        };
+      if (!token)
+        return {
+          status: "confirmation_required",
+          summary: p.changes,
+          confirmToken: await this.confirmations.issue(ws, tool, args),
+        };
+      if (!(await this.confirmations.consume(ws, tool, args, token)))
+        return {
+          status: "invalid_confirmation",
+          message:
+            "This confirmation is invalid, expired, used, or for different changes. Call again without confirm_token.",
+        };
+      return { status: "applied", result: await apply() };
+    };
+
+    const ratingMode = z.enum(["auto", "approval", "manual"]);
+    const settingsShape = {
+      enabled: z.boolean().optional(),
+      title: z.string().min(1).max(80).optional(),
+      rating_rules: z
+        .array(
+          z.object({
+            rating: z.number().int().min(1).max(5),
+            mode: ratingMode.optional(),
+            template_id: z.string().uuid().nullable().optional(),
+          }),
+        )
+        .max(5)
+        .optional(),
+      delay: z.enum(["instant", "15m", "1h", "6h"]).optional(),
+      tone: z.enum(["friendly", "professional", "concise"]).optional(),
+      translate: z.boolean().optional(),
+      personalize: z.boolean().optional(),
+      skip_empty: z.boolean().optional(),
+      escalate: z.boolean().optional(),
+      auto_pause: z.boolean().optional(),
+      reply_to_edited: z.boolean().optional(),
+      timezone: z.string().max(64).optional(),
+      quiet_hours: z
+        .object({
+          start: z.string().regex(/^\d{2}:\d{2}$/),
+          end: z.string().regex(/^\d{2}:\d{2}$/),
+        })
+        .nullable()
+        .optional(),
+      daily_auto_limit: z.number().int().min(0).max(500).optional(),
+      never_auto_words: z.array(z.string().max(40)).max(100).optional(),
+      placeholders: z.record(z.string(), z.string().max(200)).optional(),
+    };
+    type SettingsArgs = {
+      [K in keyof typeof settingsShape]?: z.infer<(typeof settingsShape)[K]>;
+    };
+    const toUpdate = (a: SettingsArgs) => {
+      const settings = Object.fromEntries(
+        Object.entries({
+          ratingRules: a.rating_rules?.map((r) => ({
+            rating: r.rating,
+            mode: r.mode,
+            templateId: r.template_id,
+          })),
+          delay: a.delay,
+          tone: a.tone,
+          translate: a.translate,
+          personalize: a.personalize,
+          skipEmpty: a.skip_empty,
+          escalate: a.escalate,
+          autoPause: a.auto_pause,
+          replyToEdited: a.reply_to_edited,
+          timezone: a.timezone,
+          quietHours: a.quiet_hours,
+          dailyAutoLimit: a.daily_auto_limit,
+          neverAutoWords: a.never_auto_words,
+        }).filter(([, v]) => v !== undefined),
+      );
+      return {
+        ...(a.title !== undefined ? { title: a.title } : {}),
+        ...(a.enabled !== undefined ? { automation: a.enabled } : {}),
+        ...(Object.keys(settings).length ? { settings } : {}),
+        ...(a.placeholders ? { variables: a.placeholders } : {}),
+      } as Parameters<PlayAgentService["applyApp"]>[2];
+    };
+
     server.registerTool(
-      "upsert_review_template",
+      "update_review_settings",
       {
-        title: "Create or edit a reply template",
+        title: "Change an app's review reply settings (needs confirmation)",
         description:
-          "Create a reply template, or edit one of the owner's own templates by template_id (pre-built templates are read-only). Use single-brace placeholders: {user_name}, {app_name}, {rating}, {support_email}, {version}, {developer_name}. ratings lists the star ratings it's meant for.",
+          "Change any of an app's settings: auto-reply on/off (enabled), name, per-rating mode (auto/approval/manual) and template (template_id, null for AI-written), posting delay, voice, translate, personalize, skip star-only, escalate 1-star, safety pause, reply to edited, time zone, quiet hours (null to turn off), daily automatic limit, never-auto words (replaces the list) and placeholder values (merged; empty string clears one). Only send what changes. Two steps: call without confirm_token to get a summary, show it to the user, then call again with the same arguments and confirm_token after they agree. Turning a rating to auto needs the owner to allow agents to post.",
         inputSchema: {
-          template_id: z.string().uuid().optional(),
-          name: z.string().min(1).max(60),
-          ratings: z.array(z.number().int().min(1).max(5)).max(5).default([]),
-          body: z.string().min(1).max(1000),
+          app_id: appId,
+          ...settingsShape,
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ confirm_token, ...a }) =>
+        run(() =>
+          confirmed(
+            "update_review_settings",
+            a,
+            confirm_token,
+            () => this.playAgent.previewApp(ws, a.app_id, toUpdate(a)),
+            () => this.playAgent.applyApp(actor, a.app_id, toUpdate(a)),
+          ),
+        ),
+    );
+
+    const ruleShape = z.object({
+      id: z.string().uuid().optional(),
+      name: z.string().min(1).max(60),
+      enabled: z.boolean().default(true),
+      conditions: z.object({
+        stars: z.array(z.number().int().min(1).max(5)).optional(),
+        keywords_any: z.array(z.string().max(40)).max(50).optional(),
+        keywords_none: z.array(z.string().max(40)).max(50).optional(),
+        languages: z.array(z.string().max(10)).optional(),
+        app_versions: z.array(z.string().max(40)).max(20).optional(),
+        edited: z.boolean().optional(),
+      }),
+      action: z.enum(["template", "claude", "skip"]),
+      template_id: z.string().uuid().optional(),
+      mode: z.enum(["approval", "auto"]).default("approval"),
+      delay_minutes: z.number().int().min(0).max(1440).default(30),
+    });
+    const toRules = (rules: z.infer<typeof ruleShape>[]) =>
+      rules.map((r) => ({
+        ...(r.id ? { id: r.id } : {}),
+        name: r.name,
+        enabled: r.enabled,
+        conditions: {
+          stars: r.conditions.stars,
+          keywordsAny: r.conditions.keywords_any,
+          keywordsNone: r.conditions.keywords_none,
+          languages: r.conditions.languages,
+          appVersions: r.conditions.app_versions,
+          edited: r.conditions.edited,
+        },
+        action:
+          r.action === "template"
+            ? { type: "template" as const, templateId: r.template_id ?? "" }
+            : { type: r.action },
+        mode: r.mode,
+        delayMinutes: r.delay_minutes,
+      }));
+
+    server.registerTool(
+      "set_review_rules",
+      {
+        title: "Replace an app's advanced keyword rules (needs confirmation)",
+        description:
+          "Replace the ordered list of advanced rules that run before the per-rating rules (first match wins). Send the full list you want, including existing rules by id. action: template (with template_id), claude (wait for you through the connector) or skip. Two steps with confirm_token, like update_review_settings.",
+        inputSchema: {
+          app_id: appId,
+          rules: z.array(ruleShape).max(30),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ confirm_token, ...a }) =>
+        run(() =>
+          confirmed(
+            "set_review_rules",
+            a,
+            confirm_token,
+            () => this.playAgent.previewRules(ws, a.app_id, toRules(a.rules)),
+            () => this.playAgent.applyRules(actor, a.app_id, toRules(a.rules)),
+          ),
+        ),
+    );
+
+    server.registerTool(
+      "update_review_workspace",
+      {
+        title:
+          "Change workspace AI drafting or Slack channel (needs confirmation)",
+        description:
+          "Change workspace-wide settings: ai_mode (platform = Replyly's AI, own = the owner's saved Anthropic key, off = templates only) and the Slack channel name used for 1-star escalations. API keys, the Slack webhook and agent posting permission can only be changed by the owner in Replyly. Two steps with confirm_token.",
+        inputSchema: {
+          ai_mode: z.enum(["platform", "own", "off"]).optional(),
+          slack_channel: z.string().max(81).nullable().optional(),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ confirm_token, ...a }) => {
+        const input = {
+          ...(a.ai_mode ? { aiMode: a.ai_mode } : {}),
+          ...(a.slack_channel !== undefined
+            ? { slackChannel: a.slack_channel }
+            : {}),
+        };
+        return run(() =>
+          confirmed(
+            "update_review_workspace",
+            a,
+            confirm_token,
+            () => this.playAgent.previewWorkspace(ws, input),
+            () => this.playAgent.applyWorkspace(actor, input),
+          ),
+        );
+      },
+    );
+
+    server.registerTool(
+      "delete_review_template",
+      {
+        title: "Delete one of the owner's templates (needs confirmation)",
+        description:
+          "Delete a template the owner created. Pre-built templates and templates used by a rating can't be deleted. Two steps with confirm_token.",
+        inputSchema: {
+          template_id: z.string().uuid(),
+          confirm_token: z.string().optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ confirm_token, ...a }) =>
+        run(async () => {
+          const list = (await this.play.templates(ws)).data;
+          const t = list.find((x) => x.id === a.template_id);
+          return confirmed(
+            "delete_review_template",
+            a,
+            confirm_token,
+            async () => ({
+              changes: t ? [`Delete template "${t.name}"`] : [],
+              enablesAuto: false,
+            }),
+            async () => {
+              await this.play.deleteTemplate(actor, a.template_id);
+              return { deleted: a.template_id };
+            },
+          );
+        }),
+    );
+
+    server.registerTool(
+      "set_template_hidden",
+      {
+        title: "Hide or show a pre-built template",
+        description:
+          "Hide a pre-built template the owner doesn't use (hidden: true) so it stops appearing in template pickers, or show it again (hidden: false). Nothing is deleted. A template used by a star rating or an advanced rule can't be hidden; change that first with update_review_settings or set_review_rules. The owner's own templates are deleted with delete_review_template instead.",
+        inputSchema: {
+          template_id: z.string().uuid(),
+          hidden: z.boolean(),
         },
         annotations: {
           readOnlyHint: false,
@@ -457,15 +752,137 @@ export class McpServerFactory {
         },
       },
       (a) =>
-        run(() => {
+        run(async () => {
+          const t = await this.play.setTemplateHidden(
+            actor,
+            a.template_id,
+            a.hidden,
+          );
+          return { id: t.id, name: t.name, hidden: t.hidden };
+        }),
+    );
+
+    server.registerTool(
+      "sync_play_apps",
+      {
+        title: "Fetch new reviews and find newly shared apps",
+        description:
+          "Look for apps newly shared with the service account, then fetch the latest reviews for every app (or only app_id). Apps that lost access are hidden from the list and come back when access returns.",
+        inputSchema: { app_id: appId.optional() },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const added: string[] = [];
+          if (!a.app_id)
+            for (const c of (await this.play.connections(ws)).data) {
+              const found = await this.play
+                .discover(actor, c.id)
+                .catch(() => null);
+              if (found) added.push(...found.added.map((x) => x.title));
+            }
+          const apps = a.app_id
+            ? [await this.play.appRow(ws, a.app_id)]
+            : (await this.play.apps(ws)).data;
+          const results = [];
+          for (const app of apps) {
+            const r = await this.play
+              .syncNow(actor, app.id)
+              .then((x) => ({ app: app.title, ...x }))
+              .catch((err: Error) => ({ app: app.title, error: err.message }));
+            results.push(r);
+          }
+          return { added, results };
+        }),
+    );
+
+    server.registerTool(
+      "import_review_history",
+      {
+        title: "Import older reviews from the Play Console reports",
+        description:
+          "Import an app's monthly review reports from the Play Console reports bucket the owner connected (only new or changed months). Needs the reports URI to be set in Replyly.",
+        inputSchema: { app_id: appId },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      (a) => run(() => this.play.importHistory(actor, a.app_id)),
+    );
+
+    server.registerTool(
+      "upsert_review_template",
+      {
+        title: "Create or edit a reply template",
+        description:
+          "Create a reply template, or edit one of the owner's own templates by template_id (pre-built templates are read-only: create a new one instead). Placeholders use single braces: {user_name}, {app_name}, {rating}, {version}, {support_email}, {developer_name}, or any value the app defines. Give either body (one English wording) or bodies (one entry per language, each with 1-10 wordings that rotate per review). ratings lists the star ratings it's meant for; app_id makes it available to one app only. The reply must fit 350 characters once filled. The result includes problems (missing values, too long) and filled-in samples; fix problems before using it. To make a rating use it, call update_review_settings with its id.",
+        inputSchema: {
+          template_id: z.string().uuid().optional(),
+          name: z.string().min(1).max(60),
+          ratings: z.array(z.number().int().min(1).max(5)).max(5).default([]),
+          body: z.string().min(1).max(1000).optional(),
+          bodies: z
+            .array(
+              z.object({
+                language: z.string().min(2).max(10),
+                variants: z.array(z.string().min(1).max(1000)).min(1).max(10),
+              }),
+            )
+            .min(1)
+            .max(20)
+            .optional(),
+          app_id: appId.optional(),
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      (a) =>
+        run(async () => {
+          const bodies =
+            a.bodies ??
+            (a.body ? [{ language: "en", variants: [a.body] }] : null);
+          if (!bodies)
+            throw new ValidationError(
+              "Give the template text as body or bodies.",
+            );
           const input = {
             name: a.name,
             ratings: a.ratings,
-            bodies: [{ language: "en", variants: [a.body] }],
+            bodies,
+            appId: a.app_id ?? null,
           };
-          return a.template_id
-            ? this.play.updateTemplate(actor, a.template_id, input)
-            : this.play.createTemplate(actor, input);
+          const template = a.template_id
+            ? await this.play.updateTemplate(actor, a.template_id, input)
+            : await this.play.createTemplate(actor, input);
+          const check = await this.play.checkDraft(ws, {
+            bodies,
+            appId: a.app_id ?? null,
+          });
+          return {
+            id: template.id,
+            name: template.name,
+            ratings: template.ratings,
+            app_id: template.appId,
+            problems: check.problems,
+            samples: check.samples.map((x) => ({
+              language: x.language,
+              text: x.text,
+              length: x.length,
+            })),
+            url: this.play.templatesUrl(),
+          };
         }),
     );
 

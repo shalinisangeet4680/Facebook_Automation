@@ -355,6 +355,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "apply_facebook_profile",
       "check_tracking",
       "create_campaign_draft",
+      "delete_review_template",
       "draft_review_reply",
       "get_account_overview",
       "get_campaign",
@@ -363,8 +364,10 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_profile_checkup",
       "get_review_analytics",
       "get_review_insights",
+      "get_review_settings",
       "get_review_templates",
       "get_suggestions",
+      "import_review_history",
       "list_campaign_plans",
       "list_campaigns",
       "list_creatives",
@@ -379,11 +382,16 @@ describe("Claude connector (OAuth + MCP)", () => {
       "save_review_drafts",
       "search_targeting",
       "send_review_reply",
+      "set_review_rules",
+      "set_template_hidden",
       "store_get_project",
       "store_save_project",
       "store_start_upload",
+      "sync_play_apps",
       "update_campaign_plan",
       "update_daily_budget",
+      "update_review_settings",
+      "update_review_workspace",
       "upsert_review_template",
     ]);
   });
@@ -1077,7 +1085,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     });
     expect(drafted.data).toEqual({
       saved: [{ review_id: crash.review_id, state: "waiting" }],
-      url: `${APP_URL}/reviews/inbox?app=${appId}`,
+      url: `${APP_URL}/reviews/${appId}`,
     });
 
     const blocked = await tool(accessToken, "send_review_reply", {
@@ -1126,6 +1134,183 @@ describe("Claude connector (OAuth + MCP)", () => {
     );
   });
 
+  it("lets Claude read and change review settings with confirmation", async () => {
+    const connection = await call(app, "POST", "/api/v1/play/connections", {
+      headers: session,
+      body: {
+        key: JSON.stringify({
+          type: "service_account",
+          project_id: "acme-play",
+          private_key:
+            "-----BEGIN PRIVATE KEY-----\nx\n-----END PRIVATE KEY-----\n",
+          client_email: "settings-test@acme-play.iam.gserviceaccount.com",
+        }),
+      },
+    });
+    const added = await call(app, "POST", "/api/v1/play/apps", {
+      headers: session,
+      body: {
+        connectionId: connection.body.id,
+        packageName: "com.claude.settings",
+      },
+    });
+    const appId = added.body.id as string;
+    const settings = await tool(accessToken, "get_review_settings", {
+      app_id: appId,
+    });
+    expect(settings.data.rating_rules).toHaveLength(5);
+    expect(settings.data.options.delays).toContain("6h");
+
+    const args = {
+      app_id: appId,
+      delay: "6h",
+      tone: "concise",
+      placeholders: { support_email: "care@claude.app" },
+      rating_rules: [{ rating: 3, mode: "manual" }],
+    };
+    const first = await tool(accessToken, "update_review_settings", args);
+    expect(first.data.status).toBe("confirmation_required");
+    expect(first.data.summary).toEqual(
+      expect.arrayContaining([
+        "3★ mode: approval → manual",
+        "Posting delay: 15 min → 6 hours",
+        "Voice: friendly → concise",
+        "{support_email}: help@claudesettings.example → care@claude.app",
+      ]),
+    );
+    const applied = await tool(accessToken, "update_review_settings", {
+      ...args,
+      confirm_token: first.data.confirmToken,
+    });
+    expect(applied.data.status).toBe("applied");
+    expect(applied.data.result.behavior).toMatchObject({
+      delay: "6h",
+      tone: "concise",
+    });
+    expect(applied.data.result.placeholders.support_email).toBe(
+      "care@claude.app",
+    );
+    expect(
+      (await tool(accessToken, "update_review_settings", args)).data.status,
+    ).toBe("no_changes");
+
+    await call(app, "PUT", "/api/v1/play/workspace", {
+      headers: session,
+      body: { agentsCanPost: false },
+    });
+    const auto = await tool(accessToken, "update_review_settings", {
+      app_id: appId,
+      rating_rules: [{ rating: 5, mode: "auto" }],
+    });
+    expect(auto.data.status).toBe("auto_needs_permission");
+
+    const rules = await tool(accessToken, "set_review_rules", {
+      app_id: appId,
+      rules: [
+        {
+          name: "Refunds go to Claude",
+          conditions: { keywords_any: ["refund"] },
+          action: "claude",
+        },
+      ],
+    });
+    expect(rules.data.status).toBe("confirmation_required");
+    const saved = await tool(accessToken, "set_review_rules", {
+      app_id: appId,
+      rules: [
+        {
+          name: "Refunds go to Claude",
+          conditions: { keywords_any: ["refund"] },
+          action: "claude",
+        },
+      ],
+      confirm_token: rules.data.confirmToken,
+    });
+    expect(saved.data.result.advanced_rules).toEqual([
+      expect.objectContaining({
+        name: "Refunds go to Claude",
+        action: { type: "claude" },
+      }),
+    ]);
+
+    const made = await tool(accessToken, "upsert_review_template", {
+      name: "Thanks in two languages",
+      ratings: [5, 4],
+      app_id: appId,
+      bodies: [
+        {
+          language: "en",
+          variants: [
+            "Thanks {user_name}! — {developer_name}",
+            "Thank you, {user_name}!",
+          ],
+        },
+        { language: "hi", variants: ["धन्यवाद {user_name}!"] },
+      ],
+    });
+    expect(made.data).toMatchObject({
+      name: "Thanks in two languages",
+      ratings: [5, 4],
+      app_id: appId,
+      problems: [],
+    });
+    expect(made.data.samples).toHaveLength(3);
+    expect(made.data.url).toBe(`${APP_URL}/reviews/templates`);
+    const edited = await tool(accessToken, "upsert_review_template", {
+      template_id: made.data.id,
+      name: "Thanks in two languages",
+      body: "Thanks {user_name}, write to {hotline} anytime.",
+    });
+    expect(edited.data.problems[0].problem).toContain("{hotline}");
+    const missing = await tool(accessToken, "upsert_review_template", {
+      name: "Empty",
+    });
+    expect(missing.isError).toBe(true);
+
+    const current = await tool(accessToken, "get_review_settings", {
+      app_id: appId,
+    });
+    const builtIns = current.data.templates as {
+      id: string;
+      name: string;
+      built_in: boolean;
+    }[];
+    const used = new Set(
+      (current.data.rating_rules as { template_id: string | null }[]).map(
+        (r) => r.template_id,
+      ),
+    );
+    const spare = builtIns.find(
+      (t) => t.built_in && !used.has(t.id) && t.name === "Feature request",
+    )!;
+    const hidden = await tool(accessToken, "set_template_hidden", {
+      template_id: spare.id,
+      hidden: true,
+    });
+    expect(hidden.data).toMatchObject({ id: spare.id, hidden: true });
+    const inUse = await tool(accessToken, "set_template_hidden", {
+      template_id: [...used].find(Boolean)!,
+      hidden: true,
+    });
+    expect(inUse.isError).toBe(true);
+    const own = await tool(accessToken, "set_template_hidden", {
+      template_id: made.data.id,
+      hidden: true,
+    });
+    expect(own.isError).toBe(true);
+    const shown = await tool(accessToken, "set_template_hidden", {
+      template_id: spare.id,
+      hidden: false,
+    });
+    expect(shown.data.hidden).toBe(false);
+
+    await call(
+      app,
+      "DELETE",
+      `/api/v1/play/connections/${connection.body.id as string}`,
+      { headers: session },
+    );
+  });
   it("refuses objects outside the selected ad account", async () => {
     const res = await tool(accessToken, "pause", { id: "999999999" });
     expect(res.isError).toBe(true);
@@ -1174,7 +1359,7 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(18);
+    expect(names).toHaveLength(19);
     expect(names).toContain("list_play_reviews");
     expect(names).not.toContain("send_review_reply");
     expect(names).toContain("store_get_project");

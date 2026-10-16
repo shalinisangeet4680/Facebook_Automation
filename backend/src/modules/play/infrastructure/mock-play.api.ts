@@ -3,6 +3,7 @@ import {
   PlayApi,
   PlayApiError,
   PlayReviewData,
+  ReportFile,
   ServiceAccountKey,
 } from "../domain/ports/play-api";
 
@@ -180,7 +181,60 @@ const titleOf = (packageName: string) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
 
+const REPORT_HEADER =
+  "Package Name,App Version Code,App Version Name,Reviewer Language,Device,Review Submit Date and Time,Review Submit Millis Since Epoch,Review Last Update Date and Time,Review Last Update Millis Since Epoch,Star Rating,Review Title,Review Text,Developer Reply Date and Time,Developer Reply Millis Since Epoch,Developer Reply Text,Review Link";
+
+function mockReport(packageName: string, monthsAgo: number): Buffer {
+  const base = Date.now() - (monthsAgo * 30 + 10) * 24 * HOUR;
+  const rows = [0, 1, 2].map((i) => {
+    const t = base + i * HOUR;
+    const id = `gp:HIST-${monthsAgo}-${i}`;
+    return `${packageName},210,2.1.0,en,a05m,,${t},,${t},${[5, 2, 4][i]},,"${["Solid app", "Login keeps failing", "Nice update"][i]}",,,,http://play.google.com/console/x/review-details?reviewId=${id}`;
+  });
+  const csv = [REPORT_HEADER, ...rows].join("\n");
+  return Buffer.concat([
+    Buffer.from([0xff, 0xfe]),
+    Buffer.from(csv, "utf16le"),
+  ]);
+}
+
+const monthOf = (monthsAgo: number) => {
+  const d = new Date();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() - monthsAgo);
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+};
+
 export class MockPlayApi implements PlayApi {
+  async listReports(
+    key: ServiceAccountKey,
+    bucket: string,
+    prefix: string,
+  ): Promise<ReportFile[]> {
+    if (bucket.includes("denied"))
+      throw new PlayApiError(
+        "access",
+        `${key.clientEmail} can't read the reports in gs://${bucket}. In Play Console → Users and permissions, open this service account and turn on "View app information and download bulk reports" under Account permissions.`,
+      );
+    if (!prefix.startsWith("reviews/")) return [];
+    return [1, 2].map((m) => ({
+      name: `${prefix}${monthOf(m)}.csv`,
+      updated: `${monthOf(m)}-updated`,
+      size: 1000,
+    }));
+  }
+
+  async downloadReport(
+    _key: ServiceAccountKey,
+    _bucket: string,
+    name: string,
+  ): Promise<Buffer> {
+    const m = /reviews_(.+)_(\d{6})\.csv$/.exec(name);
+    const packageName = m?.[1] ?? "com.unknown";
+    const months = [1, 2].find((n) => monthOf(n) === m?.[2]) ?? 1;
+    return mockReport(packageName, months);
+  }
+
   async verifyKey(key: ServiceAccountKey): Promise<void> {
     if (key.clientEmail.startsWith("revoked"))
       throw new PlayApiError(
@@ -249,6 +303,12 @@ export class MockPlayApi implements PlayApi {
 
   async listing(key: ServiceAccountKey, packageName: string) {
     this.check(key, packageName);
-    return { title: titleOf(packageName), iconUrl: null };
+    return {
+      title: titleOf(packageName),
+      iconUrl: null,
+      contactEmail: `help@${packageName.split(".").slice(1).join("")}.example`,
+      contactPhone: null,
+      contactWebsite: `https://${packageName.split(".").slice(1).join("")}.example`,
+    };
   }
 }

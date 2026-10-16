@@ -6,6 +6,7 @@ import {
   PlayApi,
   PlayApiError,
   PlayReviewData,
+  ReportFile,
   ServiceAccountKey,
 } from "../domain/ports/play-api";
 
@@ -16,6 +17,8 @@ const REPORTING_SCOPE =
   "https://www.googleapis.com/auth/playdeveloperreporting";
 const REPORTING = "https://playdeveloperreporting.googleapis.com/v1beta1";
 const MAX_PAGES = 20;
+const STORAGE_SCOPE = "https://www.googleapis.com/auth/devstorage.read_only";
+const STORAGE = "https://storage.googleapis.com/storage/v1/b";
 
 type Fetch = typeof fetch;
 
@@ -206,6 +209,90 @@ export class GooglePlayClient implements PlayApi {
     throw new PlayApiError("invalid", detail);
   }
 
+  private async storage(key: ServiceAccountKey, bucket: string, url: string) {
+    const token = await this.token(key, STORAGE_SCOPE);
+    const res = await this.http(url, {
+      headers: { authorization: `Bearer ${token}` },
+    }).catch(() => {
+      throw new PlayApiError(
+        "unavailable",
+        "Google Cloud Storage couldn't be reached. Try again.",
+      );
+    });
+    if (res.ok) return res;
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+    };
+    const detail = body.error?.message ?? `HTTP ${res.status}`;
+    if (res.status === 401 || res.status === 403)
+      throw new PlayApiError(
+        "access",
+        `${key.clientEmail} can't read the reports in gs://${bucket}. In Play Console → Users and permissions, open this service account and turn on "View app information and download bulk reports" under Account permissions. It can take up to a day to apply.`,
+      );
+    if (res.status === 404)
+      throw new PlayApiError(
+        "not_found",
+        `gs://${bucket} doesn't exist. Copy the Cloud Storage URI from Play Console → Download reports → Reviews.`,
+      );
+    if (res.status === 429)
+      throw new PlayApiError(
+        "quota",
+        "Cloud Storage is rate limited. Try again later.",
+      );
+    throw new PlayApiError(
+      res.status >= 500 ? "unavailable" : "invalid",
+      detail,
+    );
+  }
+
+  async listReports(
+    key: ServiceAccountKey,
+    bucket: string,
+    prefix: string,
+  ): Promise<ReportFile[]> {
+    const files: ReportFile[] = [];
+    let page: string | undefined;
+    for (let i = 0; i < 10; i++) {
+      const query = new URLSearchParams({
+        prefix,
+        maxResults: "1000",
+        fields: "items(name,updated,size),nextPageToken",
+      });
+      if (page) query.set("pageToken", page);
+      const res = await this.storage(
+        key,
+        bucket,
+        `${STORAGE}/${encodeURIComponent(bucket)}/o?${query.toString()}`,
+      );
+      const body = (await res.json()) as {
+        items?: { name: string; updated: string; size: string }[];
+        nextPageToken?: string;
+      };
+      for (const item of body.items ?? [])
+        files.push({
+          name: item.name,
+          updated: item.updated,
+          size: Number(item.size),
+        });
+      page = body.nextPageToken;
+      if (!page) break;
+    }
+    return files;
+  }
+
+  async downloadReport(
+    key: ServiceAccountKey,
+    bucket: string,
+    name: string,
+  ): Promise<Buffer> {
+    const res = await this.storage(
+      key,
+      bucket,
+      `${STORAGE}/${encodeURIComponent(bucket)}/o/${encodeURIComponent(name)}?alt=media`,
+    );
+    return Buffer.from(await res.arrayBuffer());
+  }
+
   async verifyKey(key: ServiceAccountKey): Promise<void> {
     this.tokens.delete(`${key.clientEmail} ${SCOPE}`);
     await this.token(key);
@@ -328,11 +415,12 @@ export class GooglePlayClient implements PlayApi {
       );
       editId = edit.id;
       if (!editId) return { title: null, iconUrl: null };
-      const details = await this.call<{ defaultLanguage?: string }>(
-        key,
-        packageName,
-        `/edits/${editId}/details`,
-      );
+      const details = await this.call<{
+        defaultLanguage?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        contactWebsite?: string;
+      }>(key, packageName, `/edits/${editId}/details`);
       const lang = details.defaultLanguage ?? "en-US";
       const [listing, icons] = await Promise.all([
         this.call<{ title?: string }>(
@@ -349,6 +437,9 @@ export class GooglePlayClient implements PlayApi {
       return {
         title: listing.title ?? null,
         iconUrl: icons.images?.[0]?.url ?? null,
+        contactEmail: details.contactEmail ?? null,
+        contactPhone: details.contactPhone ?? null,
+        contactWebsite: details.contactWebsite ?? null,
       };
     } catch {
       return { title: null, iconUrl: null };

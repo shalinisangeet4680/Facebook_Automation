@@ -113,6 +113,10 @@ describe("Replyly inbox, AI drafts and analytics", () => {
     const list = await inbox();
     expect(list.counts).toEqual({ pending: 8, replied: 0, all: 8 });
     expect(list.approvable).toHaveLength(8);
+    const ones = await inbox(`?appId=${appId}&stars=1`);
+    expect(ones.counts.pending).toBe(2);
+    expect((ones.data as Json[]).every((r) => r.stars === 1)).toBe(true);
+    expect((await api("GET", "/inbox?stars=6")).statusCode).toBe(400);
     const crash = (list.data as Json[]).find((r) => r.reviewId === "gp-2")!;
     expect(crash).toMatchObject({
       appId,
@@ -188,6 +192,25 @@ describe("Replyly inbox, AI drafts and analytics", () => {
     expect((all.body.topics as Json[]).map((t) => t.topic)).toContain("Crash");
     const one = await api("GET", `/analytics?days=7&appId=${appId}`);
     expect(one.body.series).toHaveLength(7);
+    const today = new Date().toISOString().slice(0, 10);
+    const custom = await api(
+      "GET",
+      `/analytics?from=2026-01-01&to=${today}&appId=${appId}`,
+    );
+    expect(custom.body).toMatchObject({
+      bucket: "week",
+      current: { reviews: 8 },
+    });
+    const forever = await api("GET", "/analytics?all=true");
+    expect(forever.body.current.reviews).toBeGreaterThanOrEqual(8);
+    expect(forever.body.previous.reviews).toBe(0);
+    const backwards = await api(
+      "GET",
+      `/analytics?from=${today}&to=2026-01-01`,
+    );
+    expect(backwards.statusCode).toBe(400);
+    const half = await api("GET", "/analytics?from=2026-01-01");
+    expect(half.body.message).toBe("Choose both a start and an end date.");
     const detail = await api("GET", `/apps/${appId}`);
     expect(detail.body).toMatchObject({
       overview: { replyRate: 100 },
@@ -271,6 +294,62 @@ describe("Replyly inbox, AI drafts and analytics", () => {
     expect(await app.get(PlayEngine).sendDue()).toMatchObject({ failed: 0 });
   });
 
+  it("imports review history from the Play Console reports bucket", async () => {
+    const connectionId = (await api("GET", "/connections")).body.data[0]
+      .id as string;
+    const none = await api("POST", `/apps/${appId}/history`);
+    expect(none.body.message).toContain("reports URI first");
+    const bad = await api("PUT", `/connections/${connectionId}/reports`, {
+      uri: "gs://my-bucket/reviews/",
+    });
+    expect(bad.statusCode).toBe(400);
+    const denied = await api("PUT", `/connections/${connectionId}/reports`, {
+      uri: "gs://pubsite_prod_denied123/reviews/",
+    });
+    expect(denied.statusCode).toBe(200);
+    expect(denied.body.data[0].reportsBucket).toBe("pubsite_prod_denied123");
+    expect((await api("GET", `/apps/${appId}`)).body.history.error).toContain(
+      "download bulk reports",
+    );
+    const saved = await api("PUT", `/connections/${connectionId}/reports`, {
+      uri: "gs://pubsite_prod_8366263714187534872/reviews/",
+    });
+    expect(saved.body.data[0].reportsBucket).toBe(
+      "pubsite_prod_8366263714187534872",
+    );
+
+    const first = await api("POST", `/apps/${appId}/history`);
+    expect(first.body).toMatchObject({
+      files: 2,
+      changed: 2,
+      rows: 6,
+      imported: 6,
+    });
+    const again = await api("POST", `/apps/${appId}/history`);
+    expect(again.body).toMatchObject({ files: 2, changed: 0, imported: 0 });
+    const forced = await api("POST", `/apps/${appId}/history?all=true`);
+    expect(forced.body).toMatchObject({ changed: 2, rows: 6, imported: 0 });
+    const detail = await api("GET", `/apps/${appId}`);
+    expect(detail.body.history).toMatchObject({
+      bucket: "pubsite_prod_8366263714187534872",
+      files: 2,
+      error: null,
+    });
+    expect(
+      await app
+        .get(PlayEngine)
+        .repo.appsDueForHistory(
+          new Date(Date.now() - 86_400_000),
+          new Date(),
+          10,
+        ),
+    ).toEqual([]);
+    const insights = await api("GET", `/apps/${appId}/insights?days=90`);
+    expect(insights.body.complaints.map((w: Json) => w.word)).toContain(
+      "login",
+    );
+  });
+
   it("flags apps that lost reply access and rechecks them", async () => {
     await db
       .update(playApps)
@@ -282,5 +361,46 @@ describe("Replyly inbox, AI drafts and analytics", () => {
       syncErrorKind: null,
       mode: "auto",
     });
+  });
+
+  it("hides an app that loses access and brings it back when access returns", async () => {
+    await db
+      .update(playApps)
+      .set({ packageName: "com.acme.notes.denied" })
+      .where(eq(playApps.id, appId));
+    const synced = await api("POST", `/apps/${appId}/sync`);
+    expect(synced.body).toMatchObject({ archived: true, fetched: 0 });
+    expect((await api("GET", "/apps")).body.data).toEqual([]);
+    expect((await inbox()).counts.pending).toBe(0);
+    expect((await api("GET", `/apps/${appId}`)).statusCode).toBe(200);
+
+    await db
+      .update(playApps)
+      .set({ packageName: "com.acme.notes" })
+      .where(eq(playApps.id, appId));
+    const back = await api("POST", `/apps/${appId}/recheck`);
+    expect(back.body).toMatchObject({ syncErrorKind: null });
+    expect(
+      ((await api("GET", "/apps")).body.data as Json[]).map((a) => a.id),
+    ).toEqual([appId]);
+  });
+
+  it("suggests placeholder values from the store listing and past replies", async () => {
+    const res = await api("GET", `/apps/${appId}/variable-suggestions`);
+    expect(res.body.repliesRead).toBeGreaterThan(0);
+    expect(res.body.suggestions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "support_email",
+          value: "help@acmenotes.example",
+          source: "play_listing",
+        }),
+        expect.objectContaining({
+          key: "support_url",
+          value: "https://acmenotes.example",
+          source: "play_listing",
+        }),
+      ]),
+    );
   });
 });

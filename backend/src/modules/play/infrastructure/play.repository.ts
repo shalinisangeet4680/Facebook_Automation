@@ -126,6 +126,16 @@ export class PlayRepository {
     return this.db
       .select()
       .from(playApps)
+      .where(
+        and(eq(playApps.workspaceId, workspaceId), isNull(playApps.archivedAt)),
+      )
+      .orderBy(asc(playApps.createdAt));
+  }
+
+  allApps(workspaceId: string) {
+    return this.db
+      .select()
+      .from(playApps)
       .where(eq(playApps.workspaceId, workspaceId))
       .orderBy(asc(playApps.createdAt));
   }
@@ -184,10 +194,47 @@ export class PlayRepository {
       .select()
       .from(playApps)
       .where(
-        or(isNull(playApps.lastSyncedAt), lt(playApps.lastSyncedAt, before)),
+        and(
+          isNull(playApps.archivedAt),
+          or(isNull(playApps.lastSyncedAt), lt(playApps.lastSyncedAt, before)),
+        ),
       )
       .orderBy(asc(playApps.lastSyncedAt))
       .limit(limit);
+  }
+
+  async setHistoryError(connectionId: string, error: string | null) {
+    await this.db
+      .update(playApps)
+      .set({
+        historyError: error,
+        historyImportedAt: error ? new Date() : null,
+      })
+      .where(eq(playApps.connectionId, connectionId));
+  }
+
+  async appsDueForHistory(before: Date, retryBefore: Date, limit: number) {
+    const rows = await this.db
+      .select({ app: playApps })
+      .from(playApps)
+      .innerJoin(playConnections, eq(playConnections.id, playApps.connectionId))
+      .where(
+        and(
+          isNull(playApps.archivedAt),
+          sql`${playConnections.reportsBucket} is not null`,
+          or(
+            isNull(playApps.historyImportedAt),
+            lt(playApps.historyImportedAt, before),
+            and(
+              sql`${playApps.historyError} is not null`,
+              lt(playApps.historyImportedAt, retryBefore),
+            ),
+          ),
+        ),
+      )
+      .orderBy(asc(playApps.historyImportedAt))
+      .limit(limit);
+    return rows.map((r) => r.app);
   }
 
   reviewsByGoogleIds(appId: string, ids: string[]) {
@@ -602,6 +649,21 @@ export class PlayRepository {
       );
   }
 
+  async replyTexts(appId: string, limit: number) {
+    const rows = await this.db
+      .select({ text: playReviews.replyText })
+      .from(playReviews)
+      .where(
+        and(
+          eq(playReviews.appId, appId),
+          sql`${playReviews.replyText} is not null`,
+        ),
+      )
+      .orderBy(desc(playReviews.repliedAt))
+      .limit(limit);
+    return rows.map((r) => r.text!);
+  }
+
   untaggedReviews(appId: string, limit: number) {
     return this.db
       .select()
@@ -637,6 +699,20 @@ export class PlayRepository {
       );
   }
 
+  async firstReviewAt(workspaceId: string, appIds: string[]) {
+    if (!appIds.length) return null;
+    const [row] = await this.db
+      .select({ first: sql<Date | null>`min(${playReviews.reviewedAt})` })
+      .from(playReviews)
+      .where(
+        and(
+          eq(playReviews.workspaceId, workspaceId),
+          inArray(playReviews.appId, appIds),
+        ),
+      );
+    return row?.first ? new Date(row.first) : null;
+  }
+
   workspaceReviews(
     workspaceId: string,
     filters: { appIds: string[]; since?: Date },
@@ -656,7 +732,12 @@ export class PlayRepository {
       .limit(limit);
   }
 
-  openReviews(workspaceId: string, appIds: string[], limit: number) {
+  openReviews(
+    workspaceId: string,
+    appIds: string[],
+    limit: number,
+    stars?: number[],
+  ) {
     if (!appIds.length) return Promise.resolve([] as PlayReviewRow[]);
     return this.db
       .select()
@@ -665,6 +746,7 @@ export class PlayRepository {
         and(
           eq(playReviews.workspaceId, workspaceId),
           inArray(playReviews.appId, appIds),
+          stars?.length ? inArray(playReviews.stars, stars) : undefined,
           isNull(playReviews.skippedAt),
           or(
             isNull(playReviews.replyText),
@@ -677,7 +759,12 @@ export class PlayRepository {
       .limit(limit);
   }
 
-  doneReviews(workspaceId: string, appIds: string[], limit: number) {
+  doneReviews(
+    workspaceId: string,
+    appIds: string[],
+    limit: number,
+    stars?: number[],
+  ) {
     if (!appIds.length) return Promise.resolve([] as PlayReviewRow[]);
     return this.db
       .select()
@@ -686,6 +773,7 @@ export class PlayRepository {
         and(
           eq(playReviews.workspaceId, workspaceId),
           inArray(playReviews.appId, appIds),
+          stars?.length ? inArray(playReviews.stars, stars) : undefined,
           or(
             sql`${playReviews.skippedAt} is not null`,
             and(

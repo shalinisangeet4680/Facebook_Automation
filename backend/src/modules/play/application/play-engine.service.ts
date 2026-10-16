@@ -123,7 +123,7 @@ export class PlayEngine {
     if (settings.ratingRules.length === 5) return settings.ratingRules;
     const presets = new Map(
       (await this.repo.allTemplates(app.workspaceId))
-        .filter((t) => t.presetKey && !t.appId)
+        .filter((t) => t.presetKey && !t.appId && !t.hidden)
         .map((t) => [t.presetKey!, t.id]),
     );
     const ratingRules = [5, 4, 3, 2, 1].map(
@@ -297,11 +297,36 @@ export class PlayEngine {
         err instanceof PlayApiError
           ? err.message
           : "Reviews couldn't be fetched.";
+      const lost =
+        err instanceof PlayApiError &&
+        (err.kind === "access" || err.kind === "not_found");
       await this.repo.updateApp(app.id, {
         syncError: message,
         syncErrorKind: syncErrorKind(err),
         lastSyncedAt: new Date(),
+        ...(lost ? { archivedAt: new Date(), archiveReason: message } : {}),
       });
+      if (lost) {
+        await this.repo.holdScheduled(
+          app.id,
+          "Replyly lost access to this app on Google Play.",
+        );
+        await this.audit.record({
+          workspaceId: app.workspaceId,
+          actor: "system",
+          actorId: null,
+          action: "play.app_archived",
+          target: app.id,
+          data: { packageName: app.packageName, reason: message },
+        });
+        return {
+          fetched: 0,
+          created: 0,
+          updated: 0,
+          drafts: 0,
+          archived: true,
+        };
+      }
       throw err instanceof PlayApiError ? new ValidationError(message) : err;
     }
     const existing = new Map(
@@ -391,6 +416,7 @@ export class PlayEngine {
       created,
       updated: touched.length - created,
       drafts,
+      archived: false,
     };
   }
 
@@ -457,7 +483,7 @@ export class PlayEngine {
         stars: review.stars,
         text: review.originalText || review.text,
         draft,
-        url: `${appUrl(this.config)}/reviews/inbox?app=${app.id}`,
+        url: `${appUrl(this.config)}/reviews/${app.id}`,
       });
       await this.repo.updateReview(review.id, { escalatedAt: new Date() });
     } catch (err) {

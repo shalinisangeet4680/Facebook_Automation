@@ -3,7 +3,9 @@ import { Injectable } from "@nestjs/common";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 
 import {
+  bucketFor,
   dailySeries,
+  zonedDayStart,
   distribution,
   periodStats,
   topicTrends,
@@ -54,12 +56,13 @@ export class PlayInboxService {
     workspaceId: string,
     filter: InboxFilter,
     appId: string | undefined,
+    stars?: number[],
     limit = 100,
   ) {
     const { ids } = await this.scope(workspaceId, appId);
     const [open, done] = await Promise.all([
-      this.repo.openReviews(workspaceId, ids, 500),
-      this.repo.doneReviews(workspaceId, ids, 500),
+      this.repo.openReviews(workspaceId, ids, 500, stars),
+      this.repo.doneReviews(workspaceId, ids, 500, stars),
     ]);
     const pending = filter === "replied" ? [] : await this.views(open);
     const replied =
@@ -145,7 +148,7 @@ export class PlayInboxService {
       );
       if (!others.length)
         throw new ValidationError(
-          "Rewriting needs AI drafting. Turn it on in Automation → AI drafting, or add more wordings to the template.",
+          "Rewriting needs AI drafting. Turn it on in the app’s Settings → AI & integrations, or add more wordings to the template.",
         );
       const text = render(
         pickVariant(others, `${review.id}:${Date.now()}`),
@@ -157,7 +160,7 @@ export class PlayInboxService {
       throw new ValidationError(
         allowed
           ? "Claude couldn't write a draft right now. Write the reply yourself or try again."
-          : "Pick a template for this rating in Automation, or turn on AI drafting.",
+          : "Pick a template for this rating in the app’s Settings, or turn on AI drafting.",
       );
     await this.play.upsertDraft(actor, app, review, {
       text: drafted.text,
@@ -206,39 +209,74 @@ export class PlayInboxService {
   async analytics(
     workspaceId: string,
     appId: string | undefined,
-    days: number,
+    range: { days?: number; from?: string; to?: string; all?: boolean },
   ) {
     const { apps, ids } = await this.scope(workspaceId, appId);
     const now = new Date();
-    const reviews = await this.repo.workspaceReviews(
-      workspaceId,
-      { appIds: ids, since: new Date(now.getTime() - (2 * days + 30) * DAY) },
-      200_000,
-    );
-    const to = now.getTime();
-    const current = periodStats(reviews, to - days * DAY, to);
-    const previous = periodStats(reviews, to - 2 * days * DAY, to - days * DAY);
-    const sent = await this.repo.sentRepliesBetween(
-      workspaceId,
-      ids,
-      new Date(to - days * DAY),
-      now,
-    );
     const timezone = normalizeSettings(
       apps.find((a) => ids.includes(a.id))?.settings,
     ).timezone;
-    const inPeriod = reviews.filter(
-      (r) => r.reviewedAt.getTime() > to - days * DAY,
+    let end = now.getTime();
+    let start: number;
+    if (range.from || range.to) {
+      if (!range.from || !range.to)
+        throw new ValidationError("Choose both a start and an end date.");
+      start = zonedDayStart(range.from, timezone).getTime();
+      end = Math.min(
+        zonedDayStart(range.to, timezone).getTime() + DAY - 1,
+        now.getTime(),
+      );
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end)
+        throw new ValidationError(
+          "The start date must be before the end date.",
+        );
+      if (end - start > 5 * 366 * DAY)
+        throw new ValidationError("Choose a range of at most 5 years.");
+    } else if (range.all) {
+      const first = await this.repo.firstReviewAt(workspaceId, ids);
+      start = Math.min(
+        first?.getTime() ?? now.getTime() - 30 * DAY,
+        now.getTime() - 7 * DAY,
+      );
+    } else start = now.getTime() - (range.days ?? 30) * DAY;
+    const days = Math.max(1, Math.ceil((end - start) / DAY));
+    const bucket = bucketFor(days);
+    const reviews = await this.repo.workspaceReviews(
+      workspaceId,
+      {
+        appIds: ids,
+        since: new Date(start - (range.all ? 30 : days + 30) * DAY),
+      },
+      300_000,
     );
+    const current = periodStats(reviews, start, end);
+    const previous = range.all
+      ? periodStats([], start, start)
+      : periodStats(reviews, start - days * DAY, start);
+    const sent = await this.repo.sentRepliesBetween(
+      workspaceId,
+      ids,
+      new Date(start),
+      new Date(end),
+    );
+    const endDate = new Date(end);
     return {
       days,
+      from: new Date(start).toISOString(),
+      to: endDate.toISOString(),
+      bucket,
       current,
       previous,
       repliesSent: sent,
       timeSavedHours: Math.round(((sent * 1.6) / 60) * 10) / 10,
-      series: dailySeries(reviews, now, days, timezone),
-      distribution: distribution(inPeriod),
-      topics: topicTrends(reviews, now, days),
+      series: dailySeries(reviews, endDate, days, timezone, bucket),
+      distribution: distribution(
+        reviews.filter(
+          (r) =>
+            r.reviewedAt.getTime() > start && r.reviewedAt.getTime() <= end,
+        ),
+      ),
+      topics: topicTrends(reviews, endDate, days),
     };
   }
 }

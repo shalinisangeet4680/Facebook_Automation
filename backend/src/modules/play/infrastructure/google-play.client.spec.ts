@@ -206,7 +206,7 @@ describe("GooglePlayClient", () => {
     );
   });
 
-  it("reads the store listing title and icon and always closes the edit", async () => {
+  it("reads the store listing title, icon and contact details and always closes the edit", async () => {
     const seen: string[] = [];
     const http = vi.fn(async (url: string, init?: RequestInit) => {
       const u = url;
@@ -217,7 +217,11 @@ describe("GooglePlayClient", () => {
         return json({ access_token: "t", expires_in: 3600 });
       if (u.endsWith("/edits")) return json({ id: "e1" });
       if (u.endsWith("/edits/e1/details"))
-        return json({ defaultLanguage: "en-IN" });
+        return json({
+          defaultLanguage: "en-IN",
+          contactEmail: "help@acme.in",
+          contactWebsite: "https://acme.in",
+        });
       if (u.endsWith("/listings/en-IN")) return json({ title: "Acme Shop" });
       if (u.endsWith("/listings/en-IN/icon"))
         return json({
@@ -229,6 +233,9 @@ describe("GooglePlayClient", () => {
     await expect(client.listing(key, "com.acme.shop")).resolves.toEqual({
       title: "Acme Shop",
       iconUrl: "https://lh3.googleusercontent.com/icon",
+      contactEmail: "help@acme.in",
+      contactPhone: null,
+      contactWebsite: "https://acme.in",
     });
     expect(seen).toContain("DELETE com.acme.shop/edits/e1");
   });

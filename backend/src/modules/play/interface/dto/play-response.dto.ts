@@ -22,6 +22,7 @@ export class PlayConnectionDto {
   checkedAt?: string | null;
   discoveredAt?: string | null;
   discoveryError?: string | null;
+  reportsBucket?: string | null;
   apps?: number;
 }
 
@@ -47,6 +48,7 @@ export class DiscoveryResultDto {
   added: DiscoveredAddedDto[];
   already: DiscoveredExistingDto[];
   failed: DiscoveryFailureDto[];
+  restored: DiscoveredAddedDto[];
   error: string | null;
 }
 
@@ -163,6 +165,10 @@ export class TopicTrendDto {
 
 export class PlayAnalyticsDto {
   days: number;
+  from: string;
+  to: string;
+  @ApiProperty({ enum: ["day", "week", "month"] })
+  bucket: "day" | "week" | "month";
   current: PeriodStatsDto;
   previous: PeriodStatsDto;
   repliesSent: number;
@@ -177,9 +183,27 @@ export class SyncResultDto {
   created: number;
   updated: number;
   drafts: number;
+  archived: boolean;
+}
+
+export class AppHistoryDto {
+  bucket: string | null;
+  importedAt: string | null;
+  error: string | null;
+  files: number;
+}
+
+export class HistoryImportResultDto {
+  files: number;
+  changed: number;
+  rows: number;
+  imported: number;
+  from: string | null;
+  to: string | null;
 }
 
 export class PlayAppDetailDto extends PlayAppDto {
+  history: AppHistoryDto;
   automation: boolean;
   settings: PlaySettingsViewDto;
   @ApiProperty({ type: "object", additionalProperties: { type: "string" } })
@@ -379,6 +403,7 @@ export class PlayTemplateDto {
   appId: string | null;
   presetKey: string | null;
   builtIn: boolean;
+  hidden: boolean;
   @ApiProperty({ type: [Number] })
   ratings: number[];
   usedBy: TemplateUsageDto[];
@@ -492,4 +517,18 @@ export class ImportResultDto {
   ratingOnly: number;
   from: string;
   to: string;
+}
+
+export class VariableSuggestionDto {
+  key: string;
+  value: string;
+  @ApiProperty({ enum: ["play_listing", "past_replies"] })
+  source: "play_listing" | "past_replies";
+  count: number;
+  current: string | null;
+}
+
+export class VariableSuggestionListDto {
+  repliesRead: number;
+  suggestions: VariableSuggestionDto[];
 }

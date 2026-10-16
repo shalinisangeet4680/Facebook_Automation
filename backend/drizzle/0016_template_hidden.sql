@@ -1,0 +1,1 @@
+ALTER TABLE "play_templates" ADD COLUMN "hidden" boolean DEFAULT false NOT NULL;

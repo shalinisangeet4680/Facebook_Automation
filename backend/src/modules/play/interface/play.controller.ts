@@ -35,6 +35,8 @@ import {
   AnalyticsQueryDto,
   ApproveAllDto,
   PlayInboxQueryDto,
+  ReportsBucketDto,
+  TemplateVisibilityDto,
   WorkspaceSettingsDto,
   ApproveReplyDto,
   BulkReplyDto,
@@ -54,6 +56,8 @@ import {
   PlayInboxReviewDto,
   McpClientListDto,
   PlayAnalyticsDto,
+  VariableSuggestionListDto,
+  HistoryImportResultDto,
   WorkspaceSettingsViewDto,
   BulkReplyResultDto,
   ConnectResultDto,
@@ -144,6 +148,7 @@ export class PlayController {
       ctx.workspaceId,
       query.filter ?? "pending",
       query.appId,
+      query.stars?.split(",").map(Number),
     );
   }
 
@@ -200,11 +205,12 @@ export class PlayController {
     @CurrentUser() ctx: TenantContext,
     @Query() query: AnalyticsQueryDto,
   ): Promise<PlayAnalyticsDto> {
-    return this.inboxes.analytics(
-      ctx.workspaceId,
-      query.appId,
-      query.days ?? 30,
-    );
+    return this.inboxes.analytics(ctx.workspaceId, query.appId, {
+      days: query.days,
+      from: query.from,
+      to: query.to,
+      all: query.all === "true",
+    });
   }
 
   @Get("connections")
@@ -231,6 +237,30 @@ export class PlayController {
     @Param("id", id) connectionId: string,
   ): Promise<DiscoveryResultDto> {
     return this.play.discover(actor(ctx), connectionId);
+  }
+
+  @Put("connections/:id/reports")
+  setReports(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) connectionId: string,
+    @Body() body: ReportsBucketDto,
+  ): Promise<PlayConnectionListDto> {
+    return this.play.setReportsBucket(
+      actor(ctx),
+      connectionId,
+      body.uri ?? null,
+    );
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("apps/:id/history")
+  @HttpCode(HttpStatus.OK)
+  importHistory(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+    @Query("all") all?: string,
+  ): Promise<HistoryImportResultDto> {
+    return this.play.importHistory(actor(ctx), appId, all === "true");
   }
 
   @Delete("connections/:id")
@@ -273,6 +303,15 @@ export class PlayController {
     return this.play.updateApp(actor(ctx), appId, body);
   }
 
+  @Throttle({ default: { limit: 60, ttl: 3_600_000 } })
+  @Get("apps/:id/variable-suggestions")
+  variableSuggestions(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) appId: string,
+  ): Promise<VariableSuggestionListDto> {
+    return this.play.suggestVariables(ctx.workspaceId, appId);
+  }
+
   @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
   @Post("apps/:id/recheck")
   @HttpCode(HttpStatus.OK)
@@ -301,7 +340,7 @@ export class PlayController {
     return this.play.removeApp(actor(ctx), appId);
   }
 
-  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Throttle({ default: { limit: 600, ttl: 3_600_000 } })
   @Post("apps/:id/sync")
   sync(
     @CurrentUser() ctx: TenantContext,
@@ -474,6 +513,15 @@ export class PlayController {
     @CurrentUser() ctx: TenantContext,
   ): Promise<RestoredPresetsDto> {
     return this.play.restorePresets(actor(ctx));
+  }
+
+  @Put("templates/:id/visibility")
+  setTemplateVisibility(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) templateId: string,
+    @Body() body: TemplateVisibilityDto,
+  ): Promise<PlayTemplateDto> {
+    return this.play.setTemplateHidden(actor(ctx), templateId, body.hidden);
   }
 
   @Post("templates/:id/duplicate")

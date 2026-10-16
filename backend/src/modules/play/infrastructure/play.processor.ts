@@ -41,6 +41,24 @@ export class PlayProcessor extends WorkerHost {
         );
       }
     }
+    let histories = 0;
+    for (const app of await this.engine.repo.appsDueForHistory(
+      new Date(Date.now() - 86_400_000),
+      new Date(Date.now() - 3_600_000),
+      5,
+    )) {
+      try {
+        await this.play.importHistory(
+          { userId: null, workspaceId: app.workspaceId, via: "automation" },
+          app.id,
+        );
+        histories++;
+      } catch (err) {
+        this.logger.warn(
+          `History import failed for ${app.packageName}: ${(err as Error).message}`,
+        );
+      }
+    }
     let discovered = 0;
     for (const c of await this.engine.repo.connectionsDueForDiscovery(
       new Date(Date.now() - 86_400_000),
@@ -58,7 +76,7 @@ export class PlayProcessor extends WorkerHost {
         );
       }
     }
-    return { replies, synced, failed, discovered };
+    return { replies, synced, failed, histories, discovered };
   }
 }
 

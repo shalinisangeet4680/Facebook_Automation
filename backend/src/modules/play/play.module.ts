@@ -5,6 +5,7 @@ import { OAuthModule } from "@modules/oauth/oauth.module";
 import { Env } from "@shared/config/env.validation";
 
 import { PlayEngine } from "./application/play-engine.service";
+import { PlayAgentService } from "./application/play-agent.service";
 import { PlayInboxService } from "./application/play-inbox.service";
 import { PlayWorkspaceService } from "./application/play-workspace.service";
 import { PlayService } from "./application/play.service";
@@ -28,6 +29,7 @@ import { PlayController } from "./interface/play.controller";
     PlayService,
     PlayInboxService,
     PlayWorkspaceService,
+    PlayAgentService,
     {
       provide: REPLY_AI,
       inject: [ConfigService],
@@ -53,6 +55,12 @@ import { PlayController } from "./interface/play.controller";
           : new GooglePlayClient(),
     },
   ],
-  exports: [PlayService, PlayEngine, PlayInboxService, PlayWorkspaceService],
+  exports: [
+    PlayService,
+    PlayEngine,
+    PlayInboxService,
+    PlayWorkspaceService,
+    PlayAgentService,
+  ],
 })
 export class PlayModule {}

@@ -33,7 +33,17 @@ import {
 } from "../domain/analytics";
 import { PRESET_RULES, PRESET_TEMPLATES } from "../domain/presets";
 import { keywordTopic } from "../domain/topics";
-import { parseReport } from "../domain/report-csv";
+import {
+  suggestFromListing,
+  suggestFromReplies,
+  VariableSuggestion,
+} from "../domain/variable-suggestions";
+import { parseReport, ReportRow } from "../domain/report-csv";
+import {
+  parseReportsBucket,
+  reportMonth,
+  reviewReportPrefix,
+} from "../domain/reports-bucket";
 import { PACKAGE_NAME, parseServiceAccount } from "../domain/service-account";
 import {
   BUILT_IN_VARIABLES,
@@ -117,7 +127,11 @@ export class PlayService {
   ) {}
 
   reviewsUrl(appId: string) {
-    return `${appUrl(this.config)}/reviews/inbox?app=${appId}`;
+    return `${appUrl(this.config)}/reviews/${appId}`;
+  }
+
+  templatesUrl() {
+    return `${appUrl(this.config)}/reviews/templates`;
   }
 
   async forClaude(
@@ -184,11 +198,13 @@ export class PlayService {
     return {
       app: app.title,
       values: this.engine.values(app, null),
-      templates: list.data.map((t) => ({
-        name: t.name,
-        category: t.category,
-        bodies: t.bodies,
-      })),
+      templates: list.data
+        .filter((t) => !t.hidden)
+        .map((t) => ({
+          name: t.name,
+          category: t.category,
+          bodies: t.bodies,
+        })),
       reply_max: REPLY_MAX,
     };
   }
@@ -228,6 +244,7 @@ export class PlayService {
         checkedAt: c.checkedAt?.toISOString() ?? null,
         discoveredAt: c.discoveredAt?.toISOString() ?? null,
         discoveryError: c.discoveryError,
+        reportsBucket: c.reportsBucket,
         apps: apps.filter((a) => a.connectionId === c.id).length,
       })),
     };
@@ -402,19 +419,9 @@ export class PlayService {
     });
   }
 
-  async importReport(actor: PlayActor, appId: string, file: Buffer) {
-    const app = await this.appRow(actor.workspaceId, appId);
-    const parsed = parseReport(file);
-    if (typeof parsed === "string") throw new ValidationError(parsed);
-    const other = parsed.packages.filter((p) => p !== app.packageName);
-    if (other.length)
-      throw new ValidationError(
-        `This report is for ${other.join(", ")}, not ${app.packageName}.`,
-      );
-    if (!parsed.rows.length)
-      throw new ValidationError("The report has no reviews.");
-    const imported = await this.repo.insertReviews(
-      parsed.rows.map((r) => ({
+  private async insertReportRows(app: PlayAppRow, rows: ReportRow[]) {
+    return this.repo.insertReviews(
+      rows.map((r) => ({
         workspaceId: app.workspaceId,
         appId: app.id,
         reviewId: r.reviewId,
@@ -430,6 +437,20 @@ export class PlayService {
         repliedAt: r.repliedAt,
       })),
     );
+  }
+
+  async importReport(actor: PlayActor, appId: string, file: Buffer) {
+    const app = await this.appRow(actor.workspaceId, appId);
+    const parsed = parseReport(file);
+    if (typeof parsed === "string") throw new ValidationError(parsed);
+    const other = parsed.packages.filter((p) => p !== app.packageName);
+    if (other.length)
+      throw new ValidationError(
+        `This report is for ${other.join(", ")}, not ${app.packageName}.`,
+      );
+    if (!parsed.rows.length)
+      throw new ValidationError("The report has no reviews.");
+    const imported = await this.insertReportRows(app, parsed.rows);
     await this.record(actor, "play.report_imported", app.id, {
       rows: parsed.rows.length,
       imported,
@@ -444,6 +465,138 @@ export class PlayService {
       from: new Date(Math.min(...times)).toISOString(),
       to: new Date(Math.max(...times)).toISOString(),
     };
+  }
+
+  async setReportsBucket(
+    actor: PlayActor,
+    connectionId: string,
+    uri: string | null,
+  ) {
+    const connection = await this.repo.connection(
+      actor.workspaceId,
+      connectionId,
+    );
+    if (!connection)
+      throw new NotFoundError("This Google Play connection doesn't exist.");
+    let bucket: string | null = null;
+    if (uri?.trim()) {
+      bucket = parseReportsBucket(uri);
+      if (!bucket)
+        throw new ValidationError(
+          "Paste the Cloud Storage URI from Play Console → Download reports → Reviews. It looks like gs://pubsite_prod_1234567890/reviews/.",
+        );
+      try {
+        await this.engine.api.listReports(
+          JSON.parse(
+            this.crypto.decrypt(connection.keyCiphertext),
+          ) as ServiceAccountKey,
+          bucket,
+          "reviews/reviews_",
+        );
+      } catch (err) {
+        if (!(err instanceof PlayApiError) || err.kind !== "access")
+          throw new ValidationError(
+            err instanceof PlayApiError
+              ? err.message
+              : "The reports bucket couldn't be checked.",
+          );
+        await this.repo.updateConnection(connection.id, {
+          reportsBucket: bucket,
+        });
+        await this.repo.setHistoryError(connection.id, err.message);
+        await this.record(actor, "play.reports_bucket_set", connection.id, {
+          bucket,
+          pending: true,
+        });
+        return this.connections(actor.workspaceId);
+      }
+    }
+    await this.repo.updateConnection(connection.id, { reportsBucket: bucket });
+    await this.repo.setHistoryError(connection.id, null);
+    await this.record(actor, "play.reports_bucket_set", connection.id, {
+      bucket,
+    });
+    return this.connections(actor.workspaceId);
+  }
+
+  async importHistory(actor: PlayActor, appId: string, all = false) {
+    const app = await this.appRow(actor.workspaceId, appId);
+    const connection = await this.repo.connectionById(app.connectionId);
+    if (!connection?.reportsBucket)
+      throw new ValidationError(
+        "Add your Play Console reports URI first (gs://pubsite_prod_…/reviews/).",
+      );
+    const key = JSON.parse(
+      this.crypto.decrypt(connection.keyCiphertext),
+    ) as ServiceAccountKey;
+    const result = {
+      files: 0,
+      changed: 0,
+      rows: 0,
+      imported: 0,
+      from: null as string | null,
+      to: null as string | null,
+    };
+    try {
+      const files = (
+        await this.engine.api.listReports(
+          key,
+          connection.reportsBucket,
+          reviewReportPrefix(app.packageName),
+        )
+      )
+        .filter((f) => reportMonth(f.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      result.files = files.length;
+      const seen = { ...app.reportFiles };
+      let min = Infinity;
+      let max = -Infinity;
+      for (const f of files) {
+        if (!all && seen[f.name] === f.updated) continue;
+        const parsed = parseReport(
+          await this.engine.api.downloadReport(
+            key,
+            connection.reportsBucket,
+            f.name,
+          ),
+        );
+        seen[f.name] = f.updated;
+        result.changed++;
+        if (typeof parsed === "string") continue;
+        const rows = parsed.rows;
+        result.rows += rows.length;
+        result.imported += await this.insertReportRows(app, rows);
+        for (const r of rows) {
+          min = Math.min(min, r.reviewedAt.getTime());
+          max = Math.max(max, r.reviewedAt.getTime());
+        }
+      }
+      if (Number.isFinite(min)) {
+        result.from = new Date(min).toISOString();
+        result.to = new Date(max).toISOString();
+      }
+      await this.repo.updateApp(app.id, {
+        reportFiles: seen,
+        historyImportedAt: new Date(),
+        historyError: null,
+      });
+      if (result.imported) await this.engine.tagTopics(app.id);
+    } catch (err) {
+      const message =
+        err instanceof PlayApiError
+          ? err.message
+          : "The reports couldn't be read.";
+      await this.repo.updateApp(app.id, {
+        historyImportedAt: new Date(),
+        historyError: message,
+      });
+      throw new ValidationError(message);
+    }
+    await this.record(actor, "play.history_imported", app.id, {
+      files: result.changed,
+      imported: result.imported,
+    });
+    return result;
   }
 
   async apps(workspaceId: string) {
@@ -485,12 +638,73 @@ export class PlayService {
       latestVersion: app.latestVersion,
       builtInVariables: [...BUILT_IN_VARIABLES],
       suggestedVariables: [...SUGGESTED_VARIABLES],
+      history: {
+        bucket:
+          connections.find((c) => c.id === app.connectionId)?.reportsBucket ??
+          null,
+        importedAt: app.historyImportedAt?.toISOString() ?? null,
+        error: app.historyError,
+        files: Object.keys(app.reportFiles).length,
+      },
       overview: {
         ...periodStats(reviews, now.getTime() - 30 * 86_400_000, now.getTime()),
         series: dailySeries(reviews, now, 30, settings.timezone),
         distribution: distribution(month),
       },
     };
+  }
+
+  async suggestVariables(workspaceId: string, appId: string) {
+    const app = await this.appRow(workspaceId, appId);
+    let fromListing: VariableSuggestion[] = [];
+    try {
+      const listing = await this.engine.api.listing(
+        await this.engine.keyFor(app),
+        app.packageName,
+      );
+      fromListing = suggestFromListing({
+        email: listing.contactEmail ?? null,
+        phone: listing.contactPhone ?? null,
+        website: listing.contactWebsite ?? null,
+      });
+    } catch {
+      fromListing = [];
+    }
+    const replies = await this.repo.replyTexts(app.id, 500);
+    const all = [...fromListing, ...suggestFromReplies(replies)];
+    const seen = new Set<string>();
+    return {
+      repliesRead: replies.length,
+      suggestions: all
+        .filter((s) => {
+          const id = `${s.key}:${s.value.toLowerCase()}`;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        })
+        .map((s) => ({
+          ...s,
+          current: app.variables[s.key] ?? null,
+        })),
+    };
+  }
+
+  async prefillVariables(actor: PlayActor, appId: string) {
+    const app = await this.appRow(actor.workspaceId, appId);
+    const { suggestions } = await this.suggestVariables(
+      actor.workspaceId,
+      app.id,
+    );
+    const fill: Record<string, string> = {};
+    for (const s of suggestions)
+      if (!app.variables[s.key] && !fill[s.key]) fill[s.key] = s.value;
+    if (!Object.keys(fill).length) return app.variables;
+    const variables = { ...app.variables, ...fill };
+    await this.repo.updateApp(app.id, { variables });
+    await this.record(actor, "play.variables_prefilled", app.id, {
+      keys: Object.keys(fill),
+    });
+    return variables;
   }
 
   async recheck(actor: PlayActor, id: string) {
@@ -511,7 +725,12 @@ export class PlayService {
       });
       return this.app(actor.workspaceId, app.id);
     }
-    await this.repo.updateApp(app.id, { syncError: null, syncErrorKind: null });
+    await this.repo.updateApp(app.id, {
+      syncError: null,
+      syncErrorKind: null,
+      archivedAt: null,
+      archiveReason: null,
+    });
     await this.engine.sync(app).catch(() => null);
     return this.app(actor.workspaceId, app.id);
   }
@@ -571,8 +790,20 @@ export class PlayService {
     );
     if (!connection)
       throw new NotFoundError("This Google Play connection doesn't exist.");
-    if (await this.repo.appByPackage(actor.workspaceId, packageName))
+    const existing = await this.repo.appByPackage(
+      actor.workspaceId,
+      packageName,
+    );
+    if (existing && !existing.archivedAt)
       throw new ValidationError(`${packageName} is already connected.`);
+    if (existing) {
+      const restored = await this.recheck(actor, existing.id);
+      if (restored.syncErrorKind === "no_permission")
+        throw new ValidationError(
+          existing.archiveReason ?? `${packageName} still can't be reached.`,
+        );
+      return restored;
+    }
     const key = JSON.parse(
       this.crypto.decrypt(connection.keyCiphertext),
     ) as ServiceAccountKey;
@@ -593,6 +824,7 @@ export class PlayService {
       );
     }
     const sync = await this.engine.sync(app).catch(() => null);
+    await this.prefillVariables(actor, app.id).catch(() => null);
     return { ...(await this.app(actor.workspaceId, app.id)), firstSync: sync };
   }
 
@@ -663,6 +895,7 @@ export class PlayService {
       }[],
       error: null as string | null,
       errorKind: undefined as string | undefined,
+      restored: [] as { id: string; packageName: string; title: string }[],
     };
     let apps;
     try {
@@ -681,12 +914,40 @@ export class PlayService {
     }
     result.found = apps.length;
     const existing = new Map(
-      (await this.repo.apps(actor.workspaceId)).map((a) => [a.packageName, a]),
+      (await this.repo.allApps(actor.workspaceId)).map((a) => [
+        a.packageName,
+        a,
+      ]),
     );
     const created: PlayAppRow[] = [];
     for (const found of apps) {
       const title = found.displayName ?? found.packageName;
       const have = existing.get(found.packageName);
+      if (have?.archivedAt) {
+        try {
+          await this.engine.api.listReviews(key, have.packageName, {});
+          await this.repo.updateApp(have.id, {
+            archivedAt: null,
+            archiveReason: null,
+            syncError: null,
+            syncErrorKind: null,
+          });
+          result.restored.push({
+            id: have.id,
+            packageName: have.packageName,
+            title: have.title,
+          });
+          await this.engine
+            .sync({ ...have, archivedAt: null })
+            .catch(() => null);
+        } catch {
+          result.already.push({
+            packageName: found.packageName,
+            title: have.title,
+          });
+        }
+        continue;
+      }
       if (have) {
         result.already.push({
           packageName: found.packageName,
@@ -720,8 +981,10 @@ export class PlayService {
         });
       }
     }
-    for (const app of created.slice(0, 10))
+    for (const app of created.slice(0, 10)) {
       await this.engine.sync(app).catch(() => null);
+      await this.prefillVariables(actor, app.id).catch(() => null);
+    }
     await this.repo.updateConnection(connection.id, {
       discoveredAt: new Date(),
       discoveryError: null,
@@ -1194,6 +1457,7 @@ export class PlayService {
       appId: t.appId,
       presetKey: t.presetKey,
       builtIn: Boolean(t.presetKey && !t.appId),
+      hidden: t.hidden,
       ratings: t.ratings,
       usedBy: usedBy.map((u) => ({
         ruleId: u.id,
@@ -1270,6 +1534,36 @@ export class PlayService {
     );
   }
 
+  async setTemplateHidden(actor: PlayActor, id: string, hidden: boolean) {
+    const template = await this.repo.template(actor.workspaceId, id);
+    if (!template) throw new NotFoundError("This template doesn't exist.");
+    if (!template.presetKey || template.appId)
+      throw new ValidationError(
+        "Only pre-built templates can be hidden. Delete your own templates instead.",
+      );
+    if (hidden) {
+      const apps = (await this.repo.allApps(actor.workspaceId)).filter((a) =>
+        this.engine.settingsOf(a).ratingRules.some((r) => r.templateId === id),
+      );
+      const rules = await this.repo.rulesUsingTemplate(id);
+      if (apps.length || rules.length)
+        throw new ValidationError(
+          `This template is in use: ${[
+            ...apps.map((a) => `${a.title} (a star rating)`),
+            ...rules.map((r) => `rule "${r.name}"`),
+          ].join(", ")}. Pick another template there first.`,
+        );
+    }
+    const row = await this.repo.updateTemplate(id, { hidden });
+    await this.record(
+      actor,
+      hidden ? "play.template_hidden" : "play.template_shown",
+      id,
+      { name: template.name },
+    );
+    return this.templateView(row, [], {});
+  }
+
   async duplicateTemplate(actor: PlayActor, id: string) {
     const template = await this.repo.template(actor.workspaceId, id);
     if (!template) throw new NotFoundError("This template doesn't exist.");
@@ -1313,7 +1607,7 @@ export class PlayService {
     if (!template) throw new NotFoundError("This template doesn't exist.");
     if (template.presetKey && !template.appId)
       throw new ValidationError("Pre-built templates can't be deleted.");
-    const apps = (await this.repo.apps(actor.workspaceId)).filter((a) =>
+    const apps = (await this.repo.allApps(actor.workspaceId)).filter((a) =>
       this.engine.settingsOf(a).ratingRules.some((r) => r.templateId === id),
     );
     if (apps.length)

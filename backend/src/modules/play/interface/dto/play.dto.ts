@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -366,6 +367,10 @@ export class PlayInboxQueryDto {
   @IsOptional()
   @IsUUID()
   appId?: string;
+
+  @IsOptional()
+  @Matches(/^[1-5](,[1-5]){0,4}$/)
+  stars?: string;
 }
 
 export class AnalyticsQueryDto {
@@ -377,6 +382,18 @@ export class AnalyticsQueryDto {
   @Type(() => Number)
   @IsIn([7, 30, 90])
   days?: number;
+
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from?: string;
+
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to?: string;
+
+  @IsOptional()
+  @IsIn(["true", "false"])
+  all?: string;
 }
 
 export class ApproveAllDto {
@@ -410,4 +427,16 @@ export class WorkspaceSettingsDto {
   @IsOptional()
   @IsBoolean()
   agentsCanPost?: boolean;
+}
+
+export class ReportsBucketDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  uri: string | null;
+}
+
+export class TemplateVisibilityDto {
+  @IsBoolean()
+  hidden: boolean;
 }

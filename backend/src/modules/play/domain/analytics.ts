@@ -88,40 +88,48 @@ export function distribution(reviews: { stars: number }[]) {
   }));
 }
 
+export type Bucket = "day" | "week" | "month";
+
+export function bucketFor(days: number): Bucket {
+  return days <= 92 ? "day" : days <= 730 ? "week" : "month";
+}
+
+const BUCKET_DAYS: Record<Bucket, number> = { day: 1, week: 7, month: 30 };
+
 export function dailySeries(
   reviews: AnalyticsReview[],
   now: Date,
   days: number,
   timezone: string,
+  bucket: Bucket = "day",
 ) {
-  const keys = Array.from({ length: days }, (_, i) =>
-    startOfDay(now.getTime() - (days - 1 - i) * DAY, timezone),
+  const size = BUCKET_DAYS[bucket];
+  const count = Math.max(1, Math.ceil(days / size));
+  const first = now.getTime() - (count * size - 1) * DAY;
+  const keys = Array.from({ length: count * size }, (_, i) =>
+    startOfDay(first + i * DAY, timezone),
   );
-  const index = new Map(keys.map((k, i) => [k, i]));
-  const points = keys.map((day) => ({
-    day,
+  const dayIndex = new Map(keys.map((k, i) => [k, Math.floor(i / size)]));
+  const points = Array.from({ length: count }, (_, i) => ({
+    day: keys[i * size]!,
     reviews: 0,
     replied: 0,
     starSum: 0,
     rating: null as number | null,
   }));
   for (const r of reviews) {
-    const i = index.get(startOfDay(r.reviewedAt.getTime(), timezone));
+    const i = dayIndex.get(startOfDay(r.reviewedAt.getTime(), timezone));
     if (i !== undefined) {
       points[i]!.reviews++;
       points[i]!.starSum += r.stars;
     }
     if (r.repliedAt && r.replyText) {
-      const j = index.get(startOfDay(r.repliedAt.getTime(), timezone));
+      const j = dayIndex.get(startOfDay(r.repliedAt.getTime(), timezone));
       if (j !== undefined) points[j]!.replied++;
     }
   }
   let running: number | null = null;
-  const sorted = [...reviews].sort(
-    (a, b) => a.reviewedAt.getTime() - b.reviewedAt.getTime(),
-  );
-  const first = now.getTime() - (days - 1) * DAY;
-  const before = sorted.filter(
+  const before = reviews.filter(
     (r) =>
       r.reviewedAt.getTime() < first &&
       r.reviewedAt.getTime() >= first - 30 * DAY,
@@ -140,6 +148,29 @@ export function dailySeries(
     replied,
     rating,
   }));
+}
+
+export function zonedDayStart(date: string, timezone: string): Date {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const utc = Date.UTC(y, m - 1, d);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(utc));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const shown = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+  );
+  return new Date(utc - (shown - utc));
 }
 
 export function topicTrends(

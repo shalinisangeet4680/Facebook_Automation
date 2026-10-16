@@ -61,6 +61,7 @@ export const playConnections = pgTable(
     checkedAt: timestamp("checked_at", { withTimezone: true }),
     discoveredAt: timestamp("discovered_at", { withTimezone: true }),
     discoveryError: text("discovery_error"),
+    reportsBucket: text("reports_bucket"),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -99,6 +100,14 @@ export const playApps = pgTable(
     syncErrorKind: text("sync_error_kind"),
     pausedUntil: timestamp("paused_until", { withTimezone: true }),
     pauseReason: text("pause_reason"),
+    reportFiles: jsonb("report_files")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    historyImportedAt: timestamp("history_imported_at", { withTimezone: true }),
+    historyError: text("history_error"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archiveReason: text("archive_reason"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -155,6 +164,7 @@ export const playTemplates = pgTable(
     category: playTemplateCategory("category").notNull(),
     bodies: jsonb("bodies").$type<TemplateBody[]>().notNull(),
     ratings: jsonb("ratings").$type<number[]>().notNull().default([]),
+    hidden: boolean("hidden").notNull().default(false),
     presetKey: text("preset_key"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

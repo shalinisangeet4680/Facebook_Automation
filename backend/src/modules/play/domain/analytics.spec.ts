@@ -1,5 +1,7 @@
 import {
+  bucketFor,
   dailySeries,
+  zonedDayStart,
   distribution,
   periodStats,
   replySparkline,
@@ -53,6 +55,24 @@ describe("analytics", () => {
     expect(s.map((p) => p.reviews)).toEqual([0, 1, 2]);
     expect(s.map((p) => p.replied)).toEqual([0, 1, 1]);
     expect(s[2]!.rating).toBe(2.8);
+  });
+
+  it("groups long ranges into weeks", () => {
+    const s = dailySeries(rows, now, 14, "UTC", "week");
+    expect(s).toHaveLength(2);
+    expect(s.map((p) => p.reviews)).toEqual([2, 3]);
+  });
+
+  it("reads calendar dates in the app's time zone", () => {
+    expect(zonedDayStart("2026-10-16", "Asia/Kolkata").toISOString()).toBe(
+      "2026-10-15T18:30:00.000Z",
+    );
+    expect(zonedDayStart("2026-10-16", "UTC").toISOString()).toBe(
+      "2026-10-16T00:00:00.000Z",
+    );
+    expect(bucketFor(30)).toBe("day");
+    expect(bucketFor(365)).toBe("week");
+    expect(bucketFor(1000)).toBe("month");
   });
 
   it("compares topics with the previous period", () => {

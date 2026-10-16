@@ -47,7 +47,31 @@ export interface DiscoveredApp {
   displayName: string | null;
 }
 
+export interface ReportFile {
+  name: string;
+  updated: string;
+  size: number;
+}
+
+export interface AppListing {
+  title: string | null;
+  iconUrl: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  contactWebsite?: string | null;
+}
+
 export interface PlayApi {
+  listReports(
+    key: ServiceAccountKey,
+    bucket: string,
+    prefix: string,
+  ): Promise<ReportFile[]>;
+  downloadReport(
+    key: ServiceAccountKey,
+    bucket: string,
+    name: string,
+  ): Promise<Buffer>;
   listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]>;
   verifyKey(key: ServiceAccountKey): Promise<void>;
   listReviews(
@@ -61,8 +85,5 @@ export interface PlayApi {
     reviewId: string,
     text: string,
   ): Promise<{ text: string; lastModified: Date }>;
-  listing(
-    key: ServiceAccountKey,
-    packageName: string,
-  ): Promise<{ title: string | null; iconUrl: string | null }>;
+  listing(key: ServiceAccountKey, packageName: string): Promise<AppListing>;
 }
