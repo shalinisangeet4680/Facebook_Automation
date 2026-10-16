@@ -7,6 +7,7 @@ import { usePlayTemplates, usePlayWorkspace, useUpdatePlayApp } from "@/lib/api/
 import type { PlayAppDetail, PlaySettings } from "@/lib/api/types";
 
 import { AdvancedSections } from "./advanced";
+import { Select } from "./select";
 import {
   DELAYS,
   MODE_DESC,
@@ -72,7 +73,11 @@ export function AutomationTab({ app }: { app: PlayAppDetail }) {
   const modes = new Set(rules.map((r) => r.mode));
   const current = modes.size === 1 ? [...modes][0]! : null;
   const options = [
-    ...sortTemplates(templates.data?.data ?? []).map((t) => ({
+    ...sortTemplates(
+      (templates.data?.data ?? []).filter(
+        (t) => !t.hidden || rules.some((r) => r.templateId === t.id),
+      ),
+    ).map((t) => ({
       id: t.id,
       name: t.name + (t.builtIn ? "" : " (yours)"),
     })),
@@ -206,26 +211,19 @@ export function AutomationTab({ app }: { app: PlayAppDetail }) {
                   );
                 })}
               </div>
-              <select
-                className="rp-select"
-                aria-label={`Template for ${r.rating}-star reviews`}
+              <Select
+                block
+                label={`Template for ${r.rating}-star reviews`}
                 value={r.templateId ?? "ai"}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onChange={(v) =>
                   save({
                     ratingRules: rules.map((y) =>
                       y.rating === r.rating ? { ...y, templateId: v === "ai" ? null : v } : y,
                     ),
-                  });
-                }}
-                style={{ minWidth: 0 }}
-              >
-                {options.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+                  })
+                }
+                options={options.map((t) => ({ value: t.id, label: t.name }))}
+              />
             </div>
           ))}
         </div>
@@ -255,32 +253,22 @@ export function AutomationTab({ app }: { app: PlayAppDetail }) {
             label="Posting delay"
             desc="Wait before posting so replies read human, and so you can catch mistakes."
           >
-            <select
-              className="rp-select"
-              aria-label="Posting delay"
+            <Select
+              label="Posting delay"
+              minWidth={120}
               value={settings.delay}
-              onChange={(e) => save({ delay: e.target.value as Settings["delay"] })}
-            >
-              {DELAYS.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => save({ delay: v as Settings["delay"] })}
+              options={DELAYS.map(([v, l]) => ({ value: v, label: l }))}
+            />
           </SettingRow>
           <SettingRow label="Voice" desc="Tone the AI uses when personalizing templates.">
-            <select
-              className="rp-select"
-              aria-label="Voice"
+            <Select
+              label="Voice"
+              minWidth={140}
               value={settings.tone}
-              onChange={(e) => save({ tone: e.target.value as Settings["tone"] })}
-            >
-              {TONES.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => save({ tone: v as Settings["tone"] })}
+              options={TONES.map(([v, l]) => ({ value: v, label: l }))}
+            />
           </SettingRow>
         </div>
       </Section>

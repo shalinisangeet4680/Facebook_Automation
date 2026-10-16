@@ -996,6 +996,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play/connections/{id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PlayController_setReports_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/apps/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayController_importHistory_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/connections/{id}": {
         parameters: {
             query?: never;
@@ -1039,6 +1071,22 @@ export interface paths {
         put: operations["PlayController_updateApp_v1"];
         post?: never;
         delete: operations["PlayController_removeApp_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/apps/{id}/variable-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayController_variableSuggestions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1278,6 +1326,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["PlayController_restorePresets_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/templates/{id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PlayController_setTemplateVisibility_v1"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2225,7 +2289,11 @@ export interface components {
             negative: boolean;
         };
         PlayAnalyticsDto: {
+            /** @enum {string} */
+            bucket: "day" | "week" | "month";
             days: number;
+            from: string;
+            to: string;
             current: components["schemas"]["PeriodStatsDto"];
             previous: components["schemas"]["PeriodStatsDto"];
             repliesSent: number;
@@ -2244,6 +2312,7 @@ export interface components {
             checkedAt?: string | null;
             discoveredAt?: string | null;
             discoveryError?: string | null;
+            reportsBucket?: string | null;
             apps?: number;
         };
         PlayConnectionListDto: {
@@ -2271,6 +2340,7 @@ export interface components {
             added: components["schemas"]["DiscoveredAddedDto"][];
             already: components["schemas"]["DiscoveredExistingDto"][];
             failed: components["schemas"]["DiscoveryFailureDto"][];
+            restored: components["schemas"]["DiscoveredAddedDto"][];
             error: string | null;
         };
         ConnectResultDto: {
@@ -2283,8 +2353,20 @@ export interface components {
             checkedAt?: string | null;
             discoveredAt?: string | null;
             discoveryError?: string | null;
+            reportsBucket?: string | null;
             apps?: number;
             discovery: components["schemas"]["DiscoveryResultDto"];
+        };
+        ReportsBucketDto: {
+            uri: string | null;
+        };
+        HistoryImportResultDto: {
+            files: number;
+            changed: number;
+            rows: number;
+            imported: number;
+            from: string | null;
+            to: string | null;
         };
         PlayAppDto: {
             /** @enum {string} */
@@ -2323,6 +2405,12 @@ export interface components {
             packageName: string;
             title?: string;
         };
+        AppHistoryDto: {
+            bucket: string | null;
+            importedAt: string | null;
+            error: string | null;
+            files: number;
+        };
         QuietHoursViewDto: {
             start: string;
             end: string;
@@ -2356,6 +2444,7 @@ export interface components {
             created: number;
             updated: number;
             drafts: number;
+            archived: boolean;
         };
         AppOverviewDto: {
             reviews: number;
@@ -2377,6 +2466,7 @@ export interface components {
             variables: {
                 [key: string]: string;
             };
+            history: components["schemas"]["AppHistoryDto"];
             automation: boolean;
             settings: components["schemas"]["PlaySettingsViewDto"];
             latestVersion: string | null;
@@ -2441,6 +2531,18 @@ export interface components {
             variables?: {
                 [key: string]: string;
             };
+        };
+        VariableSuggestionDto: {
+            /** @enum {string} */
+            source: "play_listing" | "past_replies";
+            key: string;
+            value: string;
+            count: number;
+            current: string | null;
+        };
+        VariableSuggestionListDto: {
+            repliesRead: number;
+            suggestions: components["schemas"]["VariableSuggestionDto"][];
         };
         InsightPointDto: {
             stars: number[];
@@ -2595,6 +2697,7 @@ export interface components {
             appId: string | null;
             presetKey: string | null;
             builtIn: boolean;
+            hidden: boolean;
             usedBy: components["schemas"]["TemplateUsageDto"][];
             problems: components["schemas"]["TemplateProblemDto"][];
             updatedAt: string;
@@ -2636,6 +2739,9 @@ export interface components {
         };
         RestoredPresetsDto: {
             restored: number;
+        };
+        TemplateVisibilityDto: {
+            hidden: boolean;
         };
         RuleConditionsViewDto: {
             stars?: number[];
@@ -4646,6 +4752,7 @@ export interface operations {
             query?: {
                 filter?: "pending" | "replied" | "all";
                 appId?: string;
+                stars?: string;
             };
             header?: never;
             path?: never;
@@ -4823,6 +4930,9 @@ export interface operations {
             query?: {
                 appId?: string;
                 days?: 7 | 30 | 90;
+                from?: string;
+                to?: string;
+                all?: "true" | "false";
             };
             header?: never;
             path?: never;
@@ -4923,6 +5033,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiscoveryResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_setReports_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportsBucketDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayConnectionListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_importHistory_v1: {
+        parameters: {
+            query?: {
+                all?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoryImportResultDto"];
                 };
             };
             default: {
@@ -5098,6 +5272,35 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_variableSuggestions_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VariableSuggestionListDto"];
+                };
             };
             default: {
                 headers: {
@@ -5602,6 +5805,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RestoredPresetsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayController_setTemplateVisibility_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateVisibilityDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayTemplateDto"];
                 };
             };
             default: {

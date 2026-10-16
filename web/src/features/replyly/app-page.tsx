@@ -2,19 +2,26 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import {
-  useImportReport,
   usePlayApp,
   usePlayInsights,
   useRecheckPlayApp,
   useResumePlayApp,
+  type AnalyticsRange,
+  usePlayAnalytics,
 } from "@/lib/api/queries";
 import type { PlayAppDetail } from "@/lib/api/types";
 
 import { AppTile } from "./app-tile";
+import { StoreLink } from "./store-link";
+import { AppReviewsTab } from "./app-reviews-tab";
+import { CalendarHeatmap } from "./calendar-heatmap";
+import { isoDay } from "./range-calendar";
+import { RangePicker, rangeSuffix, rangeTitle } from "./range-picker";
+import { HistoryCard } from "./history-card";
 import { AutomationTab } from "./automation-tab";
 import { RatingMix, TrendChart } from "./charts";
 import { useAppColors } from "./shell";
@@ -35,14 +42,20 @@ export function AppPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const params = useSearchParams();
-  const tab = params.get("tab") === "automation" ? "auto" : "overview";
+  const param = params.get("tab");
+  const tab =
+    param === "settings" || param === "automation"
+      ? "auto"
+      : param === "overview"
+        ? "overview"
+        : "reviews";
   const app = usePlayApp(id);
   const { color } = useAppColors();
 
   if (app.error)
     return (
       <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Link href="/reviews" className="rp-btn-quiet" style={{ alignSelf: "flex-start" }}>
+        <Link href="/reviews/apps" className="rp-btn-quiet" style={{ alignSelf: "flex-start" }}>
           ← All apps
         </Link>
         <Banner tone="error">{errorMessage(app.error)}</Banner>
@@ -54,7 +67,7 @@ export function AppPage() {
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <Link
-        href="/reviews"
+        href="/reviews/apps"
         className="rp-btn-quiet"
         style={{ alignSelf: "flex-start", textDecoration: "none" }}
       >
@@ -79,8 +92,11 @@ export function AppPage() {
             <h1 className="rp-serif" style={{ fontSize: 34, lineHeight: 1 }}>
               {a?.title ?? " "}
             </h1>
-            <span className="rp-mono" style={{ fontSize: 12, color: "#6C6962" }}>
-              {a?.packageName}
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span className="rp-mono" style={{ fontSize: 12, color: "#6C6962" }}>
+                {a?.packageName}
+              </span>
+              {a ? <StoreLink packageName={a.packageName} /> : null}
             </span>
           </div>
         </div>
@@ -89,13 +105,19 @@ export function AppPage() {
             label="App sections"
             value={tab}
             onChange={(t) =>
-              router.replace(t === "auto" ? `/reviews/${id}?tab=automation` : `/reviews/${id}`, {
-                scroll: false,
-              })
+              router.replace(
+                t === "reviews"
+                  ? `/reviews/${id}`
+                  : `/reviews/${id}?tab=${t === "auto" ? "settings" : t}`,
+                {
+                  scroll: false,
+                },
+              )
             }
             options={[
+              { id: "reviews", label: "Reviews" },
               { id: "overview", label: "Overview" },
-              { id: "auto", label: "Automation" },
+              { id: "auto", label: "Settings" },
             ]}
           />
         ) : null}
@@ -110,7 +132,13 @@ export function AppPage() {
       ) : (
         <>
           <AppBanners app={a} />
-          {tab === "overview" ? <Overview app={a} /> : <AutomationTab app={a} />}
+          {tab === "reviews" ? (
+            <AppReviewsTab app={a} color={color(a.id)} />
+          ) : tab === "overview" ? (
+            <Overview app={a} />
+          ) : (
+            <AutomationTab app={a} />
+          )}
         </>
       )}
     </div>
@@ -258,19 +286,52 @@ function Stat({ label, value, first }: { label: string; value: string; first?: b
 }
 
 function Overview({ app }: { app: PlayAppDetail }) {
-  const o = app.overview;
+  const [range, setRange] = useState<AnalyticsRange>({ kind: "days", days: 30 });
+  const [view, setView] = useState<"chart" | "calendar">("chart");
+  const q = usePlayAnalytics(range, app.id);
+  const d = q.data;
+  const suffix = rangeSuffix(range);
+  const selected =
+    range.kind === "custom"
+      ? { from: range.from, to: range.to }
+      : d
+        ? { from: isoDay(new Date(d.from)), to: isoDay(new Date(d.to)) }
+        : null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <RangePicker value={range} onChange={setRange} presets={[7, 30]} today />
+      </div>
       <div
         className="rp-card"
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+          opacity: q.isPlaceholderData ? 0.6 : 1,
+        }}
       >
-        <Stat first label="Reviews · 30d" value={o.reviews.toLocaleString()} />
-        <Stat label="Reply rate" value={o.replyRate === null ? "—" : `${o.replyRate}%`} />
-        <Stat label="Median response" value={minutesLabel(o.medianResponseMinutes)} />
         <Stat
-          label="Rating"
-          value={app.overallRating === null ? "—" : `★ ${app.overallRating.toFixed(1)}`}
+          first
+          label={`Reviews · ${suffix}`}
+          value={d ? d.current.reviews.toLocaleString() : "…"}
+        />
+        <Stat
+          label={`Reply rate · ${suffix}`}
+          value={!d || d.current.replyRate === null ? "—" : `${d.current.replyRate}%`}
+        />
+        <Stat
+          label={`Median response · ${suffix}`}
+          value={d ? minutesLabel(d.current.medianResponseMinutes) : "…"}
+        />
+        <Stat
+          label={`Rating · ${suffix}`}
+          value={
+            d?.current.rating !== null && d?.current.rating !== undefined
+              ? `★ ${d.current.rating.toFixed(1)}`
+              : app.overallRating === null
+                ? "—"
+                : `★ ${app.overallRating.toFixed(1)}`
+          }
         />
       </div>
       <div
@@ -282,22 +343,66 @@ function Overview({ app }: { app: PlayAppDetail }) {
       >
         <div
           className="rp-card rp-span2"
-          style={{ gridColumn: "span 2", minWidth: 0, padding: 18, position: "relative" }}
+          style={{
+            gridColumn: "span 2",
+            minWidth: 0,
+            padding: 18,
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
         >
-          <TrendChart title="Reviews vs. replies · 30 days" series={o.series} height={160} />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: view === "chart" ? -6 : 0,
+            }}
+          >
+            <Seg
+              label="View"
+              small
+              value={view}
+              onChange={setView}
+              options={[
+                { id: "chart", label: "Chart" },
+                { id: "calendar", label: "Calendar" },
+              ]}
+            />
+          </div>
+          {view === "chart" ? (
+            d ? (
+              <TrendChart
+                title={`Reviews vs. replies · ${rangeTitle(range)}`}
+                series={d.series}
+                height={160}
+              />
+            ) : (
+              <Skel h={200} />
+            )
+          ) : (
+            <CalendarHeatmap
+              appId={app.id}
+              selected={selected}
+              onPick={(day) => setRange({ kind: "custom", from: day, to: day })}
+            />
+          )}
         </div>
         <div
           className="rp-card"
           style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}
         >
           <span style={{ fontWeight: 500 }}>Rating mix</span>
-          <RatingMix dist={o.distribution} />
+          {d ? <RatingMix dist={d.distribution} /> : <Skel h={120} />}
           <Link
-            href={`/reviews/inbox?app=${app.id}`}
+            href={`/reviews/${app.id}`}
+            replace
+            scroll={false}
             className="rp-btn-light"
             style={{ marginTop: "auto" }}
           >
-            Open inbox for this app
+            See reviews for this app
           </Link>
         </div>
       </div>
@@ -308,9 +413,6 @@ function Overview({ app }: { app: PlayAppDetail }) {
 
 function History({ app }: { app: PlayAppDetail }) {
   const insights = usePlayInsights(app.id, 90);
-  const upload = useImportReport(app.id);
-  const toast = useToast();
-  const input = useRef<HTMLInputElement>(null);
   const versions = insights.data?.versions.slice(0, 6) ?? [];
   const languages = insights.data?.languages.slice(0, 6) ?? [];
   const total = languages.reduce((n, l) => n + l.reviews, 0) || 1;
@@ -398,43 +500,7 @@ function History({ app }: { app: PlayAppDetail }) {
           </span>
         )}
       </div>
-      <div
-        className="rp-card"
-        style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}
-      >
-        <span style={{ fontWeight: 500 }}>Import older reviews</span>
-        <span style={{ fontSize: 12.5, color: "#6C6962", lineHeight: 1.5 }}>
-          Google’s API only returns the last 7 days. For history, download the monthly reviews CSV
-          from Play Console → Download reports → Reviews, and drop it here.
-        </span>
-        <input
-          ref={input}
-          type="file"
-          accept=".csv,text/csv"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = "";
-            if (!f) return;
-            upload.mutate(f, {
-              onSuccess: (r) =>
-                toast(
-                  `Imported ${r.imported.toLocaleString()} reviews${r.alreadyHere ? ` · ${r.alreadyHere} already here` : ""}`,
-                ),
-              onError: (err) => toast(errorMessage(err)),
-            });
-          }}
-        />
-        <button
-          type="button"
-          className="rp-btn-light"
-          style={{ marginTop: "auto" }}
-          disabled={upload.isPending}
-          onClick={() => input.current?.click()}
-        >
-          {upload.isPending ? "Importing…" : "Upload reviews CSV"}
-        </button>
-      </div>
+      <HistoryCard app={app} />
     </div>
   );
 }

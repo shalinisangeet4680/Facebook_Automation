@@ -8,8 +8,9 @@ import { ApiError, errorMessage } from "@/lib/api/errors";
 import { useAddPlayApp, useConnectPlay } from "@/lib/api/queries";
 
 import { useConnected } from "./shell";
+import { Select } from "./select";
 import { StateArt, type ArtKind } from "./state-art";
-import { Banner, copyText, Spinner, useToast } from "./ui";
+import { Banner, copyText, cx, Linked, Spinner, URL_RE, useToast } from "./ui";
 
 const A = "#0F6B4A";
 
@@ -60,30 +61,6 @@ interface VerifyError {
   code: ErrCode;
   stage: number;
   message: string;
-}
-
-const URL_RE = /(https:\/\/[^\s)]+)/g;
-
-function Linked({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(URL_RE).map((part, i) =>
-        i % 2 ? (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: "#7A1A12", textDecoration: "underline", fontWeight: 500 }}
-          >
-            {new URL(part).hostname === "console.cloud.google.com" ? "Open Cloud Console ↗" : part}
-          </a>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  );
 }
 
 function readEmail(text: string) {
@@ -356,7 +333,7 @@ export function ConnectPage() {
                           {!file ? (
                             <button
                               type="button"
-                              className={`rp-drop${over ? "rp-drop-over" : ""}`}
+                              className={cx("rp-drop", over && "rp-drop-over")}
                               onClick={() => input.current?.click()}
                               onDragOver={(e) => {
                                 e.preventDefault();
@@ -600,18 +577,14 @@ function AddByPackage({ connections }: { connections: { id: string; clientEmail:
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {connections.length > 1 ? (
-          <select
-            className="rp-select"
-            aria-label="Service account"
+          <Select
+            label="Service account"
+            align="start"
+            minWidth={240}
             value={connectionId}
-            onChange={(e) => setConnectionId(e.target.value)}
-          >
-            {connections.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.clientEmail}
-              </option>
-            ))}
-          </select>
+            onChange={setConnectionId}
+            options={connections.map((c) => ({ value: c.id, label: c.clientEmail }))}
+          />
         ) : null}
         <input
           className="rp-input rp-mono"

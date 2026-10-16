@@ -7,20 +7,19 @@ import { Suspense, type ReactNode } from "react";
 import { useMe, usePlayApps, usePlayConnections, usePlayInbox } from "@/lib/api/queries";
 
 import { APP_COLORS } from "./tokens";
-import { ToastProvider } from "./ui";
+import { ToastProvider, cx } from "./ui";
 
 const NAV = [
-  ["apps", "Apps", "/reviews"],
-  ["inbox", "Inbox", "/reviews/inbox"],
+  ["dashboard", "Dashboard", "/reviews"],
+  ["apps", "Apps", "/reviews/apps"],
   ["templates", "Templates", "/reviews/templates"],
-  ["analytics", "Analytics", "/reviews/analytics"],
   ["mcp", "MCP", "/reviews/mcp"],
 ] as const;
 
 function activeOf(pathname: string) {
   const part = pathname.split("/")[2];
-  if (!part || part === "connect") return "apps";
-  if (["inbox", "templates", "analytics", "mcp", "states"].includes(part)) return part;
+  if (!part) return "dashboard";
+  if (["templates", "mcp"].includes(part)) return part;
   return "apps";
 }
 
@@ -78,8 +77,11 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
   return (
     <>
       {NAV.map(([id, label, href]) => {
-        const off = !loading && !connected && id !== "mcp" && id !== "apps";
-        const target = id === "apps" && !loading && !connected ? "/reviews/connect" : href;
+        const off = !loading && !connected && !["mcp", "apps", "dashboard"].includes(id);
+        const target =
+          (id === "apps" || id === "dashboard") && !loading && !connected
+            ? "/reviews/connect"
+            : href;
         return (
           <Link
             key={id}
@@ -87,11 +89,11 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
             aria-current={active === id ? "page" : undefined}
             aria-disabled={off || undefined}
             tabIndex={off ? -1 : undefined}
-            className={`rp-nav${active === id ? "rp-nav-on" : ""}${off ? "rp-nav-off" : ""}`}
+            className={cx("rp-nav", active === id && "rp-nav-on", off && "rp-nav-off")}
             style={mobile ? { flexShrink: 0, gap: 6 } : undefined}
           >
             <span>{label}</span>
-            {id === "inbox" && connected && pending > 0 ? (
+            {id === "dashboard" && connected && pending > 0 ? (
               <span
                 style={{
                   minWidth: 18,
@@ -116,7 +118,6 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
 }
 
 function Footer() {
-  const pathname = usePathname();
   const me = useMe();
   const apps = usePlayApps();
   const { connected } = useConnected();
@@ -125,12 +126,6 @@ function Footer() {
     <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
       <Link href="/setup" className="rp-nav rp-nav-small">
         ← Back to Autopilot
-      </Link>
-      <Link
-        href="/reviews/states"
-        className={`rp-nav rp-nav-small${activeOf(pathname) === "states" ? "rp-nav-on" : ""}`}
-      >
-        System states
       </Link>
       <div
         style={{
@@ -175,9 +170,6 @@ export function ReplylyShell({ children, fontClass }: { children: ReactNode; fon
           <Suspense>
             <NavLinks mobile />
           </Suspense>
-          <Link href="/reviews/states" className="rp-nav rp-nav-small" style={{ flexShrink: 0 }}>
-            States
-          </Link>
         </nav>
         <main className="rp-main">
           <div className="rp-wrap">{children}</div>

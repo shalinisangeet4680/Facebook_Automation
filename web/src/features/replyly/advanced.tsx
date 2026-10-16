@@ -12,10 +12,12 @@ import {
   useSaveRules,
   useUpdatePlayApp,
   useUpdatePlayWorkspace,
+  useVariableSuggestions,
 } from "@/lib/api/queries";
 import type { PlayAppDetail, PlayRuleInput, PlaySettings } from "@/lib/api/types";
 
-import { rowBorder } from "./tokens";
+import { rowBorder, sortTemplates } from "./tokens";
+import { Select } from "./select";
 import { Banner, Section, SettingRow, Spinner, Toggle, useToast } from "./ui";
 
 const csv = (list?: string[]) => (list ?? []).join(", ");
@@ -303,39 +305,51 @@ function AdvancedRules({ app }: { app: PlayAppDetail }) {
                     />
                   </Field>
                   <Field label="Then">
-                    <select
-                      className="rp-select"
-                      value={r.action.type === "template" ? r.action.templateId : r.action.type}
-                      onChange={(e) => {
-                        const v = e.target.value;
+                    <Select
+                      block
+                      align="start"
+                      label="Then"
+                      value={
+                        r.action.type === "template" ? (r.action.templateId ?? "") : r.action.type
+                      }
+                      onChange={(v) =>
                         set({
                           action:
                             v === "claude" || v === "skip"
                               ? { type: v }
                               : { type: "template", templateId: v },
-                        });
-                      }}
-                    >
-                      {(templates.data?.data ?? []).map((t) => (
-                        <option key={t.id} value={t.id}>
-                          Reply with {t.name}
-                        </option>
-                      ))}
-                      <option value="claude">Ask Claude via the connector</option>
-                      <option value="skip">Skip, don’t reply</option>
-                    </select>
+                        })
+                      }
+                      options={[
+                        ...sortTemplates(
+                          (templates.data?.data ?? []).filter(
+                            (t) =>
+                              !t.hidden ||
+                              (r.action.type === "template" && r.action.templateId === t.id),
+                          ),
+                        ).map((t) => ({
+                          value: t.id,
+                          label: `Reply with ${t.name}`,
+                        })),
+                        { value: "claude", label: "Ask Claude via the connector" },
+                        { value: "skip", label: "Skip, don’t reply" },
+                      ]}
+                    />
                   </Field>
                   {r.action.type === "template" ? (
                     <>
                       <Field label="Mode">
-                        <select
-                          className="rp-select"
+                        <Select
+                          block
+                          align="start"
+                          label="Mode"
                           value={r.mode}
-                          onChange={(e) => set({ mode: e.target.value as "auto" | "approval" })}
-                        >
-                          <option value="approval">Approval</option>
-                          <option value="auto">Auto</option>
-                        </select>
+                          onChange={(v) => set({ mode: v as "auto" | "approval" })}
+                          options={[
+                            { value: "approval", label: "Approval" },
+                            { value: "auto", label: "Auto" },
+                          ]}
+                        />
                       </Field>
                       <Field label="Wait (minutes)">
                         <input
@@ -437,13 +451,122 @@ function Placeholders({ app }: { app: PlayAppDetail }) {
     setSource(app.variables);
     setValues(app.variables);
   }
+  const [suggest, setSuggest] = useState(false);
+  const suggestions = useVariableSuggestions(app.id, suggest);
   const keys = [...new Set([...SUGGESTED.map(([k]) => k), ...Object.keys(values)])];
   const dirty = JSON.stringify(values) !== JSON.stringify(app.variables);
+  const list = suggestions.data?.suggestions ?? [];
+  const fillable = list.filter(
+    (x, i) => !values[x.key]?.trim() && list.findIndex((y) => y.key === x.key) === i,
+  );
   return (
     <Section
       title="Placeholder values"
       desc="What {support_email}, {developer_name} and your own placeholders turn into for this app. {user_name}, {app_name}, {rating} and {version} fill in automatically."
+      action={
+        <button type="button" className="rp-btn-light" onClick={() => setSuggest(!suggest)}>
+          {suggest ? "Hide suggestions" : "Fill from Play Store & past replies"}
+        </button>
+      }
     >
+      {suggest ? (
+        <div
+          className="rp-card"
+          style={{
+            borderRadius: 12,
+            padding: "14px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            background: "#F7FAF8",
+            borderColor: "#D6E8DD",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ fontSize: 12.5, color: "#55534E" }}>
+              {suggestions.isPending
+                ? "Reading your store listing and past replies…"
+                : suggestions.error
+                  ? errorMessage(suggestions.error)
+                  : list.length
+                    ? `Found from your Play Store listing and ${suggestions.data?.repliesRead ?? 0} past replies. Review, then Save values.`
+                    : `Nothing found in your store listing or ${suggestions.data?.repliesRead ?? 0} past replies.`}
+            </span>
+            {fillable.length ? (
+              <button
+                type="button"
+                className="rp-btn"
+                style={{ padding: "6px 12px" }}
+                onClick={() => {
+                  setValues({
+                    ...values,
+                    ...Object.fromEntries(fillable.map((x) => [x.key, x.value])),
+                  });
+                  toast(
+                    `${fillable.length} value${fillable.length === 1 ? "" : "s"} filled. Save to keep them.`,
+                  );
+                }}
+              >
+                Fill {fillable.length} empty
+              </button>
+            ) : null}
+          </div>
+          {list.map((x) => {
+            const using = values[x.key] === x.value;
+            return (
+              <div
+                key={`${x.key}:${x.value}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(120px,170px) 1fr auto auto",
+                  gap: 12,
+                  alignItems: "center",
+                  fontSize: 13,
+                }}
+              >
+                <span
+                  className="rp-mono"
+                  style={{ fontSize: 12.5, color: "#0F6B4A" }}
+                >{`{${x.key}}`}</span>
+                <span className="rp-mono" style={{ fontSize: 12.5, overflowWrap: "anywhere" }}>
+                  {x.value}
+                </span>
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: x.source === "play_listing" ? "#ECEFF6" : "#EFEDE8",
+                    color: x.source === "play_listing" ? "#3B4A6B" : "#55534E",
+                    fontSize: 11.5,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {x.source === "play_listing"
+                    ? "Store listing"
+                    : `${x.count} past repl${x.count === 1 ? "y" : "ies"}`}
+                </span>
+                <button
+                  type="button"
+                  className="rp-btn-light"
+                  style={{ padding: "4px 10px", fontSize: 12 }}
+                  disabled={using}
+                  onClick={() => setValues({ ...values, [x.key]: x.value })}
+                >
+                  {using ? "In use" : values[x.key]?.trim() ? "Replace" : "Use"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="rp-card" style={{ borderRadius: 12 }}>
         {keys.map((k, i) => (
           <div
@@ -681,18 +804,19 @@ function AiAndIntegrations() {
                   : "Replyly’s key isn’t set up on this server. Use your own key, or draft through the connector."
           }
         >
-          <select
-            className="rp-select"
-            aria-label="AI drafting"
+          <Select
+            label="AI drafting"
+            minWidth={170}
             value={w.aiMode}
-            onChange={(e) =>
-              run({ aiMode: e.target.value as "platform" | "own" | "off" }, "AI drafting updated")
+            onChange={(v) =>
+              run({ aiMode: v as "platform" | "own" | "off" }, "AI drafting updated")
             }
-          >
-            <option value="platform">Replyly AI</option>
-            <option value="own">My Anthropic key</option>
-            <option value="off">Off</option>
-          </select>
+            options={[
+              { value: "platform", label: "Replyly AI" },
+              { value: "own", label: "My Anthropic key" },
+              { value: "off", label: "Off" },
+            ]}
+          />
         </SettingRow>
         {w.aiMode === "own" ? (
           <SettingRow
@@ -806,7 +930,7 @@ function RemoveApp({ app }: { app: PlayAppDetail }) {
                 remove.mutate(app.id, {
                   onSuccess: () => {
                     toast(`${app.title} removed`);
-                    router.push("/reviews");
+                    router.push("/reviews/apps");
                   },
                   onError: (err) => toast(errorMessage(err)),
                 })

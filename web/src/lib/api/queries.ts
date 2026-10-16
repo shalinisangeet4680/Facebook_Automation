@@ -59,9 +59,10 @@ export const keys = {
   storeProject: (id: string) => ["store", id] as const,
   playWorkspace: ["play", "workspace"] as const,
   playClients: ["play", "workspace", "clients"] as const,
-  playInbox: (filter: string, appId?: string) => ["play", "inbox", filter, appId ?? "all"] as const,
-  playAnalytics: (days: number, appId?: string) =>
-    ["play", "analytics", days, appId ?? "all"] as const,
+  playInbox: (filter: string, appId?: string, stars?: number) =>
+    ["play", "inbox", filter, appId ?? "all", stars ?? "any"] as const,
+  playAnalytics: (range: AnalyticsRange, appId?: string) =>
+    ["play", "analytics", range, appId ?? "all"] as const,
 };
 
 export function useMe() {
@@ -875,10 +876,19 @@ export function useRevokePlayClient() {
   });
 }
 
-export function usePlayInbox(filter: "pending" | "replied" | "all", appId?: string) {
+export function usePlayInbox(
+  filter: "pending" | "replied" | "all",
+  appId?: string,
+  stars?: number,
+) {
   return useQuery({
-    queryKey: keys.playInbox(filter, appId),
-    queryFn: () => unwrap(api.GET("/api/v1/play/inbox", { params: { query: { filter, appId } } })),
+    queryKey: keys.playInbox(filter, appId, stars),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/play/inbox", {
+          params: { query: { filter, appId, stars: stars ? String(stars) : undefined } },
+        }),
+      ),
     placeholderData: (previous) => previous,
   });
 }
@@ -949,11 +959,37 @@ export function useApproveAll() {
   );
 }
 
-export function usePlayAnalytics(days: 7 | 30 | 90, appId?: string) {
+export type AnalyticsRange =
+  | { kind: "today" }
+  | { kind: "days"; days: 7 | 30 | 90 }
+  | { kind: "all" }
+  | { kind: "custom"; from: string; to: string };
+
+function localDay() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function usePlayAnalytics(range: AnalyticsRange, appId?: string) {
   return useQuery({
-    queryKey: keys.playAnalytics(days, appId),
+    queryKey: keys.playAnalytics(range, appId),
     queryFn: () =>
-      unwrap(api.GET("/api/v1/play/analytics", { params: { query: { days, appId } } })),
+      unwrap(
+        api.GET("/api/v1/play/analytics", {
+          params: {
+            query: {
+              appId,
+              ...(range.kind === "days"
+                ? { days: range.days }
+                : range.kind === "all"
+                  ? { all: "true" as const }
+                  : range.kind === "today"
+                    ? { from: localDay(), to: localDay() }
+                    : { from: range.from, to: range.to }),
+            },
+          },
+        }),
+      ),
     placeholderData: (previous) => previous,
   });
 }
@@ -990,4 +1026,67 @@ export function useDuplicateTemplate() {
 
 export function syncPlayApp(id: string) {
   return unwrap(api.POST("/api/v1/play/apps/{id}/sync", { params: { path: { id } } }));
+}
+
+export function useSetReportsBucket() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { connectionId: string; uri: string | null }) =>
+      unwrap(
+        api.PUT("/api/v1/play/connections/{id}/reports", {
+          params: { path: { id: input.connectionId } },
+          body: { uri: input.uri },
+        }),
+      ),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function useImportHistory(appId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (all: boolean) =>
+      unwrap(
+        api.POST("/api/v1/play/apps/{id}/history", {
+          params: { path: { id: appId }, query: { all: all ? "true" : undefined } },
+        }),
+      ),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.play }),
+  });
+}
+
+export function discoverPlayApps(connectionId: string) {
+  return unwrap(
+    api.POST("/api/v1/play/connections/{id}/discover", { params: { path: { id: connectionId } } }),
+  );
+}
+
+export function fetchPlayApps() {
+  return unwrap(api.GET("/api/v1/play/apps"));
+}
+
+export function useVariableSuggestions(appId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["play", "apps", appId, "variable-suggestions"],
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/play/apps/{id}/variable-suggestions", { params: { path: { id: appId } } }),
+      ),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+export function useSetTemplateHidden() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; hidden: boolean }) =>
+      unwrap(
+        api.PUT("/api/v1/play/templates/{id}/visibility", {
+          params: { path: { id: input.id } },
+          body: { hidden: input.hidden },
+        }),
+      ),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["play", "templates"] }),
+  });
 }

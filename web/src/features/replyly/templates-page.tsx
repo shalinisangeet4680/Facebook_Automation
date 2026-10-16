@@ -8,12 +8,13 @@ import {
   useDuplicateTemplate,
   usePlayApps,
   usePlayTemplates,
+  useSetTemplateHidden,
   useSaveTemplate,
 } from "@/lib/api/queries";
 import type { PlayTemplate } from "@/lib/api/types";
 
 import { fillSample, PLACEHOLDERS, PRESET_ORDER, ratingRange } from "./tokens";
-import { PageHead, Skel, useToast } from "./ui";
+import { cx, PageHead, Skel, Toggle, useToast } from "./ui";
 
 interface Draft {
   id: string;
@@ -46,6 +47,9 @@ export function TemplatesPage() {
 
   const list = useMemo(() => templates.data?.data ?? [], [templates.data]);
   const custom = list.filter((t) => !t.builtIn);
+  const [showHidden, setShowHidden] = useState(false);
+  const setHidden = useSetTemplateHidden();
+  const hiddenCount = list.filter((t) => t.builtIn && t.hidden).length;
   const builtin = list
     .filter((t) => t.builtIn)
     .sort(
@@ -176,15 +180,36 @@ export function TemplatesPage() {
             ))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="rp-label" style={{ padding: "0 10px 4px" }}>
-              Pre-built
+            <span
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 8,
+                padding: "0 10px 4px",
+              }}
+            >
+              <span className="rp-label">Pre-built</span>
+              {hiddenCount ? (
+                <button
+                  type="button"
+                  className="rp-btn-quiet"
+                  style={{ fontSize: 11.5 }}
+                  aria-pressed={showHidden}
+                  onClick={() => setShowHidden(!showHidden)}
+                >
+                  {showHidden ? "Hide hidden" : `Show hidden (${hiddenCount})`}
+                </button>
+              ) : null}
             </span>
             {templates.isPending ? (
               <Skel h={120} />
             ) : (
-              builtin.map((t) => (
-                <TplItem key={t.id} t={t} on={t.id === tpl?.id} pick={() => setSelected(t.id)} />
-              ))
+              builtin
+                .filter((t) => showHidden || !t.hidden || t.id === tpl?.id)
+                .map((t) => (
+                  <TplItem key={t.id} t={t} on={t.id === tpl?.id} pick={() => setSelected(t.id)} />
+                ))
             )}
           </div>
         </div>
@@ -237,6 +262,39 @@ export function TemplatesPage() {
                     }}
                   >
                     Read-only
+                  </span>
+                ) : null}
+                {builtIn ? (
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "0 6px",
+                      fontSize: 12.5,
+                      color: "#55534E",
+                    }}
+                  >
+                    Show in pickers
+                    <Toggle
+                      label="Show in template pickers"
+                      on={!tpl.hidden}
+                      disabled={setHidden.isPending}
+                      onChange={() =>
+                        setHidden.mutate(
+                          { id: tpl.id, hidden: !tpl.hidden },
+                          {
+                            onSuccess: (t) =>
+                              toast(
+                                t.hidden
+                                  ? `${t.name} hidden from pickers`
+                                  : `${t.name} is back in pickers`,
+                              ),
+                            onError: (err) => toast(errorMessage(err)),
+                          },
+                        )
+                      }
+                    />
                   </span>
                 ) : null}
                 <button
@@ -449,13 +507,13 @@ function TplItem({ t, on, pick }: { t: PlayTemplate; on: boolean; pick: () => vo
   return (
     <button
       type="button"
-      className={`rp-tpl-item${on ? "rp-tpl-on" : ""}`}
+      className={cx("rp-tpl-item", on && "rp-tpl-on")}
       aria-current={on || undefined}
       onClick={pick}
     >
-      <span>{t.name}</span>
+      <span style={{ opacity: t.hidden ? 0.55 : 1 }}>{t.name}</span>
       <span className="rp-mono" style={{ fontSize: 11.5, color: "#6C6962" }}>
-        {ratingRange(t.ratings)}
+        {t.hidden ? "hidden" : ratingRange(t.ratings)}
       </span>
     </button>
   );

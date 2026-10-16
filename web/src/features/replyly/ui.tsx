@@ -10,6 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+export const cx = (...names: (string | false | null | undefined)[]) =>
+  names.filter(Boolean).join(" ");
+
 export function Toggle({
   on,
   onChange,
@@ -64,7 +67,7 @@ export function Seg<T extends string>({
           type="button"
           role="tab"
           aria-selected={value === o.id}
-          className={`rp-seg-btn${value === o.id ? "rp-seg-on" : ""}`}
+          className={cx("rp-seg-btn", value === o.id && "rp-seg-on")}
           style={{
             ...(small ? { padding: "5px 11px", fontSize: 12.5 } : {}),
             ...(pad ? { padding: `6px ${pad}px` } : {}),
@@ -285,4 +288,28 @@ export async function copyText(text: string) {
   } catch {
     return false;
   }
+}
+
+export const URL_RE = /(https:\/\/[^\s)]+)/g;
+
+export function Linked({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(URL_RE).map((part, i) =>
+        i % 2 ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "inherit", textDecoration: "underline", fontWeight: 500 }}
+          >
+            {new URL(part).hostname === "console.cloud.google.com" ? "Open Cloud Console ↗" : part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
 }

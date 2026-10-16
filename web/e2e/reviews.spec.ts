@@ -47,7 +47,10 @@ test("connects Google Play step by step and explains a bad key", async ({ page }
   await page.goto("/reviews");
   await expect(page).toHaveURL(/\/reviews\/connect$/);
   await expect(page.getByRole("heading", { name: /Connect Google Play/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("link", { name: "Templates" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
   await audit(page);
 
   await page.getByRole("button", { name: "Done, next step" }).click();
@@ -76,7 +79,7 @@ test("connects Google Play step by step and explains a bad key", async ({ page }
 });
 
 test("runs apps per rating and lists every app", async ({ page }, info) => {
-  await page.goto("/reviews");
+  await page.goto("/reviews/apps");
   await expect(page.getByText(/2 connected · \d+ reviews? awaiting a reply/)).toBeVisible();
   const shop = page.getByRole("link", { name: /Discover Shop/ });
   await expect(shop).toContainText("Approval");
@@ -90,19 +93,23 @@ test("runs apps per rating and lists every app", async ({ page }, info) => {
 
   await shop.click();
   await expect(page.getByRole("heading", { name: "Discover Shop" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Reviews" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText("8");
+  await expect(page.locator("article").first()).toContainText("Discover Shop");
+  await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.getByRole("img", { name: "Reviews vs. replies · 30 days" })).toBeVisible();
   await expect(page.getByText("Rating by version")).toBeVisible();
   await audit(page);
 
-  await page.getByRole("tab", { name: "Automation" }).click();
-  await expect(page).toHaveURL(/tab=automation/);
+  await page.getByRole("tab", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/tab=settings/);
   const five = page.getByRole("radiogroup", { name: "Mode for 5-star reviews" });
   await five.getByRole("radio", { name: "Auto" }).click();
   await expect(five.getByRole("radio", { name: "Auto" })).toHaveAttribute("aria-checked", "true");
-  await page.getByRole("combobox", { name: "Template for 1-star reviews" }).selectOption({
-    label: "AI-written, no template",
-  });
-  await page.getByRole("combobox", { name: "Posting delay" }).selectOption("1h");
+  await page.getByRole("combobox", { name: "Template for 1-star reviews" }).click();
+  await page.getByRole("option", { name: "AI-written, no template" }).click();
+  await page.getByRole("combobox", { name: "Posting delay" }).click();
+  await page.getByRole("option", { name: "1 hour" }).click();
   await page.getByRole("switch", { name: "Escalate 1★ reviews" }).click();
   await page.getByRole("textbox", { name: "support_email" }).fill("help@discover.app");
   await page.getByRole("button", { name: "Save values" }).click();
@@ -113,18 +120,20 @@ test("runs apps per rating and lists every app", async ({ page }, info) => {
       .getByRole("radiogroup", { name: "Mode for 5-star reviews" })
       .getByRole("radio", { name: "Auto" }),
   ).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByRole("combobox", { name: "Posting delay" })).toHaveValue("1h");
+  await expect(page.getByRole("combobox", { name: "Posting delay" })).toContainText("1 hour");
   await expect(page.getByRole("switch", { name: "Escalate 1★ reviews" })).toHaveAttribute(
     "aria-checked",
     "true",
   );
-  await page.goto("/reviews");
+  await page.goto("/reviews/apps");
   await expect(page.getByRole("link", { name: /Discover Shop/ })).toContainText("Mixed");
   await audit(page);
   await page.screenshot({ path: info.outputPath("apps.png") });
 });
 
-test("approves, rewrites and skips drafts from one inbox", async ({ page }, info) => {
+test("shows the dashboard, then approves, rewrites and skips an app's reviews", async ({
+  page,
+}, info) => {
   const connections = (await (await page.request.get("/api/v1/play/connections")).json()) as {
     data: { id: string }[];
   };
@@ -138,13 +147,18 @@ test("approves, rewrites and skips drafts from one inbox", async ({ page }, info
   });
   expect(added.ok(), await added.text()).toBeTruthy();
 
-  await page.goto("/reviews/inbox");
-  await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText(/\d+/);
-  await expect(page.getByRole("button", { name: /Approve all \d+/ })).toBeVisible();
+  const { id: newAppId } = (await added.json()) as { id: string };
+  await page.goto("/reviews");
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening)/ }),
+  ).toBeVisible();
+  await expect(page.getByText(/reviews? need a reply across/)).toBeVisible();
   await audit(page);
-
-  await page.getByRole("button", { name: title }).click();
-  await expect(page).toHaveURL(/app=/);
+  await page
+    .getByRole("link", { name: new RegExp(title) })
+    .first()
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/reviews/${newAppId}$`));
   await expect(page.getByRole("tab", { name: /Needs reply/ })).toContainText("8");
   const first = page.locator("article").first();
   const before = await first.getByRole("textbox").inputValue();
@@ -165,7 +179,7 @@ test("approves, rewrites and skips drafts from one inbox", async ({ page }, info
   await page.getByRole("tab", { name: /Needs reply/ }).click();
   await page.getByRole("button", { name: "Approve all 6" }).click();
   await toast(page, "6 replies posted");
-  await expect(page.getByRole("heading", { name: /Inbox zero/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /All caught up on/ })).toBeVisible();
   await audit(page);
 });
 
@@ -197,12 +211,23 @@ test("duplicates a pre-built template and edits the copy", async ({ page }) => {
   await toast(page, "Template deleted");
 });
 
-test("shows analytics, MCP access and the state gallery", async ({ page }) => {
-  await page.goto("/reviews/analytics");
-  await expect(page.getByText("Reply rate")).toBeVisible();
+test("filters the dashboard by app and period, and shows MCP access", async ({ page }) => {
+  await page.goto("/reviews");
   await expect(page.getByText("What reviewers talk about")).toBeVisible();
-  await page.getByRole("tab", { name: "7d" }).click();
-  await expect(page.getByRole("tab", { name: "7d" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: "30d" }).click();
+  await expect(page.getByText("Reply rate · 30d")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Reviews vs. replies · 30 days" })).toBeVisible();
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  await expect(page.getByText("Reply rate · all time")).toBeVisible();
+  await page.getByRole("button", { name: /Custom/ }).click();
+  await page.getByRole("button", { name: "This year" }).click();
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("Reply rate · range")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Jan 1 – / })).toBeVisible();
+  await page.getByRole("combobox", { name: "App" }).click();
+  await page.getByRole("option", { name: "Discover Shop" }).click();
+  await expect(page.getByRole("combobox", { name: "App" })).toContainText("Discover Shop");
+  await expect(page.getByText(/on Discover Shop|Every review has a reply/)).toBeVisible();
   await audit(page);
 
   await page.goto("/reviews/mcp");
@@ -215,8 +240,5 @@ test("shows analytics, MCP access and the state gallery", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Revoke" })).toBeVisible();
   await audit(page);
 
-  await page.goto("/reviews/states");
-  await expect(page.getByText("Verifying your key")).toBeVisible();
-  await expect(page.getByText("Inbox zero. Nice.")).toBeVisible();
   await reset(page);
 });

@@ -1,208 +1,22 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { errorMessage } from "@/lib/api/errors";
 import { api, unwrap } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/errors";
 import {
-  useApproveAll,
   useApproveInboxReply,
   useDraftReview,
-  usePlayInbox,
   usePlayTemplates,
   useReplyFromInbox,
   useSaveInboxDraft,
   useSkipReview,
 } from "@/lib/api/queries";
 import type { PlayInboxReview } from "@/lib/api/types";
-import { useQueryClient } from "@tanstack/react-query";
 
-import { useAppColors } from "./shell";
-import { StateArt } from "./state-art";
 import { ago, stars, TOPIC_STYLE, until } from "./tokens";
-import { Banner, PageHead, Seg, Skel, Spinner, useToast } from "./ui";
-
-type Filter = "pending" | "replied" | "all";
-
-export function InboxPage() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const filter = (
-    ["pending", "replied", "all"].includes(params.get("filter") ?? "")
-      ? params.get("filter")
-      : "pending"
-  ) as Filter;
-  const appId = params.get("app") ?? undefined;
-  const inbox = usePlayInbox(filter, appId);
-  const { apps, color } = useAppColors();
-  const approveAll = useApproveAll();
-  const toast = useToast();
-
-  const go = (next: { filter?: Filter; app?: string | null }) => {
-    const q = new URLSearchParams();
-    const f = next.filter ?? filter;
-    const a = next.app === undefined ? appId : next.app;
-    if (f !== "pending") q.set("filter", f);
-    if (a) q.set("app", a);
-    router.replace(`/reviews/inbox${q.size ? `?${q}` : ""}`, { scroll: false });
-  };
-
-  const data = inbox.data;
-  const items = data?.data ?? [];
-  const approvable = data?.approvable ?? [];
-  const okApps = apps.filter((a) => a.mode !== "needs_access");
-
-  return (
-    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <PageHead
-        title="Inbox"
-        sub="AI drafts waiting for you. Edit, approve, or skip."
-        actions={
-          approvable.length > 1 && filter !== "replied" ? (
-            <button
-              type="button"
-              className="rp-btn"
-              disabled={approveAll.isPending}
-              onClick={() =>
-                approveAll.mutate(approvable.slice(0, 50), {
-                  onSuccess: (r) =>
-                    toast(
-                      r.failed.length
-                        ? `${r.sent} replies posted · ${r.failed.length} failed`
-                        : `${r.sent} replies posted`,
-                    ),
-                  onError: (err) => toast(errorMessage(err)),
-                })
-              }
-            >
-              {approveAll.isPending ? <Spinner /> : null}
-              Approve all {Math.min(approvable.length, 50)}
-            </button>
-          ) : null
-        }
-      />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <Seg
-          label="Inbox filter"
-          pad={12}
-          value={filter}
-          onChange={(f) => go({ filter: f })}
-          options={[
-            { id: "pending", label: "Needs reply", n: data?.counts.pending ?? "" },
-            { id: "replied", label: "Replied", n: data?.counts.replied ?? "" },
-            { id: "all", label: "All", n: data?.counts.all ?? "" },
-          ]}
-        />
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[{ id: "", title: "All apps" }, ...okApps].map((a) => {
-            const on = (appId ?? "") === a.id;
-            return (
-              <button
-                key={a.id || "all"}
-                type="button"
-                aria-pressed={on}
-                onClick={() => go({ app: a.id || null })}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 10px",
-                  borderRadius: 999,
-                  border: `1px solid ${on ? "#191917" : "#E6E4DF"}`,
-                  background: "#fff",
-                  fontSize: 12.5,
-                  cursor: "pointer",
-                  color: "#191917",
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 3,
-                    background: a.id ? color(a.id) : "#191917",
-                  }}
-                />
-                {a.title}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      {inbox.error ? <Banner tone="error">{errorMessage(inbox.error)}</Banner> : null}
-      {inbox.isPending ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="rp-card"
-              style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}
-            >
-              <Skel h={14} w="40%" />
-              <Skel h={12} />
-              <Skel h={60} r={10} />
-            </div>
-          ))}
-        </div>
-      ) : !items.length ? (
-        <div
-          className="rp-card"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-            gap: 28,
-            alignItems: "center",
-            padding: 24,
-            borderRadius: 16,
-          }}
-        >
-          <div style={{ height: 240 }}>
-            <StateArt kind="inbox_zero" height={240} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <h2 className="rp-serif" style={{ fontSize: 34, lineHeight: 1.05 }}>
-              Inbox zero. <span style={{ fontStyle: "italic" }}>Nice.</span>
-            </h2>
-            <p style={{ color: "#55534E", lineHeight: 1.55 }}>
-              Every review in this view has a reply. New reviews sync every 15 minutes, and
-              auto-mode apps keep answering while you’re away.
-            </p>
-            {filter !== "replied" ? (
-              <button
-                type="button"
-                className="rp-btn-light"
-                style={{ alignSelf: "flex-start", marginTop: 4 }}
-                onClick={() => go({ filter: "replied" })}
-              >
-                See what was sent
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {items.map((r) => (
-            <InboxItem
-              key={`${r.id}:${r.draft?.id ?? ""}:${r.draft?.text ?? ""}`}
-              review={r}
-              appColor={color(r.appId)}
-              appName={apps.find((a) => a.id === r.appId)?.title ?? ""}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { Spinner, useToast } from "./ui";
 
 const PENDING = new Set(["waiting", "claude", "scheduled", "unreplied"]);
 
@@ -221,7 +35,7 @@ function byLine(r: PlayInboxReview) {
   return `${who} · ${ago(via.sentAt ?? r.reply?.repliedAt)}`;
 }
 
-function InboxItem({
+export function InboxItem({
   review: r,
   appColor,
   appName,
@@ -248,15 +62,20 @@ function InboxItem({
   const [tagBg, tagFg] = (topic && TOPIC_STYLE[topic]) || ["#EFEDE8", "#55534E"];
   const original = r.originalText && r.originalText !== r.text ? r.originalText : null;
   const tplName = templates.data?.data.find((t) => t.id === r.draft?.templateId)?.name;
-  const label = !r.draft
-    ? "No draft yet"
-    : r.draft.source === "ai"
-      ? `AI draft · ${tplName ?? "AI-written"}`
-      : r.draft.source === "claude"
-        ? "Drafted by Claude"
-        : r.draft.source === "template"
-          ? `Template · ${tplName ?? "template"}`
-          : "Your draft";
+  const label =
+    !r.draft || !r.draft.text.trim()
+      ? r.draft?.status === "needs_claude"
+        ? "Waiting for a draft"
+        : "No draft yet"
+      : r.draft.source === "ai"
+        ? `AI draft · ${tplName ?? "AI-written"}`
+        : r.draft.source === "claude"
+          ? "Drafted by Claude"
+          : r.draft.source === "template"
+            ? tplName
+              ? `Template · ${tplName}`
+              : "Template"
+            : "Your draft";
   const len = [...text].length;
   const busy = draft.isPending || approve.isPending || replyNow.isPending || skip.isPending;
   const fail = (err: unknown) => toast(errorMessage(err));

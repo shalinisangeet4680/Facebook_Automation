@@ -24,7 +24,14 @@ const TOOLS: [string, string][] = [
   ["send_review_reply", "Post a reply (requires permission above)"],
   ["get_review_analytics", "Ratings, reply rate, topics over time"],
   ["get_review_insights", "Per-app versions, languages and common words"],
-  ["upsert_review_template", "Create or edit reply templates"],
+  ["upsert_review_template", "Create or edit templates, in any language, with checks"],
+  ["get_review_settings", "Read an app's modes, templates, behavior and safeguards"],
+  ["update_review_settings", "Change any app setting (asks you to confirm)"],
+  ["set_review_rules", "Replace advanced keyword rules (asks you to confirm)"],
+  ["update_review_workspace", "AI drafting mode and Slack channel (asks you to confirm)"],
+  ["sync_play_apps", "Fetch new reviews and newly shared apps"],
+  ["import_review_history", "Import older months from Play Console reports"],
+  ["delete_review_template", "Delete one of your templates (asks you to confirm)"],
 ];
 
 type Client = "claude" | "cursor" | "cli";

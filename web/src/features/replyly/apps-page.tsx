@@ -6,13 +6,21 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
-import { keys, syncPlayApp, usePlayApps, useUpdatePlayApp } from "@/lib/api/queries";
+import {
+  discoverPlayApps,
+  fetchPlayApps,
+  keys,
+  syncPlayApp,
+  usePlayApps,
+  useUpdatePlayApp,
+} from "@/lib/api/queries";
 import type { PlayApp } from "@/lib/api/types";
 
 import { useConnected } from "./shell";
 import { A, appColor, linePath, MODE_LABEL, MODE_STYLE, rowBorder } from "./tokens";
 import { AppTile } from "./app-tile";
-import { Banner, PageHead, Skel, Toggle, useToast } from "./ui";
+import { StoreLink } from "./store-link";
+import { Banner, Linked, PageHead, Skel, Toggle, useToast } from "./ui";
 
 const COLS = "minmax(200px,2.2fr) 1fr 1fr 1.1fr 1fr 60px";
 
@@ -20,9 +28,9 @@ export function AppsPage() {
   const router = useRouter();
   const toast = useToast();
   const client = useQueryClient();
-  const { connected, loading } = useConnected();
+  const { connected, loading, connections } = useConnected();
   const apps = usePlayApps();
-  const [sync, setSync] = useState<{ pct: number; reviews: number } | null>(null);
+  const [sync, setSync] = useState<{ pct: number; reviews: number; step: string } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,26 +43,55 @@ export function AppsPage() {
   const awaiting = ok.reduce((n, a) => n + a.needsReply, 0);
 
   async function syncAll() {
-    if (sync || !list.length) return;
+    if (sync) return;
     setSyncError(null);
-    setSync({ pct: 8, reviews: 0 });
+    setSync({ pct: 4, reviews: 0, step: "Finding new apps" });
+    const added: string[] = [];
+    const hidden: string[] = [];
+    const errors: string[] = [];
+    for (const c of connections) {
+      try {
+        const found = await discoverPlayApps(c.id);
+        added.push(...found.added.map((a) => a.title), ...found.restored.map((a) => a.title));
+        if (found.error) errors.push(found.error);
+      } catch (err) {
+        errors.push(errorMessage(err));
+      }
+    }
+    const apps = (await fetchPlayApps()).data;
     let reviews = 0;
     let failed = 0;
-    for (const [i, app] of list.entries()) {
+    setSync({ pct: 8, reviews: 0, step: "Syncing reviews" });
+    for (const [i, app] of apps.entries()) {
       try {
-        reviews += (await syncPlayApp(app.id)).fetched;
+        const result = await syncPlayApp(app.id);
+        if (result.archived) hidden.push(app.title);
+        reviews += result.fetched;
       } catch (err) {
         failed++;
-        setSyncError(`${app.title}: ${errorMessage(err)}`);
+        errors.push(`${app.title}: ${errorMessage(err)}`);
       }
-      setSync({ pct: Math.max(8, Math.round(((i + 1) / list.length) * 100)), reviews });
+      setSync({
+        pct: Math.max(8, Math.round(((i + 1) / apps.length) * 100)),
+        reviews,
+        step: "Syncing reviews",
+      });
     }
     await client.invalidateQueries({ queryKey: keys.play });
     setTimeout(() => setSync(null), 600);
+    if (errors.length) setSyncError(errors[0]!);
     toast(
-      failed
-        ? `Synced with ${failed} error${failed === 1 ? "" : "s"}`
-        : `Synced ${reviews.toLocaleString()} reviews`,
+      [
+        added.length
+          ? `${added.length} app${added.length === 1 ? "" : "s"} added (${added.join(", ")})`
+          : "No new apps",
+        ...(hidden.length
+          ? [`${hidden.length} removed from your list after losing access (${hidden.join(", ")})`]
+          : []),
+        failed
+          ? `synced with ${failed} error${failed === 1 ? "" : "s"}`
+          : `synced ${reviews.toLocaleString()} reviews`,
+      ].join(" · "),
     );
   }
 
@@ -96,9 +133,7 @@ export function AppsPage() {
             border: "1px solid #E6E4DF",
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>
-            Syncing reviews
-          </span>
+          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>{sync.step}</span>
           <div
             style={{
               flex: 1,
@@ -127,7 +162,11 @@ export function AppsPage() {
           </span>
         </div>
       ) : null}
-      {syncError ? <Banner tone="error">{syncError}</Banner> : null}
+      {syncError ? (
+        <Banner tone="error">
+          <Linked text={syncError} />
+        </Banner>
+      ) : null}
       {apps.error ? <Banner tone="error">{errorMessage(apps.error)}</Banner> : null}
       <div className="rp-card" style={{ overflowX: "auto" }}>
         <div style={{ minWidth: 720 }}>
@@ -205,17 +244,20 @@ function AppRow({ app, index }: { app: PlayApp; index: number }) {
         <AppTile app={app} color={appColor(index)} size={36} radius={10} font={15} />
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
           <span style={{ fontWeight: 500 }}>{app.title}</span>
-          <span
-            className="rp-mono"
-            style={{
-              fontSize: 11.5,
-              color: "#6C6962",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {app.packageName}
+          <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+            <span
+              className="rp-mono"
+              style={{
+                fontSize: 11.5,
+                color: "#6C6962",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {app.packageName}
+            </span>
+            <StoreLink packageName={app.packageName} />
           </span>
         </span>
       </div>
