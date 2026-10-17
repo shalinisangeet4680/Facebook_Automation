@@ -141,9 +141,9 @@ export function keywordTopic(
   channel: Channel = "google_play",
 ): Topic {
   const t = ` ${text.toLowerCase()} `;
-  for (const [topic, words] of channel === "google_business"
-    ? BUSINESS_RULES
-    : RULES)
+  for (const [topic, words] of channel === "google_play"
+    ? RULES
+    : BUSINESS_RULES)
     if (words.some((w) => t.includes(w))) return topic;
   return stars >= 4 ? "Praise" : "Other";
 }

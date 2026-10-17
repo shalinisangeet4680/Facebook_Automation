@@ -39,19 +39,17 @@ export const PRODUCTS: Product[] = [
     id: "instagram",
     name: "Instagram Autopost",
     subdomains: ["instagram", "insta"],
-    home: "/instagram-autopost",
+    home: "/instagram",
     landing: "/instagram-autopost",
-    paths: [],
-    soon: true,
+    paths: ["/instagram"],
   },
   {
     id: "facebook",
     name: "Facebook Autopost",
     subdomains: ["facebook", "fb"],
-    home: "/facebook-autopost",
+    home: "/facebook",
     landing: "/facebook-autopost",
-    paths: [],
-    soon: true,
+    paths: ["/facebook"],
   },
 ];
 

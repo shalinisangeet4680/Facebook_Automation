@@ -22,6 +22,7 @@ import { SocialModule } from "@modules/social/social.module";
 import { PlayModule } from "@modules/play/play.module";
 import { PlayReleasesModule } from "@modules/play-releases/play-releases.module";
 import { BusinessModule } from "@modules/business/business.module";
+import { SocialEngineModule } from "@modules/social-engine/social-engine.module";
 import { StoreModule } from "@modules/store/store.module";
 import { OnboardingModule } from "@modules/onboarding/onboarding.module";
 import { CacheModule } from "@shared/cache/cache.module";
@@ -74,6 +75,7 @@ import { SecurityModule } from "@shared/security/security.module";
     PlayReleasesModule,
     BusinessModule,
     AutomationModule,
+    SocialEngineModule,
     McpModule,
   ],
   providers: [

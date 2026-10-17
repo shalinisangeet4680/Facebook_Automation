@@ -24,6 +24,8 @@ const SUBJECT: Record<Channel, (name: string) => string> = {
     `You write public developer replies to Google Play reviews for the app "${name}".`,
   google_business: (name) =>
     `You write public owner replies to Google reviews of the business "${name}" on its Google Business Profile.`,
+  social: (name) =>
+    `You write public replies, as the business, to comments on the social media posts of "${name}". Keep them short and human, like a social media manager would.`,
 };
 
 const NO_EMAIL: Record<Channel, string> = {
@@ -31,6 +33,8 @@ const NO_EMAIL: Record<Channel, string> = {
     "There is no support email; point people to the app's Help section instead.",
   google_business:
     "There is no support email; invite people to call or visit the business instead.",
+  social:
+    "There is no support email; invite people to send a direct message instead.",
 };
 
 const TONES = {
@@ -68,10 +72,16 @@ function system(input: ReplyAiInput) {
 
 function prompt(input: ReplyAiInput) {
   const r = input.review;
+  const head =
+    input.channel === "social"
+      ? [`<comment author="${r.author || "A follower"}">`, r.text, "</comment>"]
+      : [
+          `<review stars="${r.stars}" author="${r.author || "A Google user"}" language="${r.language ?? "unknown"}">`,
+          r.text || "(no text, rating only)",
+          "</review>",
+        ];
   return [
-    `<review stars="${r.stars}" author="${r.author || "A Google user"}" language="${r.language ?? "unknown"}">`,
-    r.text || "(no text, rating only)",
-    "</review>",
+    ...head,
     input.template ? `<template>\n${input.template}\n</template>` : "",
     input.avoid
       ? `<previous_draft>\n${input.avoid}\n</previous_draft>\nWrite a different reply from the previous draft.`

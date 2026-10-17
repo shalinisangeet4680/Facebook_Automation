@@ -148,6 +148,13 @@
       "when": 1792226132991,
       "tag": "0020_play_releases",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792227639886,
+      "tag": "0021_social_autopost",
+      "breakpoints": true
     }
   ]
 }

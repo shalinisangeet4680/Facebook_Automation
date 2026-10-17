@@ -38,6 +38,10 @@ const envSchema = z.object({
   MEDIA_DIR: z.string().default("storage/media"),
   ADS_MAX_DAILY_BUDGET: z.coerce.number().positive().default(10_000),
   META_GRAPH_VERSION: z.string().default("v23.0"),
+  META_APP_ID: z.string().optional(),
+  META_APP_SECRET: z.string().optional(),
+  INSTAGRAM_APP_ID: z.string().optional(),
+  INSTAGRAM_APP_SECRET: z.string().optional(),
   META_MOCK: z
     .string()
     .default("false")

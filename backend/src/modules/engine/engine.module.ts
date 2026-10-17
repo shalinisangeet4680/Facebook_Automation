@@ -5,10 +5,13 @@ import { Env } from "@shared/config/env.validation";
 
 import { WorkspaceAiService } from "./application/workspace-ai.service";
 import { ESCALATION_NOTIFIER } from "./domain/ports/notifier";
+import { POST_AI } from "./domain/ports/post-ai";
 import { RELEASE_AI } from "./domain/ports/release-ai";
 import { REPLY_AI } from "./domain/ports/reply-ai";
+import { AnthropicPostAi } from "./infrastructure/anthropic-post.ai";
 import { AnthropicReleaseAi } from "./infrastructure/anthropic-release.ai";
 import { AnthropicReplyAi } from "./infrastructure/anthropic-reply.ai";
+import { MockPostAi } from "./infrastructure/mock-post.ai";
 import { MockReleaseAi } from "./infrastructure/mock-release.ai";
 import { MockReplyAi } from "./infrastructure/mock-reply.ai";
 import { MockNotifier, SlackNotifier } from "./infrastructure/slack.notifier";
@@ -23,6 +26,14 @@ import { MockNotifier, SlackNotifier } from "./infrastructure/slack.notifier";
         config.get("AI_MOCK", { infer: true })
           ? new MockReplyAi()
           : new AnthropicReplyAi(),
+    },
+    {
+      provide: POST_AI,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) =>
+        config.get("AI_MOCK", { infer: true })
+          ? new MockPostAi()
+          : new AnthropicPostAi(),
     },
     {
       provide: RELEASE_AI,
@@ -41,6 +52,12 @@ import { MockNotifier, SlackNotifier } from "./infrastructure/slack.notifier";
           : new SlackNotifier(),
     },
   ],
-  exports: [REPLY_AI, RELEASE_AI, ESCALATION_NOTIFIER, WorkspaceAiService],
+  exports: [
+    REPLY_AI,
+    RELEASE_AI,
+    POST_AI,
+    ESCALATION_NOTIFIER,
+    WorkspaceAiService,
+  ],
 })
 export class EngineModule {}

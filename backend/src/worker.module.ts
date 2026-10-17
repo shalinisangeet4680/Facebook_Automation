@@ -9,6 +9,7 @@ import { MetaWorkerModule } from "@modules/meta/meta-worker.module";
 import { PlayWorkerModule } from "@modules/play/play-worker.module";
 import { PlayReleasesWorkerModule } from "@modules/play-releases/play-releases-worker.module";
 import { BusinessWorkerModule } from "@modules/business/business-worker.module";
+import { SocialEngineWorkerModule } from "@modules/social-engine/social-engine-worker.module";
 import { SocialWorkerModule } from "@modules/social/social-worker.module";
 import { CacheModule } from "@shared/cache/cache.module";
 import { ConfigModule } from "@shared/config/config.module";
@@ -37,6 +38,7 @@ import { SecurityModule } from "@shared/security/security.module";
     PlayWorkerModule,
     PlayReleasesWorkerModule,
     BusinessWorkerModule,
+    SocialEngineWorkerModule,
   ],
 })
 export class WorkerModule {}

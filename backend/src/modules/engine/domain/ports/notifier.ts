@@ -15,7 +15,14 @@ export interface Alert {
   url: string;
 }
 
+export interface Digest {
+  title: string;
+  lines: string[];
+  url: string;
+}
+
 export interface EscalationNotifier {
   send(webhookUrl: string, escalation: Escalation): Promise<void>;
   alert(webhookUrl: string, alert: Alert): Promise<void>;
+  digest(webhookUrl: string, digest: Digest): Promise<void>;
 }

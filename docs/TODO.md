@@ -48,16 +48,16 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 ## 4. Instagram Autopost + Facebook Autopost (plan: `docs/social-autopost-plan.md`)
 
-- [ ] Step 1: Social engine data model, Facebook/Instagram sign-in with a mock, multiple accounts.
-- [ ] Step 2:
+- [x] Step 1: Social engine data model, Facebook/Instagram sign-in with a mock, multiple accounts.
+- [x] Step 2:
   - brand kit;
   - AI weekly calendar;
   - composer with live preview;
   - Auto / Approval / Manual;
   - publishing of image, carousel, Reel and Story.
-- [ ] Step 3: analytics and best time to post.
-- [ ] Step 4: AI comment replies on the shared engine.
-- [ ] Step 5:
+- [x] Step 3: analytics and best time to post.
+- [x] Step 4: AI comment replies on the shared engine.
+- [x] Step 5:
   - MCP tools;
   - add `instagram` and `facebook` to the product registry and subdomains;
   - remove "Coming soon" from the landing page;

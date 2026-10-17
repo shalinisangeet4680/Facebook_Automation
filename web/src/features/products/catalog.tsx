@@ -190,8 +190,7 @@ export const CATALOG: ProductPage[] = [
     audience: "For businesses that want a steady Instagram without a social media manager.",
     worksWith: "Works with Instagram professional accounts",
     scene: <InstagramScene />,
-    appHref: "/login",
-    soon: true,
+    appHref: "/instagram",
     features: [
       {
         icon: CalendarDays,
@@ -252,8 +251,7 @@ export const CATALOG: ProductPage[] = [
     audience: "For local businesses that want an active Facebook Page.",
     worksWith: "Works with Facebook Pages",
     scene: <FacebookScene />,
-    appHref: "/login",
-    soon: true,
+    appHref: "/facebook",
     features: [
       {
         icon: Megaphone,
