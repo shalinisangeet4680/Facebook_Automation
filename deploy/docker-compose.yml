@@ -32,7 +32,6 @@ services:
     image: postgres:17
     restart: unless-stopped
     logging: *logging
-    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-treevook}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -48,6 +47,7 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
+    logging: *logging
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     volumes:
       - redis:/data
