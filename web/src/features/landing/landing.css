@@ -240,15 +240,23 @@
 
 .tv-stage {
   position: relative;
-  width: 980px;
-  height: 930px;
   margin: 56px auto 0;
+}
+
+.tv-stage .tv-node {
+  width: 250px;
+}
+
+.tv-orbit {
+  fill: none;
+  stroke: #d2cec4;
+  stroke-width: 1.2;
+  stroke-dasharray: 2 7;
+  stroke-linecap: round;
 }
 
 .tv-hub {
   position: absolute;
-  left: 438px;
-  top: 413px;
   width: 104px;
   height: 104px;
   border-radius: 28px;
@@ -283,8 +291,6 @@
 .tv-wires {
   position: absolute;
   inset: 0;
-  width: 980px;
-  height: 930px;
   overflow: visible;
 }
 
@@ -309,7 +315,6 @@
 
 .tv-plug {
   position: absolute;
-  top: 37px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -1294,10 +1299,10 @@
   color: var(--ink);
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 1100px) {
   .tv-stage {
-    width: auto;
-    height: auto;
+    width: auto !important;
+    height: auto !important;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
@@ -1311,6 +1316,11 @@
 
   .tv-node {
     position: static;
+  }
+
+  .tv-stage .tv-node {
+    width: 100%;
+    max-width: 340px;
   }
 
   .tv-plug {
@@ -1692,14 +1702,14 @@
 .tv-adsHead,
 .tv-adsRow {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 46px 48px;
+  grid-template-columns: 28px minmax(0, 1fr) 40px 44px;
   align-items: center;
   gap: 6px;
   padding: 7px 10px;
 }
 
 .tv-adsHead {
-  grid-template-columns: minmax(0, 1fr) 46px 48px;
+  grid-template-columns: minmax(0, 1fr) 40px 44px;
   padding-left: 44px;
   font-size: 10.5px;
   color: #65676b;
@@ -1718,6 +1728,7 @@
 }
 
 .tv-adsName em {
+  white-space: nowrap;
   font-style: normal;
   font-size: 10.5px;
   font-weight: 500;
