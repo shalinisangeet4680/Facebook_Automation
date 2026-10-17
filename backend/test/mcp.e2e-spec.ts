@@ -356,9 +356,11 @@ describe("Claude connector (OAuth + MCP)", () => {
       "check_tracking",
       "create_business_post",
       "create_campaign_draft",
+      "create_social_post",
       "delete_review_template",
       "draft_review_reply",
       "get_account_overview",
+      "get_brand_kit",
       "get_business_insights",
       "get_business_profile",
       "get_campaign",
@@ -369,6 +371,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "get_review_insights",
       "get_review_settings",
       "get_review_templates",
+      "get_social_insights",
       "get_suggestions",
       "import_review_history",
       "list_business_locations",
@@ -378,10 +381,15 @@ describe("Claude connector (OAuth + MCP)", () => {
       "list_creatives",
       "list_play_apps",
       "list_play_reviews",
+      "list_social_accounts",
+      "list_social_calendar",
+      "list_social_comments",
       "list_social_posts",
       "pause",
+      "plan_social_week",
       "propose_campaign_plan",
       "publish_post",
+      "reply_to_social_comment",
       "save_ad_creative",
       "save_business_review_drafts",
       "save_profile_draft",
@@ -396,6 +404,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "store_start_upload",
       "sync_business",
       "sync_play_apps",
+      "update_brand_kit",
       "update_business_info",
       "update_business_reply_settings",
       "update_campaign_plan",
@@ -1352,6 +1361,125 @@ describe("Claude connector (OAuth + MCP)", () => {
     ).toBe(true);
   });
 
+  it("lets Claude read and change the social brand kit with confirmation", async () => {
+    const accounts = await tool(accessToken, "list_social_accounts");
+    expect(accounts.isError).toBe(false);
+    expect(accounts.data.accounts).toEqual([]);
+    expect(accounts.data.connect_url).toBe(`${APP_URL}/instagram/accounts`);
+
+    const kit = await tool(accessToken, "get_brand_kit");
+    expect(kit.data).toMatchObject({
+      saved: false,
+      kit: { voice: "friendly" },
+    });
+
+    const ask = await tool(accessToken, "update_brand_kit", {
+      name: "Arogya Clinic",
+      voice: "professional",
+      banned_words: ["cure"],
+    });
+    expect(ask.data.status).toBe("confirmation_required");
+    expect(ask.data.summary).toEqual([
+      "Name: empty → Arogya Clinic",
+      "Voice: friendly → professional",
+      "Banned words: none → cure",
+    ]);
+    const wrong = await tool(accessToken, "update_brand_kit", {
+      name: "Other",
+      confirm_token: ask.data.confirmToken,
+    });
+    expect(wrong.data.status).toBe("invalid_confirmation");
+    const again = await tool(accessToken, "update_brand_kit", {
+      name: "Arogya Clinic",
+      voice: "professional",
+      banned_words: ["cure"],
+    });
+    const done = await tool(accessToken, "update_brand_kit", {
+      name: "Arogya Clinic",
+      voice: "professional",
+      banned_words: ["cure"],
+      confirm_token: again.data.confirmToken,
+    });
+    expect(done.data.status).toBe("applied");
+    expect(done.data.result.kit).toMatchObject({
+      name: "Arogya Clinic",
+      voice: "professional",
+      bannedWords: ["cure"],
+    });
+
+    const calendar = await tool(accessToken, "list_social_calendar", {
+      platform: "facebook",
+    });
+    expect(calendar.data.posts).toEqual([]);
+    const comments = await tool(accessToken, "list_social_comments", {});
+    expect(comments.data.counts).toEqual({ open: 0, waiting: 0 });
+
+    const start = await call(app, "POST", "/api/v1/autopost/oauth/start", {
+      headers: session,
+      body: { login: "facebook", product: "facebook" },
+    });
+    const url = new URL(start.body.url as string);
+    const connected = await call(app, "GET", `${url.pathname}${url.search}`, {
+      cookies: { tv_autopost_state: start.cookies.tv_autopost_state! },
+    });
+    expect(connected.headers.location).toContain("connected=3");
+    const pages = await tool(accessToken, "list_social_accounts", {
+      platform: "facebook",
+    });
+    const page = (pages.data.accounts as { id: string; name: string }[]).find(
+      (a) => a.name === "Sharma Dental Clinic",
+    )!;
+
+    const draft = await tool(accessToken, "create_social_post", {
+      account_id: page.id,
+      format: "text",
+      caption: "We are open on Sunday.",
+      when: "draft",
+    });
+    expect(draft.data).toMatchObject({
+      status: "saved",
+      post: { status: "draft", format: "text" },
+    });
+    const ask2 = await tool(accessToken, "create_social_post", {
+      account_id: page.id,
+      format: "text",
+      caption: "Free check-up camp this Sunday.",
+      when: "now",
+    });
+    expect(ask2.data.status).toBe("confirmation_required");
+    expect(ask2.data.summary[0]).toContain("Publish now on Facebook");
+    const posted = await tool(accessToken, "create_social_post", {
+      account_id: page.id,
+      format: "text",
+      caption: "Free check-up camp this Sunday.",
+      when: "now",
+      confirm_token: ask2.data.confirmToken,
+    });
+    expect(posted.data).toMatchObject({
+      status: "applied",
+      result: { status: "published" },
+    });
+
+    const plan = await tool(accessToken, "plan_social_week", {
+      account_id: page.id,
+    });
+    expect(plan.isError).toBe(false);
+    expect(plan.data.posts.length).toBeGreaterThan(0);
+
+    const open = await tool(accessToken, "list_social_comments", {
+      platform: "facebook",
+      classes: ["question"],
+    });
+    const question = open.data.comments[0] as { comment_id: string };
+    expect(question).toBeTruthy();
+    const reply = await tool(accessToken, "reply_to_social_comment", {
+      comment_id: question.comment_id,
+      text: "We are open 10 to 2 on Sundays.",
+    });
+    expect(reply.data.status).toBe("saved_for_approval");
+    expect(reply.data.comment.state).toBe("waiting");
+  });
+
   it("gives read-only tools when the user doesn't allow changes", async () => {
     const reg = await call(app, "POST", "/oauth/register", {
       body: {
@@ -1369,9 +1497,11 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(23);
+    expect(names).toHaveLength(28);
     expect(names).toContain("list_business_reviews");
     expect(names).not.toContain("send_business_review_reply");
+    expect(names).toContain("list_social_comments");
+    expect(names).not.toContain("reply_to_social_comment");
     expect(names).toContain("list_play_reviews");
     expect(names).not.toContain("send_review_reply");
     expect(names).toContain("store_get_project");

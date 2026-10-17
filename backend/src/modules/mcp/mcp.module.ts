@@ -10,6 +10,7 @@ import { PlansModule } from "@modules/plans/plans.module";
 import { ProfileModule } from "@modules/profile/profile.module";
 import { PlayModule } from "@modules/play/play.module";
 import { SocialModule } from "@modules/social/social.module";
+import { SocialEngineModule } from "@modules/social-engine/social-engine.module";
 import { StoreModule } from "@modules/store/store.module";
 
 import { McpServerFactory } from "./application/mcp-server.factory";
@@ -28,6 +29,7 @@ import { McpController } from "./interface/mcp.controller";
     StoreModule,
     PlayModule,
     BusinessModule,
+    SocialEngineModule,
     EngineModule,
   ],
   controllers: [McpController],
