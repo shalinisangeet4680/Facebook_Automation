@@ -136,7 +136,13 @@ export function ConnectedSummary({
         </div>
         <div
           className="rp-card"
-          style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14, alignSelf: "start" }}
+          style={{
+            padding: 18,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            alignSelf: "start",
+          }}
         >
           <CardTitle
             title="Manage connection"

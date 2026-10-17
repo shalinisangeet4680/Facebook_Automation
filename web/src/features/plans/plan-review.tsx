@@ -272,7 +272,13 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
             {live ? <CheckCircle2 size={18} /> : <Rocket size={18} />}
           </span>
           <div
-            style={{ display: "flex", flexDirection: "column", gap: 2, flex: "1 1 220px", minWidth: 0 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              flex: "1 1 220px",
+              minWidth: 0,
+            }}
           >
             <span style={{ fontWeight: 600 }}>
               {live ? "This campaign is live" : "Created in Meta and paused"}
@@ -433,7 +439,15 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
           </PlanSection>
         </div>
 
-        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+        <div
+          style={{
+            flex: "1 1 300px",
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
           <PlanSection title="Ad" icon={<Megaphone size={18} />} reason={draft.reasons.creative}>
             <AdPreview pageName={pageName} creative={draft.creative} />
             <div

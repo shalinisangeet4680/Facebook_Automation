@@ -129,9 +129,7 @@ export function CreativePicker({
 
 function Note({ children }: { children: ReactNode }) {
   return (
-    <p style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: MUTED }}>
-      {children}
-    </p>
+    <p style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: MUTED }}>{children}</p>
   );
 }
 

@@ -484,7 +484,11 @@ function Search({
               <Spinner dark />
             </div>
           ) : results.data?.results.length ? (
-            <ul role="listbox" aria-label="Suggestions" style={{ listStyle: "none", margin: 0, padding: 4 }}>
+            <ul
+              role="listbox"
+              aria-label="Suggestions"
+              style={{ listStyle: "none", margin: 0, padding: 4 }}
+            >
               {results.data.results.map((o) => (
                 <li key={`${o.type}${o.key}`}>
                   <button
@@ -580,7 +584,12 @@ export function AdPreview({
         {creative.post?.text ?? creative.primaryText}
       </p>
       <div
-        style={{ position: "relative", aspectRatio: "1.91 / 1", width: "100%", background: "#F4F2EE" }}
+        style={{
+          position: "relative",
+          aspectRatio: "1.91 / 1",
+          width: "100%",
+          background: "#F4F2EE",
+        }}
       >
         {src ? (
           <Image unoptimized fill src={src} alt="" sizes="480px" style={{ objectFit: "cover" }} />

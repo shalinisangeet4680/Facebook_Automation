@@ -48,7 +48,9 @@ function PromptCard() {
       >
         <Sparkles size={18} aria-hidden />
       </span>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 0 }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 0 }}
+      >
         <h2 style={{ fontSize: 15, fontWeight: 600 }}>Plan a campaign with Claude</h2>
         <span style={{ fontSize: 13, color: "#55534E" }}>
           In Claude with the TreeVook connector on, paste this. The plan appears here for review.
