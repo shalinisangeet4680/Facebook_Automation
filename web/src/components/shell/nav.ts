@@ -1,12 +1,14 @@
 import {
   BarChart3,
   Building2,
+  CalendarDays,
   Inbox,
   LayoutGrid,
   ListChecks,
   type LucideIcon,
   Megaphone,
   MessageSquareReply,
+  MessagesSquare,
   Settings,
   Smartphone,
   Sparkles,
@@ -18,7 +20,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   soon?: boolean;
-  group?: "Meta ads" | "Google Play" | "Google Business";
+  group?: "Meta ads" | "Google Play" | "Google Business" | "Social autopost";
   badge?: "reviews";
 }
 
@@ -43,6 +45,18 @@ export const NAV: NavItem[] = [
     label: "Business Profile",
     icon: Building2,
     group: "Google Business",
+  },
+  {
+    href: "/instagram",
+    label: "Instagram Autopost",
+    icon: CalendarDays,
+    group: "Social autopost",
+  },
+  {
+    href: "/facebook",
+    label: "Facebook Autopost",
+    icon: MessagesSquare,
+    group: "Social autopost",
   },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

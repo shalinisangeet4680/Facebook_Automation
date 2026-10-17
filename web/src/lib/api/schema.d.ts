@@ -1860,6 +1860,502 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/autopost/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_start_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_accountList_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_account_v1"];
+        put: operations["AutopostController_updateAccount_v1"];
+        post?: never;
+        delete: operations["AutopostController_removeAccount_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/accounts/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_resume_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/accounts/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_sync_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/accounts/{id}/best-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_bestTimes_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_brandKit_v1"];
+        put: operations["AutopostController_saveBrandKit_v1"];
+        post?: never;
+        delete: operations["AutopostController_resetBrandKit_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/brand-kit/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_prefill_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_plans_v1"];
+        put?: never;
+        post: operations["AutopostController_plan_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_calendar_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_posts_v1"];
+        put?: never;
+        post: operations["AutopostController_createPost_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_check_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/write": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_write_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_approveAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_post_v1"];
+        put: operations["AutopostController_updatePost_v1"];
+        post?: never;
+        delete: operations["AutopostController_removePost_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_retry_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/posts/{id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_regenerate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_insightsFor_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutopostController_commentList_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments/{id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_reply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["AutopostController_draft_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments/{id}/ai-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_aiDraft_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_hide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comments/{id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_skip_v1"];
+        delete: operations["AutopostController_unskip_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comment-replies/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_approveReplies_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comment-replies/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_approveReply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autopost/comment-replies/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutopostController_discardReply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3756,6 +4252,606 @@ export interface components {
             /** @enum {string} */
             when: "now" | "schedule" | "draft";
             scheduledAt?: string | null;
+        };
+        AutopostStatusDto: {
+            mock: boolean;
+            facebookLogin: boolean;
+            instagramLogin: boolean;
+            redirectUri: string;
+            facebookScopes: string[];
+            instagramScopes: string[];
+        };
+        StartAutopostOAuthDto: {
+            /** @enum {string} */
+            login: "facebook" | "instagram";
+            /** @enum {string} */
+            product: "instagram" | "facebook";
+            origin?: string;
+        };
+        AutopostConnectUrlDto: {
+            url: string;
+        };
+        AutopostAccountDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            /** @enum {string} */
+            login: "facebook" | "instagram";
+            /** @enum {string} */
+            status: "active" | "error";
+            id: string;
+            externalId: string;
+            name: string;
+            username: string | null;
+            avatarUrl: string | null;
+            category: string | null;
+            pageId: string | null;
+            error: string | null;
+            followers: number;
+            tokenExpiresAt: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
+            commentsSyncedAt: string | null;
+            metricsSyncedAt: string | null;
+            pendingPosts: number;
+            scheduledPosts: number;
+            openComments: number;
+            waitingReplies: number;
+            createdAt: string;
+        };
+        AutopostAccountListDto: {
+            data: components["schemas"]["AutopostAccountDto"][];
+        };
+        AutopostQuietHoursViewDto: {
+            start: string;
+            end: string;
+        };
+        AutopostContentModesViewDto: {
+            /** @enum {string} */
+            tip: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            offer: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            behind_the_scenes: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            testimonial: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            festival: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            product: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            announcement: "auto" | "approval" | "manual";
+        };
+        AutopostCommentModesViewDto: {
+            /** @enum {string} */
+            question: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            praise: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            complaint: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            spam: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            other: "auto" | "approval" | "manual";
+        };
+        AutopostCommentSettingsViewDto: {
+            /** @enum {string} */
+            tone: "friendly" | "professional" | "concise";
+            modes: components["schemas"]["AutopostCommentModesViewDto"];
+            hideSpam: boolean;
+            escalateComplaints: boolean;
+            dailyAutoLimit: number;
+        };
+        AutopostSettingsViewDto: {
+            formats: ("image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link")[];
+            timezone: string;
+            quietHours: components["schemas"]["AutopostQuietHoursViewDto"] | null;
+            dailyLimit: number;
+            weeklyLimit: number;
+            postsPerWeek: number;
+            neverAutoWords: string[];
+            autoPause: boolean;
+            weeklyPlan: boolean;
+            modes: components["schemas"]["AutopostContentModesViewDto"];
+            comments: components["schemas"]["AutopostCommentSettingsViewDto"];
+        };
+        BestTimeSlotDto: {
+            weekday: number;
+            hour: number;
+            score: number;
+        };
+        BestTimesDto: {
+            /** @enum {string} */
+            source: "own" | "default";
+            heatmap: number[][];
+            slots: components["schemas"]["BestTimeSlotDto"][];
+            basedOn: number;
+        };
+        AutopostAccountDetailDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            /** @enum {string} */
+            login: "facebook" | "instagram";
+            /** @enum {string} */
+            status: "active" | "error";
+            id: string;
+            externalId: string;
+            name: string;
+            username: string | null;
+            avatarUrl: string | null;
+            category: string | null;
+            pageId: string | null;
+            error: string | null;
+            followers: number;
+            tokenExpiresAt: string | null;
+            pausedUntil: string | null;
+            pauseReason: string | null;
+            commentsSyncedAt: string | null;
+            metricsSyncedAt: string | null;
+            pendingPosts: number;
+            scheduledPosts: number;
+            openComments: number;
+            waitingReplies: number;
+            createdAt: string;
+            settings: components["schemas"]["AutopostSettingsViewDto"];
+            bestTimes: components["schemas"]["BestTimesDto"];
+        };
+        AutopostQuietHoursDto: {
+            start: string;
+            end: string;
+        };
+        AutopostContentModesDto: {
+            /** @enum {string} */
+            tip?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            offer?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            behind_the_scenes?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            testimonial?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            festival?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            product?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            announcement?: "auto" | "approval" | "manual";
+        };
+        AutopostCommentModesDto: {
+            /** @enum {string} */
+            question?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            praise?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            complaint?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            spam?: "auto" | "approval" | "manual";
+            /** @enum {string} */
+            other?: "auto" | "approval" | "manual";
+        };
+        AutopostCommentSettingsDto: {
+            modes?: components["schemas"]["AutopostCommentModesDto"];
+            /** @enum {string} */
+            tone?: "friendly" | "professional" | "concise";
+            hideSpam?: boolean;
+            escalateComplaints?: boolean;
+            dailyAutoLimit?: number;
+        };
+        UpdateAutopostAccountDto: {
+            timezone?: string;
+            quietHours?: components["schemas"]["AutopostQuietHoursDto"] | null;
+            dailyLimit?: number;
+            weeklyLimit?: number;
+            postsPerWeek?: number;
+            neverAutoWords?: string[];
+            autoPause?: boolean;
+            weeklyPlan?: boolean;
+            modes?: components["schemas"]["AutopostContentModesDto"];
+            formats?: ("image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link")[];
+            comments?: components["schemas"]["AutopostCommentSettingsDto"];
+        };
+        AutopostCommentSyncDto: {
+            fetched: number;
+            created: number;
+            hidden: number;
+            drafts: number;
+        };
+        AutopostMetricsSyncDto: {
+            posts: number;
+            days: number;
+        };
+        AutopostSyncResultDto: {
+            comments: components["schemas"]["AutopostCommentSyncDto"];
+            metrics: components["schemas"]["AutopostMetricsSyncDto"];
+        };
+        HashtagSetViewDto: {
+            name: string;
+            tags: string[];
+        };
+        BrandColorsViewDto: {
+            primary: string;
+            secondary: string;
+            accent: string;
+        };
+        BrandFontsViewDto: {
+            heading: string;
+            body: string;
+        };
+        BrandKitViewDto: {
+            /** @enum {string} */
+            voice: "friendly" | "professional" | "playful";
+            name: string;
+            businessType: string;
+            audience: string;
+            topics: string[];
+            offers: string[];
+            hashtagSets: components["schemas"]["HashtagSetViewDto"][];
+            bannedWords: string[];
+            logoUrl: string | null;
+            colors: components["schemas"]["BrandColorsViewDto"];
+            fonts: components["schemas"]["BrandFontsViewDto"];
+            cta: string;
+            link: string | null;
+            websiteUrl: string | null;
+            city: string | null;
+            language: string;
+        };
+        BrandKitResponseDto: {
+            accountId: string | null;
+            custom: boolean;
+            saved: boolean;
+            prefilledAt: string | null;
+            kit: components["schemas"]["BrandKitViewDto"];
+            suggested?: boolean;
+        };
+        HashtagSetDto: {
+            name: string;
+            tags: string[];
+        };
+        BrandColorsDto: {
+            primary?: string;
+            secondary?: string;
+            accent?: string;
+        };
+        BrandFontsDto: {
+            heading?: string;
+            body?: string;
+        };
+        BrandKitPatchDto: {
+            name?: string;
+            businessType?: string;
+            audience?: string;
+            /** @enum {string} */
+            voice?: "friendly" | "professional" | "playful";
+            topics?: string[];
+            offers?: string[];
+            hashtagSets?: components["schemas"]["HashtagSetDto"][];
+            bannedWords?: string[];
+            logoUrl?: string | null;
+            colors?: components["schemas"]["BrandColorsDto"];
+            fonts?: components["schemas"]["BrandFontsDto"];
+            cta?: string;
+            link?: string | null;
+            websiteUrl?: string | null;
+            city?: string | null;
+            /** @enum {string} */
+            language?: "en" | "hi" | "hinglish";
+        };
+        PrefillBrandKitDto: {
+            /** Format: uuid */
+            accountId?: string;
+            websiteUrl?: string;
+            save?: boolean;
+        };
+        GeneratePlanDto: {
+            /** Format: uuid */
+            accountId: string;
+            weekStart?: string;
+        };
+        AutopostPlanDto: {
+            id: string;
+            accountId: string;
+            weekStart: string;
+            summary: string;
+            source: string;
+            createdAt: string;
+        };
+        AutopostMediaDto: {
+            /** @enum {string} */
+            kind: "image" | "video";
+            url: string;
+            creativeId: string | null;
+            width: number | null;
+            height: number | null;
+            durationSeconds: number | null;
+        };
+        AutopostPostDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            /** @enum {string} */
+            format: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            /** @enum {string} */
+            contentType: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            /** @enum {string} */
+            status: "draft" | "pending_approval" | "scheduled" | "publishing" | "published" | "failed" | "cancelled";
+            /** @enum {string} */
+            mode: "auto" | "approval" | "manual";
+            id: string;
+            accountId: string;
+            accountName: string;
+            planId: string | null;
+            idea: string | null;
+            caption: string;
+            hashtags: string[];
+            firstComment: string | null;
+            altText: string | null;
+            media: components["schemas"]["AutopostMediaDto"][];
+            link: string | null;
+            location: string | null;
+            collaborators: string[];
+            heldReason: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            error: string | null;
+            source: string;
+            aiWritten: boolean;
+            problems: string[];
+            createdAt: string;
+            updatedAt: string;
+        };
+        AutopostPlanResultDto: {
+            plan: components["schemas"]["AutopostPlanDto"];
+            posts: components["schemas"]["AutopostPostDto"][];
+        };
+        AutopostPlanListDto: {
+            data: components["schemas"]["AutopostPlanDto"][];
+        };
+        AutopostCalendarDto: {
+            data: components["schemas"]["AutopostPostDto"][];
+            plans: components["schemas"]["AutopostPlanDto"][];
+        };
+        AutopostPostListDto: {
+            data: components["schemas"]["AutopostPostDto"][];
+        };
+        AutopostMediaInputDto: {
+            /** Format: uuid */
+            creativeId?: string;
+            url?: string;
+            /** @enum {string} */
+            kind?: "image" | "video";
+        };
+        CreateAutopostDto: {
+            /** Format: uuid */
+            accountId: string;
+            /** @enum {string} */
+            format: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            /** @enum {string} */
+            when: "draft" | "approval" | "schedule" | "now";
+            generateCaption?: boolean;
+            generateImage?: boolean;
+            /** @enum {string} */
+            contentType?: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            idea?: string | null;
+            caption?: string;
+            hashtags?: string[];
+            firstComment?: string | null;
+            altText?: string | null;
+            media?: components["schemas"]["AutopostMediaInputDto"][];
+            link?: string | null;
+            location?: string | null;
+            collaborators?: string[];
+            scheduledAt?: string | null;
+        };
+        AutopostCheckDto: {
+            problems: string[];
+        };
+        WriteAutopostDto: {
+            /** Format: uuid */
+            accountId: string;
+            /** @enum {string} */
+            format: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            /** @enum {string} */
+            contentType: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            idea: string;
+            avoid?: string;
+        };
+        AutopostWrittenDto: {
+            headline: string;
+            caption: string;
+            hashtags: string[];
+            firstComment: string | null;
+            altText: string | null;
+            ai: boolean;
+        };
+        ApproveAutopostsDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            /** Format: uuid */
+            accountId?: string;
+            ids?: string[];
+        };
+        AutopostFailureDto: {
+            id: string;
+            error: string;
+        };
+        AutopostApproveAllResultDto: {
+            approved: number;
+            failed: components["schemas"]["AutopostFailureDto"][];
+        };
+        UpdateAutopostDto: {
+            /** @enum {string} */
+            format?: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            /** @enum {string} */
+            contentType?: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            idea?: string | null;
+            caption?: string;
+            hashtags?: string[];
+            firstComment?: string | null;
+            altText?: string | null;
+            media?: components["schemas"]["AutopostMediaInputDto"][];
+            link?: string | null;
+            location?: string | null;
+            collaborators?: string[];
+            scheduledAt?: string | null;
+        };
+        RegenerateAutopostDto: {
+            /** @enum {string} */
+            part: "caption" | "image";
+        };
+        AutopostTotalsDto: {
+            posts: number;
+            reach: number;
+            impressions: number;
+            likes: number;
+            comments: number;
+            shares: number;
+            saves: number;
+            videoPlays: number;
+            engagement: number;
+            engagementRate: number | null;
+        };
+        AutopostFollowersDto: {
+            total: number;
+            change: number;
+        };
+        AutopostSeriesPointDto: {
+            day: string;
+            followers: number;
+            profileVisits: number;
+            reach: number;
+        };
+        AutopostMetricValuesDto: {
+            reach: number;
+            impressions: number;
+            likes: number;
+            comments: number;
+            shares: number;
+            saves: number;
+            videoPlays: number;
+        };
+        AutopostInsightPostDto: {
+            /** @enum {string} */
+            format: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            /** @enum {string} */
+            contentType: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            id: string;
+            accountId: string;
+            caption: string;
+            permalink: string | null;
+            publishedAt: string;
+            imageUrl: string | null;
+            metrics: components["schemas"]["AutopostMetricValuesDto"];
+            engagement: number;
+        };
+        AutopostFormatStatDto: {
+            /** @enum {string} */
+            format: "image" | "carousel" | "reel" | "story" | "multi_image" | "video" | "text" | "link";
+            key: string;
+            posts: number;
+            avgEngagement: number;
+            avgReach: number;
+        };
+        AutopostContentStatDto: {
+            /** @enum {string} */
+            contentType: "tip" | "offer" | "behind_the_scenes" | "testimonial" | "festival" | "product" | "announcement";
+            key: string;
+            posts: number;
+            avgEngagement: number;
+            avgReach: number;
+        };
+        AutopostClassCountDto: {
+            /** @enum {string} */
+            class: "question" | "praise" | "complaint" | "spam" | "other";
+            count: number;
+        };
+        AutopostThemeDto: {
+            word: string;
+            reviews: number;
+        };
+        AutopostCommentStatsDto: {
+            total: number;
+            replyRate: number | null;
+            medianResponseMinutes: number | null;
+            classes: components["schemas"]["AutopostClassCountDto"][];
+            themes: components["schemas"]["AutopostThemeDto"][];
+        };
+        AutopostInsightsDto: {
+            days: number;
+            current: components["schemas"]["AutopostTotalsDto"];
+            previous: components["schemas"]["AutopostTotalsDto"];
+            followers: components["schemas"]["AutopostFollowersDto"];
+            profileVisits: number;
+            series: components["schemas"]["AutopostSeriesPointDto"][];
+            topPosts: components["schemas"]["AutopostInsightPostDto"][];
+            posts: components["schemas"]["AutopostInsightPostDto"][];
+            byFormat: components["schemas"]["AutopostFormatStatDto"][];
+            byContentType: components["schemas"]["AutopostContentStatDto"][];
+            bestTimes: components["schemas"]["BestTimesDto"];
+            comments: components["schemas"]["AutopostCommentStatsDto"];
+            recommendations: string[];
+        };
+        AutopostCommentCountsDto: {
+            open: number;
+            waiting: number;
+        };
+        AutopostCommentReplyViewDto: {
+            text: string;
+            at: string | null;
+        };
+        AutopostCommentDraftDto: {
+            /** @enum {string} */
+            status: "pending_approval" | "needs_claude" | "scheduled" | "sent" | "failed" | "discarded";
+            /** @enum {string} */
+            source: "template" | "claude" | "manual" | "ai";
+            id: string;
+            text: string;
+            auto: boolean;
+            note: string | null;
+            sendAt: string | null;
+            error: string | null;
+        };
+        AutopostCommentDto: {
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            /** @enum {string} */
+            class: "question" | "praise" | "complaint" | "spam" | "other";
+            /** @enum {string} */
+            state: "open" | "waiting" | "scheduled" | "replied" | "hidden" | "skipped" | "failed";
+            id: string;
+            accountId: string;
+            accountName: string;
+            postId: string | null;
+            postCaption: string | null;
+            postPermalink: string | null;
+            author: string;
+            text: string;
+            commentedAt: string;
+            hidden: boolean;
+            reply: components["schemas"]["AutopostCommentReplyViewDto"] | null;
+            draft: components["schemas"]["AutopostCommentDraftDto"] | null;
+            escalatedAt: string | null;
+        };
+        AutopostCommentListDto: {
+            counts: components["schemas"]["AutopostCommentCountsDto"];
+            data: components["schemas"]["AutopostCommentDto"][];
+        };
+        AutopostCommentTextDto: {
+            text: string;
+        };
+        AutopostCommentAiDraftDto: {
+            rewrite?: boolean;
+        };
+        AutopostHideCommentDto: {
+            hidden: boolean;
+        };
+        AutopostApproveRepliesDto: {
+            replyIds: string[];
+        };
+        AutopostApproveRepliesResultDto: {
+            sent: number;
+            failed: components["schemas"]["AutopostFailureDto"][];
+        };
+        AutopostApproveReplyDto: {
+            text?: string;
         };
     };
     responses: never;
@@ -8093,6 +9189,1226 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostStatusDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_start_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartAutopostOAuthDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostConnectUrlDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_accountList_v1: {
+        parameters: {
+            query?: {
+                platform?: "instagram" | "facebook";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostAccountListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_account_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostAccountDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_updateAccount_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAutopostAccountDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostAccountDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_removeAccount_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_resume_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostAccountDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_sync_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostSyncResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_bestTimes_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BestTimesDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_brandKit_v1: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_saveBrandKit_v1: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandKitPatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_resetBrandKit_v1: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_prefill_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrefillBrandKitDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_plans_v1: {
+        parameters: {
+            query: {
+                platform: "instagram" | "facebook";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPlanListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_plan_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeneratePlanDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPlanResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_calendar_v1: {
+        parameters: {
+            query: {
+                platform: "instagram" | "facebook";
+                accountId?: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCalendarDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_posts_v1: {
+        parameters: {
+            query?: {
+                platform?: "instagram" | "facebook";
+                accountId?: string;
+                status?: string;
+                from?: string;
+                to?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_createPost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAutopostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_check_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAutopostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCheckDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_write_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteAutopostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostWrittenDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_approveAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAutopostsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostApproveAllResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_post_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_updatePost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAutopostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_removePost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_approve_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_retry_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_publish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_regenerate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerateAutopostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_insightsFor_v1: {
+        parameters: {
+            query: {
+                platform: "instagram" | "facebook";
+                accountId?: string;
+                days?: 7 | 30 | 90;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostInsightsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_commentList_v1: {
+        parameters: {
+            query?: {
+                platform?: "instagram" | "facebook";
+                accountId?: string;
+                filter?: "open" | "replied" | "all";
+                classes?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_reply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostCommentTextDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_draft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostCommentTextDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_aiDraft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostCommentAiDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_hide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostHideCommentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_skip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_unskip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_approveReplies_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostApproveRepliesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostApproveRepliesResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_approveReply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutopostApproveReplyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutopostController_discardReply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutopostCommentDto"];
+                };
             };
             default: {
                 headers: {

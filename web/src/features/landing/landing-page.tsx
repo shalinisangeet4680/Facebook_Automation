@@ -176,7 +176,6 @@ export function LandingPage() {
         <Product
           id="instagram"
           flip
-          soon
           color="#C2185B"
           soft="#FBEFF6"
           name="Instagram Autopost"
@@ -214,7 +213,6 @@ export function LandingPage() {
 
         <Product
           id="facebook"
-          soon
           color="#2D5BD7"
           soft="#EEF2FD"
           name="Facebook Autopost"
