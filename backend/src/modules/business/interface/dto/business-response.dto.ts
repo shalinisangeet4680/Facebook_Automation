@@ -15,6 +15,10 @@ import {
   POST_TYPES,
   WEEKDAYS,
 } from "../../domain/business.types";
+import {
+  VERIFICATION_METHODS,
+  VERIFICATION_STATES,
+} from "../../domain/profile.types";
 import { REVIEW_STATES } from "../../application/business-reviews.service";
 
 export class BusinessStatusDto {
@@ -86,12 +90,18 @@ export class BusinessAddressDto {
   country: string;
 }
 
+export class ServiceAreaViewDto {
+  regionCode: string;
+  places: string[];
+}
+
 export class BusinessInfoDto {
   title: string;
   description: string;
   phone: string | null;
   website: string | null;
   address: BusinessAddressDto | null;
+  serviceArea?: ServiceAreaViewDto | null;
   primaryCategory: string | null;
   additionalCategories: string[];
   hours: OpeningPeriodViewDto[];
@@ -110,6 +120,11 @@ export class GbpLocationDto {
   @ApiProperty({ enum: ["auto", "approval", "manual", "mixed"] })
   mode: "auto" | "approval" | "manual" | "mixed";
   verified: boolean;
+  @ApiProperty({ enum: VERIFICATION_STATES })
+  verificationState: (typeof VERIFICATION_STATES)[number];
+  @ApiProperty({ enum: VERIFICATION_METHODS, nullable: true, type: String })
+  verificationMethod: string | null;
+  createdInApp: boolean;
   mapsUri: string | null;
   newReviewUri: string | null;
   connectionId: string;

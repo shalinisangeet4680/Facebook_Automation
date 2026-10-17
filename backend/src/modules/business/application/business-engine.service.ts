@@ -284,11 +284,20 @@ export class BusinessEngine {
     const token = await this.tokenFor(location);
     let page;
     try {
-      const [fresh, reviews] = await Promise.all([
-        this.api.location(token, location.locationName),
-        this.api.reviews(token, location.accountName, location.locationName),
-      ]);
-      page = reviews;
+      const fresh = await this.api.location(token, location.locationName);
+      page = fresh.verified
+        ? await this.api.reviews(
+            token,
+            location.accountName,
+            location.locationName,
+          )
+        : await this.api
+            .reviews(token, location.accountName, location.locationName)
+            .catch(() => ({
+              reviews: [],
+              averageRating: null,
+              totalReviewCount: 0,
+            }));
       location = await this.repo.updateLocation(location.id, {
         title: fresh.info.title || location.title,
         info: fresh.info,
@@ -296,6 +305,11 @@ export class BusinessEngine {
         mapsUri: fresh.mapsUri,
         newReviewUri: fresh.newReviewUri,
         verified: fresh.verified,
+        verificationState: fresh.verified
+          ? "verified"
+          : location.verificationState === "verified"
+            ? "unverified"
+            : location.verificationState,
       });
     } catch (err) {
       const message =

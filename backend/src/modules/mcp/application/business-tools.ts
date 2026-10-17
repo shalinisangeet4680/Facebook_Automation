@@ -3,12 +3,17 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 import { BusinessActor } from "@modules/business/application/business-engine.service";
+import {
+  BusinessProfilesService,
+  NewBusinessInput,
+} from "@modules/business/application/business-profiles.service";
 import { BusinessReviewsService } from "@modules/business/application/business-reviews.service";
 import {
   BusinessService,
   LocationUpdate,
 } from "@modules/business/application/business.service";
 import { CTA_TYPES, WEEKDAYS } from "@modules/business/domain/business.types";
+import { VERIFICATION_METHODS } from "@modules/business/domain/profile.types";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
 import { appUrl, AppConfig } from "@shared/config/app-config";
 
@@ -23,12 +28,13 @@ type Confirmed = (
 export interface BusinessToolDeps {
   business: BusinessService;
   reviews: BusinessReviewsService;
+  profiles: BusinessProfilesService;
   workspaceAi: WorkspaceAiService;
   config: AppConfig;
 }
 
 export const BUSINESS_INSTRUCTIONS =
-  "- Google Business Profile: list_business_locations first. list_business_reviews shows reviews needing a reply (or replied/all). Write replies as the business owner: warm, specific to what the customer said, in their language, no promises of refunds or outcomes, and never reveal private details about a customer or patient. Save drafts with save_business_review_drafts so the owner approves them in TreeVook; send_business_review_reply posts publicly and is two-step. create_business_post publishes or schedules an update, offer or event (two-step unless saved as a draft); keep posts short, useful and without phone numbers in the text (use the Call button). get_business_insights explains views, calls, website clicks and direction requests; Google publishes these with a 2–3 day delay. update_business_info changes the name, description (max 750 characters, no links), phone, website or opening hours, and update_business_reply_settings changes per-rating reply modes, voice and safeguards; both are two-step.";
+  "- Google Business Profile: list_business_locations first. list_business_reviews shows reviews needing a reply (or replied/all). Write replies as the business owner: warm, specific to what the customer said, in their language, no promises of refunds or outcomes, and never reveal private details about a customer or patient. Save drafts with save_business_review_drafts so the owner approves them in TreeVook; send_business_review_reply posts publicly and is two-step. create_business_post publishes or schedules an update, offer or event (two-step unless saved as a draft); keep posts short, useful and without phone numbers in the text (use the Call button). get_business_insights explains views, calls, website clicks and direction requests; Google publishes these with a 2–3 day delay. update_business_info changes the name, description (max 750 characters, no links), phone, website or opening hours, and update_business_reply_settings changes per-rating reply modes, voice and safeguards; both are two-step. To add a business that isn't on TreeVook yet: find_business_on_google first; if Google already lists it, share the claim link instead of creating a duplicate. create_business_profile creates a new profile (two-step; it checks the details with Google before asking for confirmation). New profiles stay hidden until verified: start_business_verification lists the ways Google offers, then sends a code by the method the owner picks (two-step), and complete_business_verification submits the code they receive (two-step).";
 
 export function registerBusinessReadTools(
   server: McpServer,
@@ -160,6 +166,49 @@ export function registerBusinessReadTools(
             topics: reviewStats.topics,
             replies_sent: reviewStats.repliesSent,
           },
+        };
+      }),
+  );
+
+  server.registerTool(
+    "find_business_on_google",
+    {
+      title: "Find a business on Google Maps",
+      description:
+        "Search Google Maps for an existing listing by name, with an optional address or phone to narrow it down. Use this before create_business_profile to avoid duplicates. claim_url opens Google's request-access flow for a listing someone else manages; managed_in_treevook is the location id when it is already connected.",
+      inputSchema: {
+        name: z.string().min(2).max(100),
+        address: z.string().max(200).optional(),
+        phone: z.string().max(40).optional(),
+        region_code: z
+          .string()
+          .regex(/^[A-Z]{2}$/)
+          .default("IN"),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    (a) =>
+      run(async () => {
+        const found = await deps.profiles.search(ws, {
+          query: a.name,
+          address: a.address ?? null,
+          phone: a.phone ?? null,
+          regionCode: a.region_code,
+        });
+        return {
+          matches: found.data.map((m) => ({
+            title: m.title,
+            address: m.address,
+            phone: m.phone,
+            category: m.category,
+            maps_url: m.mapsUri,
+            claim_url: m.requestAdminRightsUri,
+            managed_in_treevook: m.locationId,
+          })),
+          next: found.data.length
+            ? "If one of these is the business, share its claim_url (or open it in TreeVook if managed_in_treevook is set) instead of creating a new profile."
+            : "Nothing matched. create_business_profile can add it.",
+          create_url: url("/create"),
         };
       }),
   );
@@ -489,5 +538,276 @@ export function registerBusinessWriteTools(
       },
     },
     () => run(() => business.syncAll(actor)),
+  );
+
+  const profiles = deps.profiles;
+  const writeOpen = {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  } as const;
+
+  server.registerTool(
+    "create_business_profile",
+    {
+      title: "Create a Google Business Profile (needs confirmation)",
+      description:
+        "Create a new Business Profile on Google and connect it to TreeVook. Call find_business_on_google first. category is matched against Google's category list (for example 'Dental clinic'). Give address for a storefront customers visit, or service_areas (cities or areas) for a business that goes to customers; the address is then hidden. hours is the full week (days left out are closed). website must be https. account is only needed when the owner has several Business Profile accounts. Two steps: the first call checks the details with Google and returns a summary and confirm_token; call again with the same arguments and confirm_token after the user agrees. The new profile stays hidden on Google until it is verified.",
+      inputSchema: {
+        name: z.string().min(1).max(100),
+        category: z.string().min(2).max(80),
+        additional_categories: z.array(z.string().max(80)).max(9).optional(),
+        phone: z.string().max(40).optional(),
+        website: z.string().url().optional(),
+        description: z.string().max(750).optional(),
+        address: z
+          .object({
+            street: z.string().min(1).max(120),
+            street2: z.string().max(120).optional(),
+            city: z.string().min(1).max(80),
+            state: z.string().max(80).default(""),
+            postal_code: z.string().min(1).max(20),
+            country: z
+              .string()
+              .regex(/^[A-Z]{2}$/)
+              .default("IN"),
+          })
+          .optional(),
+        service_areas: z.array(z.string().min(1).max(120)).max(20).optional(),
+        service_country: z
+          .string()
+          .regex(/^[A-Z]{2}$/)
+          .default("IN"),
+        hours: z
+          .array(
+            z.object({
+              day: z.enum(WEEKDAYS),
+              open: z.string().regex(/^\d{2}:\d{2}$/),
+              close: z.string().regex(/^\d{2}:\d{2}$/),
+            }),
+          )
+          .max(28)
+          .optional(),
+        account: z
+          .string()
+          .regex(/^accounts\/\d+$/)
+          .optional(),
+        confirm_token: z.string().optional(),
+      },
+      annotations: writeOpen,
+    },
+    ({ confirm_token, ...a }) =>
+      run(async () => {
+        const region = a.address?.country ?? a.service_country;
+        const pick = async (text: string) => {
+          const found = (await profiles.categories(ws, text, region)).data;
+          return (
+            found.find(
+              (c) => c.displayName.toLowerCase() === text.trim().toLowerCase(),
+            ) ??
+            found[0] ??
+            null
+          );
+        };
+        const primary = await pick(a.category);
+        if (!primary)
+          return {
+            status: "invalid",
+            problems: [
+              `Google has no category like "${a.category}". Try a simpler word, like "Dentist" or "Bakery".`,
+            ],
+          };
+        const extra = [];
+        for (const c of a.additional_categories ?? []) {
+          const found = await pick(c);
+          if (found) extra.push(found);
+        }
+        const input: NewBusinessInput = {
+          title: a.name,
+          primaryCategory: primary,
+          additionalCategories: extra,
+          phone: a.phone ?? null,
+          website: a.website ?? null,
+          description: a.description ?? "",
+          address: a.address
+            ? {
+                lines: [a.address.street, a.address.street2 ?? ""],
+                locality: a.address.city,
+                region: a.address.state,
+                postalCode: a.address.postal_code,
+                country: a.address.country,
+              }
+            : null,
+          serviceArea: a.service_areas?.length
+            ? { regionCode: a.service_country, places: a.service_areas }
+            : null,
+          hours: a.hours ?? [],
+        };
+        const target = { account: a.account ?? null };
+        const check = await profiles.validate(ws, {
+          ...target,
+          business: input,
+        });
+        if (!check.valid)
+          return { status: "invalid", problems: check.problems };
+        const result = await confirmed(
+          "create_business_profile",
+          a,
+          confirm_token,
+          () =>
+            Promise.resolve({
+              changes: [
+                "Create this Business Profile on Google:",
+                ...check.summary,
+              ],
+              enablesAuto: false,
+            }),
+          async () => {
+            const location = await profiles.create(actor, {
+              ...target,
+              business: input,
+            });
+            return {
+              location_id: location.id,
+              title: location.title,
+              verification_state: location.verificationState,
+              next: "Run start_business_verification so Google shows the profile.",
+              url: url(`/${location.id}`),
+            };
+          },
+        );
+        return result;
+      }),
+  );
+
+  const statusView = (
+    s: Awaited<ReturnType<BusinessProfilesService["status"]>>,
+  ) => ({
+    location_id: s.locationId,
+    title: s.title,
+    verified: s.verified,
+    state: s.state,
+    method: s.method,
+    sent_to: s.target,
+    needs_code: s.needsCode,
+    note: s.note,
+    manage_url: s.manageUrl,
+  });
+
+  server.registerTool(
+    "start_business_verification",
+    {
+      title: "Verify a Google Business Profile (needs confirmation)",
+      description:
+        "Start Google's verification for an unverified location. Without method it returns the current status and the ways Google offers (text message, phone call, email, postcard, sometimes instant). With method it is two-step: the first call returns a summary and confirm_token, the second (same arguments plus confirm_token, after the owner agrees) asks Google to send the code. email is only for EMAIL when Google lets the owner pick the address at the website's domain.",
+      inputSchema: {
+        location_id: locationId,
+        method: z.enum(VERIFICATION_METHODS).optional(),
+        email: z.string().email().optional(),
+        confirm_token: z.string().optional(),
+      },
+      annotations: writeOpen,
+    },
+    ({ confirm_token, ...a }) =>
+      run(async () => {
+        const status = await profiles.status(ws, a.location_id);
+        if (status.verified)
+          return {
+            status: "already_verified",
+            verification: statusView(status),
+          };
+        const options = (await profiles.verificationOptions(ws, a.location_id))
+          .data;
+        const ways = options.map((o) => ({
+          method: o.method,
+          label: o.label,
+          sends_code_to: o.phone ?? o.email ?? o.address,
+          email_editable: o.emailEditable,
+        }));
+        if (!a.method)
+          return {
+            status: "choose_method",
+            verification: statusView(status),
+            options: ways,
+            message: ways.length
+              ? "Ask the owner which way they want to receive the code."
+              : `Google needs another way to verify this business, such as a short video. Finish it in Business Profile: ${status.manageUrl}`,
+          };
+        const option = options.find((o) => o.method === a.method);
+        if (!option)
+          return {
+            status: "invalid",
+            problems: ["Google doesn't offer that method here."],
+            options: ways,
+          };
+        const to = a.email ?? option.phone ?? option.email ?? option.address;
+        return confirmed(
+          "start_business_verification",
+          a,
+          confirm_token,
+          () =>
+            Promise.resolve({
+              changes: [
+                `Ask Google to verify ${status.title} by ${option.label.toLowerCase()}${to ? ` (${to})` : ""}.`,
+              ],
+              enablesAuto: false,
+            }),
+          async () =>
+            statusView(
+              await profiles.startVerification(actor, a.location_id, {
+                method: a.method!,
+                email: a.email ?? null,
+              }),
+            ),
+        );
+      }),
+  );
+
+  server.registerTool(
+    "complete_business_verification",
+    {
+      title: "Enter a Google verification code (needs confirmation)",
+      description:
+        "Submit the code Google sent by text, call, email or postcard for a location whose verification was started. Two steps with confirm_token. A wrong code returns an error; the owner can try again or start a new verification.",
+      inputSchema: {
+        location_id: locationId,
+        code: z.string().min(4).max(12),
+        confirm_token: z.string().optional(),
+      },
+      annotations: { ...writeOpen, idempotentHint: true },
+    },
+    ({ confirm_token, ...a }) =>
+      run(async () => {
+        const status = await profiles.status(ws, a.location_id);
+        if (status.verified)
+          return {
+            status: "already_verified",
+            verification: statusView(status),
+          };
+        if (!status.needsCode)
+          return {
+            status: "no_pending_code",
+            verification: statusView(status),
+            message:
+              "Start verification first with start_business_verification.",
+          };
+        return confirmed(
+          "complete_business_verification",
+          a,
+          confirm_token,
+          () =>
+            Promise.resolve({
+              changes: [
+                `Submit code ${a.code} to Google to verify ${status.title}.`,
+              ],
+              enablesAuto: false,
+            }),
+          async () =>
+            statusView(
+              await profiles.completeVerification(actor, a.location_id, a.code),
+            ),
+        );
+      }),
   );
 }

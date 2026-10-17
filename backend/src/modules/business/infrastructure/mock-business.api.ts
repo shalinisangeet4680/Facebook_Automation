@@ -5,19 +5,104 @@ import {
   emptyMetrics,
 } from "../domain/business.types";
 import {
+  BusinessCategory,
+  GoogleSearchInput,
+  NewBusiness,
+  addressText,
+} from "../domain/profile.types";
+import {
   BusinessApi,
   BusinessApiError,
   GbpAccount,
   GbpDailyMetric,
+  GbpGoogleMatch,
   GbpLocation,
   GbpPost,
   GbpReview,
   GbpReviewPage,
+  GbpVerification,
+  GbpVerificationOption,
+  GbpVerifyRequest,
+  GbpVoiceOfMerchant,
   GoogleGrant,
 } from "../domain/ports/business-api";
 
 const ACCOUNT = "accounts/1001";
 const DAY = 86_400_000;
+export const MOCK_VERIFICATION_PIN = "123456";
+
+export const MOCK_CATEGORIES: BusinessCategory[] = [
+  ["dental_clinic", "Dental clinic"],
+  ["dentist", "Dentist"],
+  ["orthodontist", "Orthodontist"],
+  ["pediatric_dentist", "Pediatric dentist"],
+  ["medical_clinic", "Medical clinic"],
+  ["doctor", "Doctor"],
+  ["pharmacy", "Pharmacy"],
+  ["hospital", "Hospital"],
+  ["physiotherapist", "Physiotherapist"],
+  ["beauty_salon", "Beauty salon"],
+  ["hair_salon", "Hair salon"],
+  ["spa", "Spa"],
+  ["gym", "Gym"],
+  ["yoga_studio", "Yoga studio"],
+  ["restaurant", "Restaurant"],
+  ["cafe", "Cafe"],
+  ["bakery", "Bakery"],
+  ["sweet_shop", "Sweet shop"],
+  ["grocery_store", "Grocery store"],
+  ["clothing_store", "Clothing store"],
+  ["electronics_store", "Electronics store"],
+  ["mobile_phone_repair_shop", "Mobile phone repair shop"],
+  ["plumber", "Plumber"],
+  ["electrician", "Electrician"],
+  ["pest_control_service", "Pest control service"],
+  ["house_cleaning_service", "House cleaning service"],
+  ["tutoring_service", "Tutoring service"],
+  ["coaching_center", "Coaching center"],
+  ["travel_agency", "Travel agency"],
+  ["real_estate_agency", "Real estate agency"],
+  ["car_repair", "Car repair and maintenance service"],
+  ["veterinarian", "Veterinarian"],
+].map(([id, displayName]) => ({
+  name: `categories/gcid:${id}`,
+  displayName: displayName!,
+}));
+
+const GOOGLE_LISTINGS: GbpGoogleMatch[] = [
+  {
+    name: "googleLocations/ChIJmockPatna0001",
+    title: "Sharma Dental Clinic",
+    address: "12 Fraser Road, Patna, Bihar, 800001",
+    phone: "+91 612 220 4455",
+    category: "Dental clinic",
+    placeId: "ChIJmockPatna0001",
+    mapsUri: "https://maps.google.com/?cid=ChIJmockPatna0001",
+    requestAdminRightsUri: null,
+  },
+  {
+    name: "googleLocations/ChIJmockPatna0101",
+    title: "Gupta Sweets Corner",
+    address: "45 Exhibition Road, Patna, Bihar, 800001",
+    phone: "+91 612 223 1100",
+    category: "Sweet shop",
+    placeId: "ChIJmockPatna0101",
+    mapsUri: "https://maps.google.com/?cid=ChIJmockPatna0101",
+    requestAdminRightsUri:
+      "https://business.google.com/arc/p/ChIJmockPatna0101",
+  },
+  {
+    name: "googleLocations/ChIJmockPatna0102",
+    title: "Gupta Medical Store",
+    address: "8 Ashok Rajpath, Patna, Bihar, 800004",
+    phone: "+91 612 230 9988",
+    category: "Pharmacy",
+    placeId: "ChIJmockPatna0102",
+    mapsUri: "https://maps.google.com/?cid=ChIJmockPatna0102",
+    requestAdminRightsUri:
+      "https://business.google.com/arc/p/ChIJmockPatna0102",
+  },
+];
 
 const HOURS = (
   ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const
@@ -137,6 +222,10 @@ interface MockState {
   locations: Map<string, GbpLocation>;
   reviews: Map<string, GbpReview[]>;
   posts: Map<string, GbpPost & { location: string; post: PostContent }>;
+  groups: GbpAccount[];
+  owners: Map<string, string>;
+  requests: Map<string, string>;
+  verifications: Map<string, GbpVerification[]>;
 }
 
 export class MockBusinessApi implements BusinessApi {
@@ -144,8 +233,13 @@ export class MockBusinessApi implements BusinessApi {
   readonly deletedReplies: string[] = [];
   readonly createdPosts: { location: string; post: PostContent }[] = [];
   readonly updates: { location: string; patch: InfoPatch }[] = [];
+  readonly created: { account: string; business: NewBusiness }[] = [];
+  readonly verifyRequests: { location: string; request: GbpVerifyRequest }[] =
+    [];
   private readonly states = new Map<string, MockState>();
   private postSeq = 0;
+  private locationSeq = 6000;
+  private verificationSeq = 0;
 
   private state(refreshToken: string): MockState {
     if (refreshToken.includes("revoked"))
@@ -172,6 +266,10 @@ export class MockBusinessApi implements BusinessApi {
         ),
         reviews: new Map(BASE.map((b) => [b.name, seededReviews(b.name, now)])),
         posts: new Map(),
+        groups: [],
+        owners: new Map(),
+        requests: new Map(),
+        verifications: new Map(),
       };
       this.states.set(refreshToken, s);
     }
@@ -226,21 +324,23 @@ export class MockBusinessApi implements BusinessApi {
   }
 
   accounts(refreshToken: string): Promise<GbpAccount[]> {
-    this.state(refreshToken);
+    const s = this.state(refreshToken);
     return Promise.resolve([
       {
         name: ACCOUNT,
         accountName: "Sharma Dental Group",
         type: "LOCATION_GROUP",
       },
+      ...s.groups.map((g) => ({ ...g })),
     ]);
   }
 
-  locations(refreshToken: string): Promise<GbpLocation[]> {
+  locations(refreshToken: string, account: string): Promise<GbpLocation[]> {
+    const s = this.state(refreshToken);
     return Promise.resolve(
-      [...this.state(refreshToken).locations.values()].map((l) =>
-        structuredClone(l),
-      ),
+      [...s.locations.values()]
+        .filter((l) => (s.owners.get(l.name) ?? ACCOUNT) === account)
+        .map((l) => structuredClone(l)),
     );
   }
 
@@ -377,5 +477,234 @@ export class MockBusinessApi implements BusinessApi {
       out.push({ day: new Date(t).toISOString().slice(0, 10), ...m });
     }
     return Promise.resolve(out);
+  }
+
+  categories(refreshToken: string, query: string): Promise<BusinessCategory[]> {
+    this.state(refreshToken);
+    const q = query.trim().toLowerCase();
+    return Promise.resolve(
+      MOCK_CATEGORIES.filter(
+        (c) => !q || c.displayName.toLowerCase().includes(q),
+      ).slice(0, 50),
+    );
+  }
+
+  searchGoogle(
+    refreshToken: string,
+    input: GoogleSearchInput,
+  ): Promise<GbpGoogleMatch[]> {
+    this.state(refreshToken);
+    const words = input.query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    const digits = (input.phone ?? "").replace(/\D/g, "").slice(-8);
+    return Promise.resolve(
+      GOOGLE_LISTINGS.filter(
+        (g) =>
+          (words.length &&
+            words.some((w) => g.title.toLowerCase().includes(w))) ||
+          (digits.length >= 6 &&
+            (g.phone ?? "").replace(/\D/g, "").endsWith(digits)),
+      ).map((g) => ({ ...g })),
+    );
+  }
+
+  createLocation(
+    refreshToken: string,
+    account: string,
+    business: NewBusiness,
+    options: { validateOnly: boolean; requestId: string },
+  ): Promise<GbpLocation | null> {
+    const s = this.state(refreshToken);
+    if (account !== ACCOUNT && !s.groups.some((g) => g.name === account))
+      return Promise.reject(
+        new BusinessApiError(
+          "access",
+          "This Google account can't manage this business. Make it an owner or manager in Business Profile.",
+        ),
+      );
+    if (business.title.includes("REJECT_ON_GOOGLE"))
+      return Promise.reject(
+        new BusinessApiError(
+          "invalid",
+          "Request contains an invalid argument: title contains a forbidden word.",
+        ),
+      );
+    if (options.validateOnly) return Promise.resolve(null);
+    const known = s.requests.get(options.requestId);
+    if (known) return this.location(refreshToken, known);
+    const name = `locations/${++this.locationSeq}`;
+    const location: GbpLocation = {
+      name,
+      info: {
+        title: business.title.trim(),
+        description: business.description,
+        phone: business.phone,
+        website: business.website,
+        address: business.address,
+        serviceArea: business.serviceArea,
+        primaryCategory: business.primaryCategory?.displayName ?? null,
+        additionalCategories: business.additionalCategories.map(
+          (c) => c.displayName,
+        ),
+        hours: business.hours,
+      },
+      placeId: null,
+      mapsUri: null,
+      newReviewUri: null,
+      verified: false,
+    };
+    s.locations.set(name, location);
+    s.owners.set(name, account);
+    s.requests.set(options.requestId, name);
+    this.created.push({ account, business });
+    return Promise.resolve(structuredClone(location));
+  }
+
+  createLocationGroup(refreshToken: string, name: string): Promise<GbpAccount> {
+    const s = this.state(refreshToken);
+    const group = {
+      name: `accounts/${2001 + s.groups.length}`,
+      accountName: name,
+      type: "LOCATION_GROUP",
+    };
+    s.groups.push(group);
+    return Promise.resolve({ ...group });
+  }
+
+  private mine(refreshToken: string, location: string): GbpLocation {
+    const l = this.state(refreshToken).locations.get(location);
+    if (!l)
+      throw new BusinessApiError(
+        "not_found",
+        "Google couldn't find this business anymore.",
+      );
+    return l;
+  }
+
+  verificationOptions(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVerificationOption[]> {
+    const l = this.mine(refreshToken, location);
+    const none = {
+      phone: null,
+      email: null,
+      emailEditable: false,
+      address: null,
+      contactName: null,
+      deliveryDays: null,
+    };
+    const out: GbpVerificationOption[] = [];
+    if (l.info.phone) {
+      out.push({ ...none, method: "SMS", phone: l.info.phone });
+      out.push({ ...none, method: "PHONE_CALL", phone: l.info.phone });
+    }
+    if (l.info.website)
+      out.push({
+        ...none,
+        method: "EMAIL",
+        email: `owner@${new URL(l.info.website).hostname}`,
+        emailEditable: true,
+      });
+    if (l.info.address)
+      out.push({
+        ...none,
+        method: "ADDRESS",
+        address: addressText(l.info.address),
+        contactName: l.info.title,
+        deliveryDays: 14,
+      });
+    return Promise.resolve(out);
+  }
+
+  verify(
+    refreshToken: string,
+    location: string,
+    request: GbpVerifyRequest,
+  ): Promise<GbpVerification> {
+    const l = this.mine(refreshToken, location);
+    const s = this.state(refreshToken);
+    this.verifyRequests.push({ location, request });
+    const verification: GbpVerification = {
+      name: `${location}/verifications/v${++this.verificationSeq}`,
+      method: request.method,
+      state: request.method === "AUTO" ? "COMPLETED" : "PENDING",
+      createTime: new Date(),
+    };
+    s.verifications.set(location, [
+      verification,
+      ...(s.verifications.get(location) ?? []).map((v) =>
+        v.state === "PENDING" ? { ...v, state: "FAILED" as const } : v,
+      ),
+    ]);
+    if (verification.state === "COMPLETED") this.markVerified(l);
+    return Promise.resolve({ ...verification });
+  }
+
+  private markVerified(l: GbpLocation) {
+    l.verified = true;
+    l.placeId = `ChIJmockNew${l.name.split("/")[1]}`;
+    l.mapsUri = `https://maps.google.com/?cid=${l.placeId}`;
+    l.newReviewUri = `https://search.google.com/local/writereview?placeid=${l.placeId}`;
+  }
+
+  completeVerification(
+    refreshToken: string,
+    verification: string,
+    pin: string,
+  ): Promise<GbpVerification> {
+    const location = verification.split("/verifications/")[0]!;
+    const l = this.mine(refreshToken, location);
+    const list = this.state(refreshToken).verifications.get(location) ?? [];
+    const v = list.find((x) => x.name === verification);
+    if (!v || v.state !== "PENDING")
+      return Promise.reject(
+        new BusinessApiError(
+          "invalid",
+          "This verification isn't waiting for a code anymore. Start again.",
+        ),
+      );
+    if (pin !== MOCK_VERIFICATION_PIN)
+      return Promise.reject(
+        new BusinessApiError(
+          "invalid",
+          "Request contains an invalid argument: the PIN is incorrect.",
+        ),
+      );
+    v.state = "COMPLETED";
+    this.markVerified(l);
+    return Promise.resolve({ ...v });
+  }
+
+  verifications(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVerification[]> {
+    this.mine(refreshToken, location);
+    return Promise.resolve(
+      (this.state(refreshToken).verifications.get(location) ?? []).map((v) => ({
+        ...v,
+      })),
+    );
+  }
+
+  voiceOfMerchant(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVoiceOfMerchant> {
+    const l = this.mine(refreshToken, location);
+    const pending = (
+      this.state(refreshToken).verifications.get(location) ?? []
+    ).some((v) => v.state === "PENDING");
+    return Promise.resolve({
+      hasVoiceOfMerchant: l.verified,
+      hasBusinessAuthority: true,
+      pendingVerification: !l.verified && pending,
+      waitingForGoogle: false,
+      ownershipConflict: false,
+      guidelinesIssue: null,
+    });
   }
 }

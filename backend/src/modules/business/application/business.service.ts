@@ -247,6 +247,7 @@ export class BusinessService {
     connection: GbpConnectionRow,
     account: string,
     l: GbpLocation,
+    createdInApp = false,
   ) {
     const location = await this.repo.insertLocation({
       workspaceId,
@@ -259,11 +260,33 @@ export class BusinessService {
       mapsUri: l.mapsUri,
       newReviewUri: l.newReviewUri,
       verified: l.verified,
+      verificationState: l.verified ? "verified" : "unverified",
+      createdInApp,
       settings: DEFAULT_BUSINESS_SETTINGS,
       variables: {},
     });
     await this.engine.ratingRules(location);
     return location;
+  }
+
+  async importCreated(
+    workspaceId: string,
+    connection: GbpConnectionRow,
+    account: string,
+    l: GbpLocation,
+  ) {
+    await this.ensurePresets(workspaceId);
+    const existing = await this.repo.locationByName(workspaceId, l.name);
+    if (existing && !existing.archivedAt) return existing;
+    const location = existing
+      ? await this.repo.updateLocation(existing.id, {
+          archivedAt: null,
+          archiveReason: null,
+          connectionId: connection.id,
+        })
+      : await this.addLocation(workspaceId, connection, account, l, true);
+    await this.syncQuietly(location);
+    return (await this.repo.locationById(location.id))!;
   }
 
   async discover(actor: BusinessActor, connectionId?: string) {
@@ -354,10 +377,15 @@ export class BusinessService {
     const rules = this.engine.settingsOf(l).ratingRules;
     const modes = new Set(rules.map((r) => r.mode));
     const a = l.info.address;
+    const areas = l.info.serviceArea?.places ?? [];
     return {
       id: l.id,
       title: l.title,
-      address: a ? [...a.lines, a.locality].filter(Boolean).join(", ") : null,
+      address: a
+        ? [...a.lines, a.locality].filter(Boolean).join(", ")
+        : areas.length
+          ? `Serves ${areas.join(", ")}`
+          : null,
       category: l.info.primaryCategory,
       rating: l.averageRating,
       totalReviews: l.totalReviews,
@@ -370,6 +398,9 @@ export class BusinessService {
           ? "mixed"
           : "approval") as "auto" | "approval" | "manual" | "mixed",
       verified: l.verified,
+      verificationState: l.verificationState,
+      verificationMethod: l.verificationMethod,
+      createdInApp: l.createdInApp,
       mapsUri: l.mapsUri,
       newReviewUri: l.newReviewUri,
       connectionId: l.connectionId,

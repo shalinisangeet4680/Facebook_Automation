@@ -4,6 +4,12 @@ import {
   InfoPatch,
   PostContent,
 } from "../business.types";
+import {
+  BusinessCategory,
+  GoogleSearchInput,
+  NewBusiness,
+  VerificationMethod,
+} from "../profile.types";
 
 export const BUSINESS_API = Symbol("BUSINESS_API");
 
@@ -61,6 +67,54 @@ export interface GbpDailyMetric extends DailyMetrics {
   day: string;
 }
 
+export interface GbpGoogleMatch {
+  name: string;
+  title: string;
+  address: string | null;
+  phone: string | null;
+  category: string | null;
+  placeId: string | null;
+  mapsUri: string | null;
+  requestAdminRightsUri: string | null;
+}
+
+export interface GbpVerificationOption {
+  method: VerificationMethod;
+  phone: string | null;
+  email: string | null;
+  emailEditable: boolean;
+  address: string | null;
+  contactName: string | null;
+  deliveryDays: number | null;
+}
+
+export type GbpVerificationState = "PENDING" | "COMPLETED" | "FAILED";
+
+export interface GbpVerification {
+  name: string;
+  method: VerificationMethod;
+  state: GbpVerificationState;
+  createTime: Date;
+}
+
+export interface GbpVerifyRequest {
+  method: VerificationMethod;
+  phone?: string;
+  email?: string;
+  contactName?: string;
+  languageCode: string;
+  address?: NewBusiness["address"];
+}
+
+export interface GbpVoiceOfMerchant {
+  hasVoiceOfMerchant: boolean;
+  hasBusinessAuthority: boolean;
+  pendingVerification: boolean;
+  waitingForGoogle: boolean;
+  ownershipConflict: boolean;
+  guidelinesIssue: string | null;
+}
+
 export type BusinessApiErrorKind =
   "auth" | "access" | "not_found" | "quota" | "invalid" | "error";
 
@@ -105,4 +159,49 @@ export interface BusinessApi {
     from: string,
     to: string,
   ): Promise<GbpDailyMetric[]>;
+  categories(
+    refreshToken: string,
+    query: string,
+    regionCode: string,
+    languageCode: string,
+  ): Promise<BusinessCategory[]>;
+  searchGoogle(
+    refreshToken: string,
+    input: GoogleSearchInput,
+  ): Promise<GbpGoogleMatch[]>;
+  createLocation(
+    refreshToken: string,
+    account: string,
+    business: NewBusiness,
+    options: { validateOnly: boolean; requestId: string },
+  ): Promise<GbpLocation | null>;
+  createLocationGroup(
+    refreshToken: string,
+    name: string,
+    primaryOwner: string,
+  ): Promise<GbpAccount>;
+  verificationOptions(
+    refreshToken: string,
+    location: string,
+    languageCode: string,
+    address: NewBusiness["address"],
+  ): Promise<GbpVerificationOption[]>;
+  verify(
+    refreshToken: string,
+    location: string,
+    request: GbpVerifyRequest,
+  ): Promise<GbpVerification>;
+  completeVerification(
+    refreshToken: string,
+    verification: string,
+    pin: string,
+  ): Promise<GbpVerification>;
+  verifications(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVerification[]>;
+  voiceOfMerchant(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVoiceOfMerchant>;
 }

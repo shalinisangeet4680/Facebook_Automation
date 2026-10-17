@@ -36,6 +36,7 @@ import {
   POST_TYPES,
   PostContent,
 } from "../domain/business.types";
+import { VerificationState } from "../domain/profile.types";
 
 export const gbpConnectionStatus = pgEnum("gbp_connection_status", [
   "active",
@@ -92,6 +93,17 @@ export const gbpLocations = pgTable(
     mapsUri: text("maps_uri"),
     newReviewUri: text("new_review_uri"),
     verified: boolean("verified").notNull().default(true),
+    verificationState: text("verification_state")
+      .$type<VerificationState>()
+      .notNull()
+      .default("verified"),
+    verificationMethod: text("verification_method"),
+    verificationName: text("verification_name"),
+    verificationTarget: text("verification_target"),
+    verificationStartedAt: timestamp("verification_started_at", {
+      withTimezone: true,
+    }),
+    createdInApp: boolean("created_in_app").notNull().default(false),
     settings: jsonb("settings").$type<ReplySettings>().notNull(),
     variables: jsonb("variables")
       .$type<Record<string, string>>()
