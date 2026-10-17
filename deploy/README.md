@@ -17,6 +17,31 @@ Volumes: `postgres`, `redis`, `media` (uploaded creatives, the API's `MEDIA_DIR`
 
 Recommended size: 2 vCPU, 4 GB RAM, 40 GB disk. Building the web image needs about 2 GB of free memory, so add swap on smaller machines.
 
+## Backend only (Oracle Cloud), web app elsewhere
+
+The current plan:
+- **Server:** the API, worker, Postgres and Redis run on an Oracle Cloud Always Free ARM server in India West (Mumbai): `VM.Standard.A1.Flex`, 4 OCPU, 24 GB, Ubuntu 24.04.
+- **Domain:** Caddy serves them on `api.treevook.com`.
+- **Web app:** runs on Vercel with `BACKEND_URL=https://api.treevook.com`. Its rewrites forward `/api`, `/mcp`, `/media`, `/.well-known` and the OAuth paths, so browsers only ever talk to the web origin.
+
+In `.env`:
+- set `CADDYFILE=Caddyfile.api`;
+- leave `COMPOSE_PROFILES` empty, so `docker compose up -d` starts only `postgres`, `redis`, `api`, `worker` and `caddy`.
+
+DNS: one `A` record, `api` → the server's public IP, at GoDaddy.
+
+On Oracle's Ubuntu images, ports 80 and 443 must be opened twice:
+- in the subnet's security list;
+- on the host itself:
+
+```bash
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+To run everything on one server instead, set `CADDYFILE=Caddyfile` and `COMPOSE_PROFILES=web`.
+
 ## 1. DNS
 
 Create these `A` records pointing at the server's public IPv4 address (add matching `AAAA` records if the server has IPv6):

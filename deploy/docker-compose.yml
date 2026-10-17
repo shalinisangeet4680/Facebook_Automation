@@ -59,6 +59,7 @@ services:
       disable: true
 
   web:
+    profiles: ["web"]
     build:
       context: ../web
       args:
@@ -84,11 +85,10 @@ services:
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./${CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - web
       - api
 
 volumes:

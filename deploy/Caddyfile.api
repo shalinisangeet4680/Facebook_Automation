@@ -1,0 +1,13 @@
+{
+	email {$ACME_EMAIL}
+}
+
+api.{$DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy api:4000 {
+		flush_interval -1
+	}
+}
