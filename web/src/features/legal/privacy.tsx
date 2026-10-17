@@ -34,8 +34,11 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       <>
         <h3>Your account</h3>
         <ul>
-          <li>Your mobile number, used to sign you in with a one-time code.</li>
-          <li>Your name, workspace name and role, and an email address if you give one.</li>
+          <li>
+            Your Google account’s name, email address and profile photo, used to sign you in with
+            Google.
+          </li>
+          <li>Your workspace name and role.</li>
         </ul>
         <h3>Services you connect</h3>
         <p>We only collect data from services you choose to connect.</p>

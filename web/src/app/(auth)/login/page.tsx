@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { LoginForm } from "@/features/auth/login-form";
+import { GoogleSignIn } from "@/features/auth/google-sign-in";
 import { LoginShell } from "@/features/auth/login-shell";
 import { landingSerif } from "@/features/landing/font";
 
@@ -15,7 +15,7 @@ export default function LoginPage() {
       <Suspense>
         <LoginShell>
           <Suspense>
-            <LoginForm />
+            <GoogleSignIn />
           </Suspense>
         </LoginShell>
       </Suspense>

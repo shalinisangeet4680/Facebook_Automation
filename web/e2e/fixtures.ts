@@ -16,10 +16,9 @@ export async function signInViaApi(request: APIRequestContext, phone: string) {
   expect(res.ok(), `sign-in failed: ${res.status()} ${await res.text()}`).toBeTruthy();
 }
 
-export async function goToCode(page: Page, phone: string) {
-  await page.getByLabel("Mobile number").fill(phone);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Enter the code" })).toBeVisible();
+export async function signInWithGoogle(page: Page, email: string, next = "/setup") {
+  await page.goto(`/login?next=${encodeURIComponent(next)}&hint=${encodeURIComponent(email)}`);
+  await page.getByRole("button", { name: "Continue with Google" }).click();
 }
 
 export async function ensureMetaConnected(request: APIRequestContext) {

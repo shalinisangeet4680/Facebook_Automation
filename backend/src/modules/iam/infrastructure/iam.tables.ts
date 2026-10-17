@@ -22,9 +22,11 @@ export const workspaceRole = pgEnum("workspace_role", [
 
 export const users = pgTable("users", {
   id: primaryId(),
-  phone: text("phone").notNull().unique(),
+  phone: text("phone").unique(),
   name: text("name"),
   email: text("email"),
+  googleSub: text("google_sub").unique(),
+  avatarUrl: text("avatar_url"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

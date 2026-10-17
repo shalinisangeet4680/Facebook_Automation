@@ -50,6 +50,11 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+  AUTH_GOOGLE_MOCK: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
+  AUTH_GOOGLE_MOCK_EMAIL: z.string().default("owner@treevook.dev"),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),

@@ -20,6 +20,17 @@ export function cookieOptions(config: AppConfig): {
   return { secure: isProduction(config), ...(domain ? { domain } : {}) };
 }
 
+export function allowedOrigin(
+  config: AppConfig,
+  candidate?: string | null,
+): string {
+  const allowed = [appUrl(config), ...webOrigins(config)].map((o) =>
+    o.replace(/\/+$/, ""),
+  );
+  const clean = candidate?.replace(/\/+$/, "");
+  return clean && allowed.includes(clean) ? clean : appUrl(config);
+}
+
 export function appUrl(config: AppConfig): string {
   return config.get("APP_URL", { infer: true });
 }

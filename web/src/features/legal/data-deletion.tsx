@@ -33,8 +33,8 @@ export const DELETION_SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Email {mail} with the subject “Delete my data”. Send it from the email on your account, or
-          include the phone number you sign in with. We will:
+          Email {mail} with the subject “Delete my data”. Send it from the Google account email you
+          sign in with. We will:
         </p>
         <ul>
           <li>confirm the request within 48 hours and give you a reference number;</li>

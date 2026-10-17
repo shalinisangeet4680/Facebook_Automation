@@ -4,7 +4,13 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 ## 1. Before real users can sign up
 
-- [ ] Send sign-in codes by SMS. Today codes are only written to the server log (`LogOtpSender`). Pick a provider (MSG91, Twilio or Firebase) and add its sender.
+- [x] Sign in with Google replaces phone codes (phone sign-in stays in the API for tests, hidden in the app).
+- [ ] **You:** create the Google OAuth client (Web application) in the TreeVook Cloud project:
+  - consent screen with the app name, logo and links to /privacy and /terms;
+  - scopes `openid`, `email` and `profile`, which need no Google verification;
+  - redirect URI `https://<host>/api/v1/auth/google/callback` for treevook.com and each product subdomain.
+
+  Then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `AUTH_GOOGLE_MOCK=false`.
 - [x] Privacy Policy page (`/privacy`): Google Limited Use sentence, Meta data use, AI processing, deletion.
 - [x] Terms of Service page (`/terms`).
 - [x] Data deletion page or URL (needed for Meta App Review).

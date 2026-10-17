@@ -1,20 +1,19 @@
 import { expect, test } from "@playwright/test";
 
-import { CODE, JOURNEY_PHONES, NO_PERMS_TOKEN, VALID_TOKEN, goToCode } from "./fixtures";
+import { JOURNEY_PHONES, NO_PERMS_TOKEN, VALID_TOKEN, signInWithGoogle } from "./fixtures";
 
 test("signs in, connects Meta, chooses accounts and signs out", async ({ page }, testInfo) => {
   const phone = JOURNEY_PHONES[testInfo.project.name]!;
 
-  await test.step("redirects to sign in and rejects a wrong code", async () => {
+  await test.step("redirects to sign in and explains a cancelled Google sign-in", async () => {
     await page.goto("/setup");
     await expect(page).toHaveURL(/\/login\?next=%2Fsetup/);
-    await goToCode(page, phone);
-    await page.getByLabel("Digit 1").fill("000000");
-    await expect(page.getByText(/That code is incorrect/)).toBeVisible();
+    await page.goto("/login?error=Google+sign-in+was+cancelled.");
+    await expect(page.getByRole("alert")).toHaveText(/Google sign-in was cancelled/);
   });
 
-  await test.step("signs in with the right code", async () => {
-    await page.getByLabel("Digit 1").fill(CODE);
+  await test.step("signs in with Google", async () => {
+    await signInWithGoogle(page, `journey-${phone}@treevook.test`);
     await expect(page).toHaveURL(/\/setup$/);
     await expect(page.getByRole("heading", { name: "Set up your workspace" })).toBeVisible();
     await page.request.delete("/api/v1/meta/connection");

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -35,12 +36,25 @@ export function UserMenu() {
         aria-label="Account"
         className="bg-accent text-accent-foreground grid size-9 place-items-center rounded-full text-[14px] font-semibold outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]"
       >
-        {initials}
+        {me.data.user.avatarUrl ? (
+          <Image
+            unoptimized
+            src={me.data.user.avatarUrl}
+            alt=""
+            width={36}
+            height={36}
+            className="size-9 rounded-full object-cover"
+          />
+        ) : (
+          initials
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>
           <p className="text-[14px] font-semibold">{me.data.workspace.name}</p>
-          <p className="text-small text-muted">{formatPhone(me.data.user.phone)}</p>
+          <p className="text-small text-muted truncate">
+            {me.data.user.email ?? (me.data.user.phone ? formatPhone(me.data.user.phone) : "")}
+          </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => router.push("/settings")}>
