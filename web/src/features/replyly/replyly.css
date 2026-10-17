@@ -33,6 +33,8 @@
 }
 :where(.rp) a:where(:not([class])) {
   color: #0f6b4a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 :where(.rp) a:where(:not([class])):hover {
   color: #191917;
