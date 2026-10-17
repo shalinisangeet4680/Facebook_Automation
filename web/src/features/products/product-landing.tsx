@@ -60,6 +60,7 @@ export function ProductFooter({ product }: { product: ProductPage }) {
       <nav aria-label="Footer">
         <Link href={`/${product.slug}/privacy`}>Privacy</Link>
         <Link href={`/${product.slug}/terms`}>Terms</Link>
+        <Link href={`/${product.slug}/refund-policy`}>Refunds</Link>
         <Link href="/data-deletion">Data deletion</Link>
         <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
       </nav>

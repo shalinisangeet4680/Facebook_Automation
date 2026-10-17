@@ -25,7 +25,12 @@ export function proxy(request: NextRequest) {
   const home = product?.home ?? "/home";
 
   if (product) {
-    if (pathname === "/" || pathname === "/privacy" || pathname === "/terms") {
+    if (
+      pathname === "/" ||
+      pathname === "/privacy" ||
+      pathname === "/terms" ||
+      pathname === "/refund-policy"
+    ) {
       const target = new URL(
         pathname === "/" ? product.landing : `${product.landing}${pathname}`,
         request.url,

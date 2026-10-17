@@ -136,6 +136,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
       <p>
         TreeVook is free during early access. Before paid plans start, we will give you at least 30
         days’ notice, and you can choose not to continue. Prices will exclude applicable taxes.
+        Cancellations and refunds follow our{" "}
+        <Link href="/refund-policy">Cancellation &amp; Refund Policy</Link>.
       </p>
     ),
   },

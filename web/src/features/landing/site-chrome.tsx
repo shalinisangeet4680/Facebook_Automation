@@ -56,6 +56,7 @@ export function SiteFooter() {
       <nav aria-label="Footer">
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
+        <Link href="/refund-policy">Refunds</Link>
         <Link href="/data-deletion">Data deletion</Link>
         <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
       </nav>

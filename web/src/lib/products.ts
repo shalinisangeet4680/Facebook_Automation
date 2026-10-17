@@ -56,6 +56,7 @@ export const PRODUCTS: Product[] = [
 export const PUBLIC_PATHS = [
   "/privacy",
   "/terms",
+  "/refund-policy",
   "/data-deletion",
   ...PRODUCTS.map((p) => p.landing),
 ];
