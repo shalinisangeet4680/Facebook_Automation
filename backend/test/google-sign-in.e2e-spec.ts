@@ -90,6 +90,25 @@ describe("Sign in with Google", () => {
     expect(rows).toHaveLength(1);
   });
 
+  it("accepts the extra parameters Google adds to the callback", async () => {
+    const { location, nonce } = await start("/home");
+    const extra = new URLSearchParams({
+      iss: "https://accounts.google.com",
+      scope:
+        "email profile https://www.googleapis.com/auth/userinfo.email openid",
+      authuser: "0",
+      prompt: "consent",
+      hd: "treevook.test",
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: `${location.pathname}${location.search}&${extra}`,
+      cookies: { tv_google_state: nonce! },
+    });
+    expect(res.statusCode).toBe(302);
+    expect(res.headers.location).toBe("http://localhost:3200/home");
+  });
+
   it("rejects a callback without the browser's state cookie", async () => {
     const { location } = await start();
     const res = await app.inject({

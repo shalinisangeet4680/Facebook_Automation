@@ -32,4 +32,34 @@ export class GoogleCallbackQueryDto {
   @IsString()
   @MaxLength(200)
   error?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  error_description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  iss?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  scope?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  authuser?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  prompt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  hd?: string;
 }
