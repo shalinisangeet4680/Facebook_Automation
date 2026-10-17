@@ -53,10 +53,9 @@ export function ProductFooter({ product }: { product: ProductPage }) {
         >
           <Mark size={14} />
         </span>
-        © 2026 TreeVook LLP · {product.name} is part of{" "}
-        <a href={rootHref()} style={{ color: "inherit" }}>
-          TreeVook AI
-        </a>
+        <span className="tv-footNote">
+          © 2026 TreeVook LLP · {product.name} is part of <a href={rootHref()}>TreeVook AI</a>
+        </span>
       </span>
       <nav aria-label="Footer">
         <Link href={`/${product.slug}/privacy`}>Privacy</Link>

@@ -51,7 +51,7 @@ export function SiteFooter() {
         <span className="tv-mark" style={{ width: 24, height: 24, borderRadius: 7 }}>
           <Mark size={14} />
         </span>
-        © 2026 TreeVook LLP · Made in India
+        <span className="tv-footNote">© 2026 TreeVook LLP · Made in India</span>
       </span>
       <nav aria-label="Footer">
         <Link href="/privacy">Privacy</Link>

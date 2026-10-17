@@ -2098,7 +2098,7 @@
   }
 
   .tv-legalToc {
-    position: static;
+    display: none;
   }
 }
 
@@ -2220,6 +2220,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .tv-fgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .tv-fcard {
+    padding: 16px;
+  }
+
+  .tv-fcard strong {
+    font-size: 14.5px;
+  }
+
+  .tv-fcard > span:last-child {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 340px) {
   .tv-fgrid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2497,4 +2516,19 @@
   font-size: 12.5px;
   color: var(--muted);
   text-align: center;
+}
+
+.tv-footNote {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.tv-footNote a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.tv-footNote a:hover {
+  text-decoration: underline;
 }
