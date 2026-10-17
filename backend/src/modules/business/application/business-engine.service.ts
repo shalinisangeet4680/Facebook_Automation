@@ -98,7 +98,11 @@ export class BusinessEngine {
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
     @Inject(ConfigService) private readonly config: AppConfig,
-  ) {}
+  ) {
+    workspaceAi.registerDraftCounter("business", (workspaceId, since) =>
+      repo.aiDraftsSince(workspaceId, since),
+    );
+  }
 
   record(actor: BusinessActor, action: string, target: string, data = {}) {
     return this.audit.record({
@@ -205,12 +209,8 @@ export class BusinessEngine {
     return null;
   }
 
-  async aiAllowance(workspaceId: string, ws: WorkspaceAutomationRow | null) {
-    const used = await this.repo.aiDraftsSince(
-      workspaceId,
-      new Date(Date.now() - DAY),
-    );
-    return this.workspaceAi.allowance(ws, used);
+  aiAllowance(workspaceId: string, ws: WorkspaceAutomationRow | null) {
+    return this.workspaceAi.allowance(workspaceId, ws);
   }
 
   async draft(

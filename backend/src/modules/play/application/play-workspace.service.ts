@@ -1,18 +1,20 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { WorkspaceAutomationRow } from "@modules/engine/infrastructure/engine.tables";
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { GrantService } from "@modules/oauth/application/grant.service";
 import { AuditService } from "@modules/audit/application/audit.service";
 import { AppConfig, mcpResourceUrl } from "@shared/config/app-config";
-import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
+import { NotFoundError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
-import { AI_MODES, AiMode } from "@modules/engine/domain/engine.types";
-import { REPLY_MODEL } from "@modules/engine/infrastructure/anthropic-reply.ai";
+import {
+  AutomationSettingsService,
+  AutomationUpdate,
+} from "@modules/automation/application/automation-settings.service";
+import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
 import { PlayActor, PlayEngine } from "./play-engine.service";
 
 export const TOKEN_PREFIX = "rk_live_";
@@ -24,13 +26,7 @@ const hash = (token: string) =>
 export const maskToken = (token: string) =>
   `${token.slice(0, 8)}••••••••••${token.slice(-3)}`;
 
-export interface WorkspaceUpdate {
-  aiMode?: AiMode;
-  aiKey?: string | null;
-  slackWebhook?: string | null;
-  slackChannel?: string | null;
-  agentsCanPost?: boolean;
-}
+export type WorkspaceUpdate = AutomationUpdate;
 
 @Injectable()
 export class PlayWorkspaceService {
@@ -39,6 +35,8 @@ export class PlayWorkspaceService {
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
     private readonly grants: GrantService,
+    private readonly automation: AutomationSettingsService,
+    private readonly workspaceAi: WorkspaceAiService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -57,97 +55,28 @@ export class PlayWorkspaceService {
     });
   }
 
-  private view(
-    ws: WorkspaceAutomationRow | null,
-    used: number,
-    apps: number,
-    connected: boolean,
-  ) {
+  async get(workspaceId: string) {
+    const [ws, apps, connections, used] = await Promise.all([
+      this.repo.workspaceSettings(workspaceId),
+      this.repo.apps(workspaceId),
+      this.repo.connections(workspaceId),
+      this.workspaceAi.draftsToday(workspaceId),
+    ]);
     const token = ws?.tokenCiphertext
       ? this.crypto.decrypt(ws.tokenCiphertext)
       : null;
     return {
-      aiMode: ws?.aiMode ?? ("platform" as AiMode),
-      platformAi: Boolean(
-        this.config.get("ANTHROPIC_API_KEY", { infer: true }) ||
-        this.config.get("AI_MOCK", { infer: true }),
-      ),
-      aiKeyHint: ws?.aiKeyHint ?? null,
-      aiReady: Boolean(this.engine.aiKeyFrom(ws)),
-      model: REPLY_MODEL,
-      dailyDrafts: this.config.get("AI_DAILY_DRAFTS", { infer: true }),
-      draftsToday: used,
-      slackConnected: Boolean(ws?.slackWebhookCiphertext),
-      slackChannel: ws?.slackChannel ?? null,
-      agentsCanPost: ws?.agentsCanPost ?? false,
+      ...this.automation.view(ws, used),
       mcpUrl: mcpResourceUrl(this.config),
       token: token ? maskToken(token) : null,
       tokenCreatedAt: ws?.tokenCreatedAt?.toISOString() ?? null,
-      apps,
-      connected,
+      apps: apps.length,
+      connected: connections.length > 0,
     };
   }
 
-  async get(workspaceId: string) {
-    const [ws, apps, connections] = await Promise.all([
-      this.repo.workspaceSettings(workspaceId),
-      this.repo.apps(workspaceId),
-      this.repo.connections(workspaceId),
-    ]);
-    const used = await this.repo.aiDraftsSince(
-      workspaceId,
-      new Date(Date.now() - 86_400_000),
-    );
-    return this.view(ws, used, apps.length, connections.length > 0);
-  }
-
   async update(actor: PlayActor, input: WorkspaceUpdate) {
-    const values: Partial<WorkspaceAutomationRow> = {};
-    if (input.aiMode !== undefined) {
-      if (!AI_MODES.includes(input.aiMode))
-        throw new ValidationError("Choose platform, own or off.");
-      values.aiMode = input.aiMode;
-    }
-    if (input.aiKey !== undefined) {
-      if (input.aiKey === null || !input.aiKey.trim()) {
-        values.aiKeyCiphertext = null;
-        values.aiKeyHint = null;
-      } else {
-        const key = input.aiKey.trim();
-        if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key))
-          throw new ValidationError(
-            "Paste an Anthropic API key that starts with sk-ant-.",
-          );
-        values.aiKeyCiphertext = this.crypto.encrypt(key);
-        values.aiKeyHint = `sk-ant-…${key.slice(-4)}`;
-      }
-    }
-    if (input.slackWebhook !== undefined) {
-      if (input.slackWebhook === null || !input.slackWebhook.trim())
-        values.slackWebhookCiphertext = null;
-      else {
-        const url = input.slackWebhook.trim();
-        if (
-          !/^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+$/.test(url)
-        )
-          throw new ValidationError(
-            "Use a Slack incoming webhook URL that starts with https://hooks.slack.com/services/.",
-          );
-        values.slackWebhookCiphertext = this.crypto.encrypt(url);
-      }
-    }
-    if (input.slackChannel !== undefined) {
-      const channel = input.slackChannel?.trim().replace(/^#?/, "#") ?? null;
-      if (channel && !/^#[a-z0-9_-]{1,80}$/.test(channel))
-        throw new ValidationError("Channel names look like #support.");
-      values.slackChannel = channel && channel !== "#" ? channel : null;
-    }
-    if (input.agentsCanPost !== undefined)
-      values.agentsCanPost = input.agentsCanPost;
-    await this.repo.saveWorkspaceSettings(actor.workspaceId, values);
-    await this.record(actor, "play.workspace_updated", {
-      fields: Object.keys(input),
-    });
+    await this.automation.update(actor, input);
     return this.get(actor.workspaceId);
   }
 

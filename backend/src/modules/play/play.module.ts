@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
+import { AutomationModule } from "@modules/automation/automation.module";
 import { EngineModule } from "@modules/engine/engine.module";
 import { OAuthModule } from "@modules/oauth/oauth.module";
 import { Env } from "@shared/config/env.validation";
@@ -17,7 +18,7 @@ import { PlayRepository } from "./infrastructure/play.repository";
 import { PlayController } from "./interface/play.controller";
 
 @Module({
-  imports: [OAuthModule, EngineModule],
+  imports: [OAuthModule, EngineModule, AutomationModule],
   controllers: [PlayController],
   providers: [
     PlayRepository,

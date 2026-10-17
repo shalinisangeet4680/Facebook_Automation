@@ -117,7 +117,11 @@ export class PlayEngine {
     private readonly audit: AuditService,
     private readonly workspaceAi: WorkspaceAiService,
     @Inject(ConfigService) private readonly config: AppConfig,
-  ) {}
+  ) {
+    workspaceAi.registerDraftCounter("play", (workspaceId, since) =>
+      repo.aiDraftsSince(workspaceId, since),
+    );
+  }
 
   settingsOf(app: PlayAppRow): ReplySettings {
     return normalizeSettings(app.settings);
@@ -155,12 +159,8 @@ export class PlayEngine {
     return this.workspaceAi.keyFrom(ws);
   }
 
-  async aiAllowance(workspaceId: string, ws: WorkspaceAutomationRow | null) {
-    const used = await this.repo.aiDraftsSince(
-      workspaceId,
-      new Date(Date.now() - 86_400_000),
-    );
-    return this.workspaceAi.allowance(ws, used);
+  aiAllowance(workspaceId: string, ws: WorkspaceAutomationRow | null) {
+    return this.workspaceAi.allowance(workspaceId, ws);
   }
 
   async draft(
