@@ -10,7 +10,7 @@ const PRODUCTS = [
   ["meta-ads", "Meta Ads"],
 ] as const;
 
-export const CONTACT_EMAIL = "treevookllp@gmail.com";
+export const CONTACT_EMAIL = "support@treevook.com";
 
 export function SiteHeader() {
   return (

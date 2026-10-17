@@ -12,7 +12,7 @@ export interface LegalSection {
 export const LEGAL = {
   company: "TreeVook LLP",
   updated: "17 October 2026",
-  email: "treevookllp@gmail.com",
+  email: "support@treevook.com",
   address: "[Registered office address of TreeVook LLP]",
   grievanceOfficer: "[Name of Grievance Officer]",
   courts: "[City], India",
