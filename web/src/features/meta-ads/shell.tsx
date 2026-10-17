@@ -39,9 +39,7 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
   const active = activeOf(pathname);
   const { connected, loading } = useMetaConnected();
   const inbox = useInbox();
-  const waiting = inbox.data
-    ? inbox.data.suggestions.length + inbox.data.plansToReview.length
-    : 0;
+  const waiting = inbox.data ? inbox.data.suggestions.length + inbox.data.plansToReview.length : 0;
   return (
     <>
       {NAV.map(([id, label, href]) => {

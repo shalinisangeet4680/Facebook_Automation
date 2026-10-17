@@ -56,6 +56,24 @@ export const FEATURE_LABELS: Record<string, string> = {
   bold: "Feature graphic, bold",
 };
 
+export const TONES: Record<
+  (typeof STATUS)[StoreProject["status"]]["tone"],
+  { bg: string; fg: string }
+> = {
+  neutral: { bg: "#EFEDE8", fg: "#55534E" },
+  warning: { bg: "#FBF3E2", fg: "#8A5A00" },
+  accent: { bg: "#E9EEF7", fg: "#24467A" },
+  success: { bg: "#EAF3EE", fg: "#0F6B4A" },
+};
+
+export function mediaSrc(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
+
 export function languageName(code: string): string {
   try {
     return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;

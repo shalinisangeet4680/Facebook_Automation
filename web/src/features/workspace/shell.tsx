@@ -57,7 +57,13 @@ function Footer() {
   );
 }
 
-export function WorkspaceShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
+export function WorkspaceShell({
+  children,
+  fontClass,
+}: {
+  children: ReactNode;
+  fontClass: string;
+}) {
   return (
     <ProductShell fontClass={fontClass} product="Workspace" Nav={NavLinks} Footer={Footer}>
       {children}

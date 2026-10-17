@@ -5,6 +5,7 @@ import {
   Check,
   CircleAlert,
   CircleDashed,
+  Copy,
   Download,
   ExternalLink,
   ImagePlus,
@@ -12,18 +13,11 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import Image from "next/image";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
-import { PageHeader } from "@/components/shell/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CopyButton } from "@/components/ui/copy-button";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
-import { Field, Input, Textarea } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/ui/state";
+import { RpDialogClose, RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
+import { Banner, PageHead, Skel, Spinner, copyText, useToast } from "@/features/replyly/ui";
 import { errorMessage } from "@/lib/api/errors";
 import {
   useApplyFacebookProfile,
@@ -32,7 +26,6 @@ import {
   useSaveProfileDraft,
 } from "@/lib/api/queries";
 import type { FacebookPart, ProfileCheckup } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 
 const PROMPT =
   "Set up my Facebook Page and Instagram profile. Run the profile checkup, read my website, write a Page description and an Instagram bio, design a logo and a Facebook cover, and save it all as a profile draft for me to review.";
@@ -47,8 +40,26 @@ const PART_LABELS: Record<FacebookPart, string> = {
   cover: "Cover photo",
 };
 
-type Check = NonNullable<ProfileCheckup["facebook"]>["checks"][number];
-type Image = { id: string; name: string; url: string } | null;
+const MUTED = "#6C6962";
+const SOFT = "#55534E";
+const LINE = "1px solid #EFEDE8";
+
+const FILL: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+};
+
+const TEXTAREA: CSSProperties = {
+  width: "100%",
+  resize: "vertical",
+  lineHeight: 1.5,
+  fontSize: 13,
+};
+
+type CheckItem = NonNullable<ProfileCheckup["facebook"]>["checks"][number];
+type Img = { id: string; name: string; url: string } | null;
 
 function src(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -60,79 +71,226 @@ function src(url: string | null | undefined): string | null {
   }
 }
 
+function Pic({ url, alt, contain }: { url: string; alt: string; contain?: boolean }) {
+  return (
+    <Image
+      unoptimized
+      src={url}
+      alt={alt}
+      width={720}
+      height={720}
+      style={{ ...FILL, objectFit: contain ? "contain" : "cover" }}
+    />
+  );
+}
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="rp-btn-light"
+      style={{ padding: "6px 11px", fontSize: 12.5 }}
+      onClick={async () => {
+        if (await copyText(value)) {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1600);
+        }
+      }}
+    >
+      {copied ? <Check size={14} color="#0F6B4A" /> : <Copy size={14} />}
+      <span aria-live="polite">{copied ? "Copied" : label}</span>
+    </button>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <label className="rp-field">
+      <span className="rp-label">{label}</span>
+      {children}
+      {hint ? <span style={{ fontSize: 12, color: MUTED }}>{hint}</span> : null}
+    </label>
+  );
+}
+
+function Panel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return (
+    <div className="rp-card" style={{ minWidth: 0, overflow: "hidden", ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return (
+    <Panel style={{ padding: 24, fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>{children}</Panel>
+  );
+}
+
 export function ProfilePage() {
   const profile = useProfile();
   return (
-    <>
-      <PageHeader
+    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <PageHead
         title="Page & Instagram"
-        description="Complete your Facebook Page and Instagram profile so people trust your ads. Claude can write and design everything; you review and apply."
+        sub="Complete your Facebook Page and Instagram profile so people trust your ads. Claude can write and design everything; you review and apply."
         actions={
-          <Button
-            variant="secondary"
-            loading={profile.isFetching && !profile.isPending}
+          <button
+            type="button"
+            className="rp-btn-light"
+            disabled={profile.isFetching}
             onClick={() => void profile.refetch()}
           >
-            <RefreshCw /> Recheck
-          </Button>
+            {profile.isFetching && !profile.isPending ? <Spinner /> : <RefreshCw size={14} />}
+            Recheck
+          </button>
         }
       />
-      <Card className="mb-6">
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-          <span className="bg-accent-soft text-accent grid size-11 shrink-0 place-items-center rounded-full">
-            <Sparkles className="size-5" aria-hidden />
+      <div
+        className="rp-card"
+        style={{
+          padding: 18,
+          display: "flex",
+          gap: 14,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            flexShrink: 0,
+            background: "#EAF3EE",
+            color: "#0F6B4A",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Sparkles size={18} aria-hidden />
+        </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            flex: "1 1 240px",
+            minWidth: 0,
+          }}
+        >
+          <span style={{ fontWeight: 600, fontSize: 15 }}>Let Claude prepare it</span>
+          <span
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "#F7F6F3",
+              border: "1px solid #EFEDE8",
+              fontSize: 13,
+              color: SOFT,
+              lineHeight: 1.5,
+            }}
+          >
+            {PROMPT}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold">Let Claude prepare it</p>
-            <p className="bg-surface-muted border-border mt-2 rounded-lg border px-3 py-2 text-[13px]">
-              {PROMPT}
-            </p>
-          </div>
-          <CopyButton value={PROMPT} label="Copy prompt" className="self-start sm:self-center" />
         </div>
-      </Card>
+        <CopyButton value={PROMPT} label="Copy prompt" />
+      </div>
       {profile.isPending ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Skeleton className="h-96" />
-          <Skeleton className="h-96" />
+        <div style={GRID}>
+          <Skel h={420} r={14} />
+          <Skel h={420} r={14} />
         </div>
       ) : profile.isError ? (
-        <ErrorState message={errorMessage(profile.error)} onRetry={() => void profile.refetch()} />
+        <Banner
+          tone="error"
+          title="Couldn’t run the profile checkup"
+          action={
+            <button type="button" className="rp-btn-light" onClick={() => void profile.refetch()}>
+              Try again
+            </button>
+          }
+        >
+          {errorMessage(profile.error)}
+        </Banner>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div style={GRID}>
           <FacebookCard key={JSON.stringify(profile.data.draft.facebook)} data={profile.data} />
           <InstagramCard key={JSON.stringify(profile.data.draft.instagram)} data={profile.data} />
         </div>
       )}
-    </>
+    </div>
   );
 }
 
-function Checklist({ checks, score }: { checks: Check[]; score: number }) {
+const GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
+  gap: 20,
+  alignItems: "start",
+};
+
+function scoreTone(score: number) {
+  if (score === 100) return { bg: "#EAF3EE", fg: "#0F6B4A" };
+  if (score >= 50) return { bg: "#FBF3E2", fg: "#8A5A00" };
+  return { bg: "#FDF0EE", fg: "#B42318" };
+}
+
+function Checklist({ checks, score }: { checks: CheckItem[]; score: number }) {
+  const tone = scoreTone(score);
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-[14px] font-medium">Checklist</p>
-        <Badge tone={score === 100 ? "success" : score >= 50 ? "warning" : "danger"}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
+      >
+        <span style={{ fontWeight: 600, fontSize: 13.5 }}>Checklist</span>
+        <span
+          style={{
+            padding: "2px 8px",
+            borderRadius: 999,
+            fontSize: 11.5,
+            fontWeight: 500,
+            background: tone.bg,
+            color: tone.fg,
+          }}
+        >
           {score}% complete
-        </Badge>
+        </span>
       </div>
-      <ul className="grid gap-2">
+      <ul
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {checks.map((c) => (
-          <li key={c.key} className="flex gap-2.5 text-[13px]">
-            {c.status === "done" ? (
-              <Check className="text-success mt-0.5 size-4 shrink-0" aria-label="Done" />
-            ) : c.status === "weak" ? (
-              <CircleAlert
-                className="text-warning mt-0.5 size-4 shrink-0"
-                aria-label="Could be better"
-              />
-            ) : (
-              <CircleDashed className="text-subtle mt-0.5 size-4 shrink-0" aria-label="Missing" />
-            )}
+          <li key={c.key} style={{ display: "flex", gap: 10, fontSize: 13, lineHeight: 1.45 }}>
+            <span style={{ flexShrink: 0, marginTop: 1, display: "flex" }}>
+              {c.status === "done" ? (
+                <Check size={16} color="#0F6B4A" aria-label="Done" />
+              ) : c.status === "weak" ? (
+                <CircleAlert size={16} color="#8A5A00" aria-label="Could be better" />
+              ) : (
+                <CircleDashed size={16} color="#A8A49B" aria-label="Missing" />
+              )}
+            </span>
             <span>
-              <span className="font-medium">{c.label}</span>
-              {c.status !== "done" ? <span className="text-muted"> · {c.hint}</span> : null}
+              <span style={{ fontWeight: 500 }}>{c.label}</span>
+              {c.status !== "done" ? <span style={{ color: MUTED }}> · {c.hint}</span> : null}
             </span>
           </li>
         ))}
@@ -149,78 +307,162 @@ function ImageChoice({
 }: {
   label: string;
   hint: string;
-  image: Image;
-  onChange: (image: Image) => void;
+  image: Img;
+  onChange: (image: Img) => void;
 }) {
   const [open, setOpen] = useState(false);
   const creatives = useCreatives();
+  const images = creatives.data?.data.filter((c) => c.kind !== "video") ?? [];
   return (
-    <div role="group" aria-label={label} className="grid gap-1.5">
-      <p className="text-[14px] font-medium">{label}</p>
-      <div className="border-border flex items-center gap-3 rounded-lg border p-2.5">
-        <div className="bg-surface-muted grid size-12 shrink-0 place-items-center overflow-hidden rounded-md">
+    <div
+      role="group"
+      aria-label={label}
+      style={{ display: "flex", flexDirection: "column", gap: 6 }}
+    >
+      <span className="rp-label">{label}</span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: 8,
+          borderRadius: 10,
+          border: "1px solid #E6E4DF",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 8,
+            flexShrink: 0,
+            overflow: "hidden",
+            background: "#F7F6F3",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={src(image.url)!} alt="" className="size-full object-cover" />
+            <Pic url={src(image.url)!} alt="" />
           ) : (
-            <ImagePlus className="text-subtle size-5" aria-hidden />
+            <ImagePlus size={18} color="#A8A49B" aria-hidden />
           )}
         </div>
-        <p className="text-small text-muted min-w-0 flex-1 truncate">{image ? image.name : hint}</p>
-        {image ? (
-          <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
-            Remove
-          </Button>
-        ) : null}
-        <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>
-          Choose
-        </Button>
+        <span
+          style={{
+            flex: "1 1 120px",
+            minWidth: 0,
+            fontSize: 12.5,
+            color: MUTED,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {image ? image.name : hint}
+        </span>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {image ? (
+            <button type="button" className="rp-btn-quiet" onClick={() => onChange(null)}>
+              Remove
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="rp-btn-light"
+            style={{ padding: "6px 11px", fontSize: 12.5 }}
+            onClick={() => setOpen(true)}
+          >
+            Choose
+          </button>
+        </div>
       </div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
+      <RpDialogRoot open={open} onOpenChange={setOpen}>
+        <RpDialogContent
           title={`Choose ${label.toLowerCase()}`}
           description="From your Creatives library."
-          className="max-h-[90dvh] max-w-2xl overflow-y-auto"
+          width={640}
         >
-          {!creatives.data?.data.length ? (
-            <p className="text-small text-muted py-6 text-center">
+          {!images.length ? (
+            <p
+              style={{
+                margin: 0,
+                padding: "20px 0",
+                textAlign: "center",
+                fontSize: 13,
+                color: MUTED,
+              }}
+            >
               No images yet. Upload one in Creatives or ask Claude to design it.
             </p>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {creatives.data.data
-                .filter((c) => c.kind !== "video")
-                .map((c) => (
-                  <li key={c.id}>
+            <ul
+              style={{
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {images.map((c) => {
+                const on = image?.id === c.id;
+                return (
+                  <li key={c.id} style={{ minWidth: 0 }}>
                     <button
                       type="button"
+                      aria-pressed={on}
                       onClick={() => {
                         onChange({ id: c.id, name: c.name, url: c.url });
                         setOpen(false);
                       }}
-                      className={cn(
-                        "border-border w-full overflow-hidden rounded-lg border text-left outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-                        image?.id === c.id && "border-accent ring-accent ring-1",
-                      )}
+                      style={{
+                        width: "100%",
+                        padding: 0,
+                        textAlign: "left",
+                        background: "#fff",
+                        cursor: "pointer",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        border: on ? "1.5px solid #0F6B4A" : "1px solid #E6E4DF",
+                        boxShadow: on ? "0 0 0 2px #EAF3EE" : "none",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={src(c.url)!}
-                        alt=""
-                        className="bg-surface-muted aspect-square w-full object-contain"
-                      />
-                      <p className="truncate p-2 text-[12px]">
+                      <span
+                        style={{ aspectRatio: "1 / 1", background: "#F7F6F3", display: "block" }}
+                      >
+                        <Pic url={src(c.url)!} alt="" contain />
+                      </span>
+                      <span
+                        style={{
+                          padding: "6px 8px",
+                          fontSize: 12,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {c.name} · {c.width}×{c.height}
-                      </p>
+                      </span>
                     </button>
                   </li>
-                ))}
+                );
+              })}
             </ul>
           )}
-        </DialogContent>
-      </Dialog>
+        </RpDialogContent>
+      </RpDialogRoot>
     </div>
   );
+}
+
+function SubHead({ children }: { children: ReactNode }) {
+  return <span style={{ fontWeight: 600, fontSize: 14 }}>{children}</span>;
 }
 
 function FacebookCard({ data }: { data: ProfileCheckup }) {
@@ -228,22 +470,19 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
   const draft = data.draft.facebook;
   const save = useSaveProfileDraft();
   const apply = useApplyFacebookProfile();
+  const toast = useToast();
   const [about, setAbout] = useState(draft.about ?? "");
   const [description, setDescription] = useState(draft.description ?? "");
   const [website, setWebsite] = useState(draft.website ?? "");
   const [phone, setPhone] = useState(draft.phone ?? "");
   const [email, setEmail] = useState(draft.email ?? "");
-  const [picture, setPicture] = useState<Image>(draft.picture);
-  const [cover, setCover] = useState<Image>(draft.cover);
+  const [picture, setPicture] = useState<Img>(draft.picture);
+  const [cover, setCover] = useState<Img>(draft.cover);
   const [applyOpen, setApplyOpen] = useState(false);
   const [parts, setParts] = useState<FacebookPart[]>([]);
 
   if (!fb) {
-    return (
-      <Card className="text-small text-muted p-6">
-        Select a Facebook Page in Setup to manage its profile.
-      </Card>
-    );
+    return <Empty>Select a Facebook Page in Setup to manage its profile.</Empty>;
   }
 
   const drafted: Record<FacebookPart, boolean> = {
@@ -277,54 +516,108 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
         },
       },
       {
-        onSuccess: () => toast.success("Facebook draft saved"),
-        onError: (err) => toast.error(errorMessage(err)),
+        onSuccess: () => toast("Facebook draft saved"),
+        onError: (err) => toast(errorMessage(err)),
       },
     );
 
+  const coverUrl = src(cover?.url ?? fb.profile.coverUrl);
+  const pictureUrl = src(
+    picture?.url ?? (fb.profile.pictureIsDefault ? null : fb.profile.pictureUrl),
+  );
+
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <div className="bg-surface-muted relative aspect-[1640/624]">
-        {src(cover?.url ?? fb.profile.coverUrl) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={src(cover?.url ?? fb.profile.coverUrl)!}
-            alt="Cover"
-            className="size-full object-cover"
-          />
+    <Panel>
+      <div style={{ position: "relative", aspectRatio: "1640 / 624", background: "#F7F6F3" }}>
+        {coverUrl ? (
+          <Pic url={coverUrl} alt="Cover" />
         ) : (
-          <p className="text-small text-muted grid size-full place-items-center">No cover photo</p>
+          <span
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              color: MUTED,
+            }}
+          >
+            No cover photo
+          </span>
         )}
         {cover && cover.url !== fb.profile.coverUrl ? (
-          <Badge tone="accent" className="absolute top-2 right-2">
+          <span
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontSize: 11.5,
+              fontWeight: 500,
+              background: "#EAF3EE",
+              color: "#0F6B4A",
+            }}
+          >
             Draft
-          </Badge>
+          </span>
         ) : null}
       </div>
-      <div className="grid gap-5 p-5">
-        <div className="-mt-12 flex items-end gap-3">
-          <div className="border-surface bg-surface-muted size-20 shrink-0 overflow-hidden rounded-full border-4">
-            {src(picture?.url ?? (fb.profile.pictureIsDefault ? null : fb.profile.pictureUrl)) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={src(picture?.url ?? fb.profile.pictureUrl)!}
-                alt="Profile"
-                className="size-full object-cover"
-              />
-            ) : null}
+      <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+        <div
+          style={{ marginTop: -56, display: "flex", alignItems: "flex-end", gap: 12, minWidth: 0 }}
+        >
+          <div
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: 999,
+              border: "4px solid #fff",
+              background: "#F7F6F3",
+              overflow: "hidden",
+              flexShrink: 0,
+              position: "relative",
+            }}
+          >
+            {pictureUrl ? <Pic url={pictureUrl} alt="Profile" /> : null}
           </div>
-          <div className="min-w-0 pb-1">
-            <p className="flex items-center gap-1.5 truncate font-semibold">
-              <Users className="size-4" aria-hidden /> {fb.profile.name}
-            </p>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              minWidth: 0,
+              paddingBottom: 4,
+            }}
+          >
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Users size={15} aria-hidden /> {fb.profile.name}
+            </span>
             {fb.profile.link ? (
               <a
                 href={fb.profile.link}
                 target="_blank"
                 rel="noreferrer"
-                className="text-caption text-accent inline-flex items-center gap-1 hover:underline"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12.5,
+                  color: "#0F6B4A",
+                }}
               >
-                Open Page <ExternalLink className="size-3" aria-hidden />
+                Open Page <ExternalLink size={12} aria-hidden />
               </a>
             ) : null}
           </div>
@@ -332,8 +625,16 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
 
         <Checklist checks={fb.checks} score={fb.score} />
 
-        <div className="border-border grid gap-4 border-t pt-5">
-          <p className="text-[14px] font-semibold">Proposed changes</p>
+        <div
+          style={{
+            borderTop: LINE,
+            paddingTop: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <SubHead>Proposed changes</SubHead>
           <ImageChoice
             label="Profile picture"
             hint="Square logo, 720 × 720"
@@ -347,54 +648,68 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
             onChange={setCover}
           />
           <Field label="Short description" hint={`${about.length}/255 · shown on your Page`}>
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={3}
-                maxLength={255}
-                value={about}
-                onChange={(e) => setAbout(e.target.value)}
-              />
-            )}
+            <textarea
+              className="rp-input rp-textarea"
+              rows={3}
+              maxLength={255}
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              style={TEXTAREA}
+            />
           </Field>
           <Field label="Long description" hint="Optional, for the About section.">
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            )}
+            <textarea
+              className="rp-input rp-textarea"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={TEXTAREA}
+            />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Website">
-              {(p) => (
-                <Input
-                  {...p}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 180px", minWidth: 0, display: "flex" }}>
+              <Field label="Website">
+                <input
+                  className="rp-input"
                   type="url"
                   placeholder="https://"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                 />
-              )}
-            </Field>
-            <Field label="Phone">
-              {(p) => (
-                <Input {...p} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              )}
-            </Field>
+              </Field>
+            </div>
+            <div style={{ flex: "1 1 180px", minWidth: 0, display: "flex" }}>
+              <Field label="Phone">
+                <input
+                  className="rp-input"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </Field>
+            </div>
           </div>
           <Field label="Email">
-            {(p) => (
-              <Input {...p} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            )}
+            <input
+              className="rp-input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Field>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" loading={save.isPending} onClick={saveDraft}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="rp-btn-light"
+              disabled={save.isPending}
+              onClick={saveDraft}
+            >
+              {save.isPending ? <Spinner /> : null}
               Save draft
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
+              className="rp-btn"
               disabled={!available.length}
               onClick={() => {
                 setParts(available);
@@ -402,23 +717,52 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
               }}
             >
               Apply to Page
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
-      <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
-        <DialogContent
+      <RpDialogRoot open={applyOpen} onOpenChange={setApplyOpen}>
+        <RpDialogContent
           title="Update your Facebook Page?"
           description="Visitors see these changes right away. Save the draft first if you edited anything."
         >
-          <fieldset className="grid gap-2">
-            <legend className="sr-only">What to update</legend>
-            {available.map((part) => (
-              <label key={part} className="flex items-center gap-2 text-[14px]">
+          <fieldset
+            style={{
+              border: "1px solid #E6E4DF",
+              borderRadius: 10,
+              margin: 0,
+              padding: 0,
+              overflow: "hidden",
+            }}
+          >
+            <legend
+              style={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                overflow: "hidden",
+                clip: "rect(0 0 0 0)",
+              }}
+            >
+              What to update
+            </legend>
+            {available.map((part, i) => (
+              <label
+                key={part}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  fontSize: 13.5,
+                  cursor: "pointer",
+                  borderTop: i ? LINE : "none",
+                }}
+              >
                 <input
                   type="checkbox"
-                  className="size-4 accent-[var(--accent)]"
+                  style={{ width: 16, height: 16, accentColor: "#0F6B4A", margin: 0 }}
                   checked={parts.includes(part)}
                   onChange={() =>
                     setParts((cur) =>
@@ -430,34 +774,34 @@ function FacebookCard({ data }: { data: ProfileCheckup }) {
               </label>
             ))}
           </fieldset>
-          <div className="mt-5 flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
-            </DialogClose>
-            <Button
-              disabled={!parts.length}
-              loading={apply.isPending}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <RpDialogClose className="rp-btn-light">Cancel</RpDialogClose>
+            <button
+              type="button"
+              className="rp-btn"
+              disabled={!parts.length || apply.isPending}
               onClick={() =>
                 apply.mutate(parts, {
                   onSuccess: ({ results }) => {
                     setApplyOpen(false);
                     const failed = results.filter((r) => !r.ok);
-                    if (!failed.length) toast.success("Page updated");
+                    if (!failed.length) toast("Page updated");
                     else
-                      toast.warning(
+                      toast(
                         `Updated ${results.length - failed.length} of ${results.length}. ${failed.map((f) => `${PART_LABELS[f.part]}: ${f.error}`).join(" ")}`,
                       );
                   },
-                  onError: (err) => toast.error(errorMessage(err)),
+                  onError: (err) => toast(errorMessage(err)),
                 })
               }
             >
+              {apply.isPending ? <Spinner /> : null}
               Update Page
-            </Button>
+            </button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </RpDialogContent>
+      </RpDialogRoot>
+    </Panel>
   );
 }
 
@@ -465,17 +809,18 @@ function InstagramCard({ data }: { data: ProfileCheckup }) {
   const ig = data.instagram;
   const draft = data.draft.instagram;
   const save = useSaveProfileDraft();
+  const toast = useToast();
   const [name, setName] = useState(draft.name ?? "");
   const [bio, setBio] = useState(draft.bio ?? "");
   const [website, setWebsite] = useState(draft.website ?? "");
-  const [picture, setPicture] = useState<Image>(draft.picture);
+  const [picture, setPicture] = useState<Img>(draft.picture);
 
   if (!ig) {
     return (
-      <Card className="text-small text-muted p-6">
+      <Empty>
         No Instagram account is connected. Link your Instagram professional account to your Facebook
         Page, then refresh accounts in Setup.
-      </Card>
+      </Empty>
     );
   }
 
@@ -499,43 +844,65 @@ function InstagramCard({ data }: { data: ProfileCheckup }) {
         },
       },
       {
-        onSuccess: () => toast.success("Instagram draft saved"),
-        onError: (err) => toast.error(errorMessage(err)),
+        onSuccess: () => toast("Instagram draft saved"),
+        onError: (err) => toast(errorMessage(err)),
       },
     );
 
+  const pictureUrl = src(ig.profile.pictureUrl);
+
   return (
-    <Card className="min-w-0">
-      <div className="grid gap-5 p-5">
-        <div className="flex items-center gap-4">
-          <div className="bg-surface-muted size-20 shrink-0 overflow-hidden rounded-full">
-            {src(ig.profile.pictureUrl) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={src(ig.profile.pictureUrl)!}
-                alt="Instagram profile"
-                className="size-full object-cover"
-              />
-            ) : null}
+    <Panel>
+      <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+          <div
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: 999,
+              background: "#F7F6F3",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {pictureUrl ? <Pic url={pictureUrl} alt="Instagram profile" /> : null}
           </div>
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 font-semibold">
-              <Camera className="size-4" aria-hidden /> @{ig.profile.username}
-            </p>
-            {ig.profile.name ? <p className="text-small">{ig.profile.name}</p> : null}
-            <p className="text-small text-muted whitespace-pre-line">
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+              <Camera size={15} aria-hidden /> @{ig.profile.username}
+            </span>
+            {ig.profile.name ? <span style={{ fontSize: 13 }}>{ig.profile.name}</span> : null}
+            <span style={{ fontSize: 13, color: MUTED, whiteSpace: "pre-line" }}>
               {ig.profile.biography ?? "No bio yet"}
-            </p>
+            </span>
             {ig.profile.website ? (
-              <p className="text-small text-accent truncate">{ig.profile.website}</p>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "#0F6B4A",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {ig.profile.website}
+              </span>
             ) : null}
           </div>
         </div>
 
         <Checklist checks={ig.checks} score={ig.score} />
 
-        <div className="border-border grid gap-4 border-t pt-5">
-          <p className="text-[14px] font-semibold">Proposed changes</p>
+        <div
+          style={{
+            borderTop: LINE,
+            paddingTop: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <SubHead>Proposed changes</SubHead>
           <ImageChoice
             label="Profile picture"
             hint="Same square logo"
@@ -543,76 +910,117 @@ function InstagramCard({ data }: { data: ProfileCheckup }) {
             onChange={setPicture}
           />
           <Field label="Display name" hint={`${name.length}/30`}>
-            {(p) => (
-              <Input {...p} maxLength={30} value={name} onChange={(e) => setName(e.target.value)} />
-            )}
+            <input
+              className="rp-input"
+              maxLength={30}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </Field>
           <Field label="Bio" hint={`${bio.length}/150`}>
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={3}
-                maxLength={150}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-              />
-            )}
+            <textarea
+              className="rp-input rp-textarea"
+              rows={3}
+              maxLength={150}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              style={TEXTAREA}
+            />
           </Field>
           <Field label="Link in bio">
-            {(p) => (
-              <Input
-                {...p}
-                type="url"
-                placeholder="https://"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-              />
-            )}
+            <input
+              className="rp-input"
+              type="url"
+              placeholder="https://"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+            />
           </Field>
-          <div className="flex justify-end">
-            <Button variant="secondary" loading={save.isPending} onClick={saveDraft}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="rp-btn-light"
+              disabled={save.isPending}
+              onClick={saveDraft}
+            >
+              {save.isPending ? <Spinner /> : null}
               Save draft
-            </Button>
+            </button>
           </div>
         </div>
 
-        <div className="bg-surface-muted grid gap-3 rounded-lg p-4">
-          <p className="text-[14px] font-semibold">Finish in the Instagram app</p>
-          <p className="text-small text-muted">
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            background: "#F7F6F3",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <SubHead>Finish in the Instagram app</SubHead>
+          <span style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
             Instagram doesn&apos;t let apps edit profiles, so this last step takes a minute on your
             phone.
-          </p>
-          <ol className="grid gap-2.5 text-[13px]">
-            <li className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">1.</span> Copy the bio
+          </span>
+          <ol
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            <li style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span className="rp-mono" style={{ color: MUTED }}>
+                1.
+              </span>{" "}
+              Copy the bio
               {draft.bio ? (
                 <CopyButton value={draft.bio} label="Copy bio" />
               ) : (
-                <span className="text-muted">(save a bio first)</span>
+                <span style={{ color: MUTED }}>(save a bio first)</span>
               )}
             </li>
-            <li className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">2.</span> Save the logo to your phone
+            <li style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span className="rp-mono" style={{ color: MUTED }}>
+                2.
+              </span>{" "}
+              Save the logo to your phone
               {draft.picture ? (
-                <Button asChild size="sm" variant="secondary">
-                  <a href={src(draft.picture.url)!} download={`${draft.picture.name}.png`}>
-                    <Download /> Download logo
-                  </a>
-                </Button>
+                <a
+                  href={src(draft.picture.url)!}
+                  download={`${draft.picture.name}.png`}
+                  className="rp-btn-light"
+                  style={{ padding: "6px 11px", fontSize: 12.5 }}
+                >
+                  <Download size={14} /> Download logo
+                </a>
               ) : (
-                <span className="text-muted">(choose a logo first)</span>
+                <span style={{ color: MUTED }}>(choose a logo first)</span>
               )}
             </li>
             <li>
-              <span className="font-medium">3.</span> In Instagram open your profile →{" "}
-              <strong>Edit profile</strong> → change picture, name, bio and links.
+              <span className="rp-mono" style={{ color: MUTED }}>
+                3.
+              </span>{" "}
+              In Instagram open your profile → <strong>Edit profile</strong> → change picture, name,
+              bio and links.
             </li>
             <li>
-              <span className="font-medium">4.</span> Come back and press <strong>Recheck</strong>.
+              <span className="rp-mono" style={{ color: MUTED }}>
+                4.
+              </span>{" "}
+              Come back and press <strong>Recheck</strong>.
             </li>
           </ol>
         </div>
       </div>
-    </Card>
+    </Panel>
   );
 }

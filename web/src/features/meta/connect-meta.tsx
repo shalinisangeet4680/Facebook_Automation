@@ -1,23 +1,27 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useCallback, useState } from "react";
 
-import { PageHeader } from "@/components/shell/page-header";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import { keys, useMetaConnection, useMetaRequirements } from "@/lib/api/queries";
 import type { Connection, Requirements } from "@/lib/api/types";
+import { Banner, PageHead, Skel } from "@/features/replyly/ui";
 
 import { ConnectedSummary } from "./connected-summary";
 import { GuidePlayer } from "./guide/guide-player";
 import { PermissionsCard } from "./permissions-card";
 import { StepInstructions } from "./step-instructions";
 import { TokenForm } from "./token-form";
+
+const columns = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
+  gap: 20,
+  alignItems: "start",
+} as const;
+
+const stack = { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 } as const;
 
 function SetupView({
   requirements,
@@ -32,8 +36,8 @@ function SetupView({
     .filter((p) => p.level !== "optional")
     .map((p) => p.name);
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <div className="grid min-w-0 content-start gap-6">
+    <div style={columns}>
+      <div style={stack}>
         <GuidePlayer
           steps={requirements.steps}
           permissions={permissions}
@@ -42,14 +46,14 @@ function SetupView({
         />
         <PermissionsCard permissions={requirements.permissions} />
       </div>
-      <div className="grid min-w-0 content-start gap-6 xl:sticky xl:top-24 xl:self-start">
-        <Card className="p-5">
+      <div style={{ ...stack, position: "sticky", top: 24 }}>
+        <div className="rp-card" style={{ padding: 20 }}>
           <StepInstructions
             step={requirements.steps[index]!}
             index={index}
             total={requirements.steps.length}
           />
-        </Card>
+        </div>
         <TokenForm onConnected={onConnected} />
       </div>
     </div>
@@ -58,11 +62,11 @@ function SetupView({
 
 function Loading() {
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <Skeleton className="aspect-[16/10] w-full rounded-[14px]" />
-      <div className="grid content-start gap-6">
-        <Skeleton className="h-40 w-full rounded-[12px]" />
-        <Skeleton className="h-52 w-full rounded-[12px]" />
+    <div style={columns}>
+      <Skel h={340} r={14} />
+      <div style={stack}>
+        <Skel h={160} r={14} />
+        <Skel h={210} r={14} />
       </div>
     </div>
   );
@@ -75,34 +79,47 @@ export function ConnectMeta() {
   const [replacing, setReplacing] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const connected = connection.data && connection.data.status !== "not_connected";
+  const summary = connected && !replacing;
 
   return (
-    <>
-      <Link
-        href="/setup"
-        className="text-small text-muted hover:text-foreground mb-6 inline-flex items-center gap-1.5 font-medium transition-colors"
-      >
-        <ArrowLeft className="size-4" /> Setup
-      </Link>
-      <PageHeader
-        title={connected && !replacing ? "Meta connection" : "Connect your Meta business"}
-        description={
-          connected && !replacing
+    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <PageHead
+        title={summary ? "Meta account" : "Connect your Meta business"}
+        sub={
+          summary
             ? "Your workspace can read and manage the assets you assigned to the system user."
             : "Follow the guide to create a system user token in Meta, then paste it here. It takes about five minutes."
+        }
+        actions={
+          connected && replacing ? (
+            <button type="button" className="rp-btn-light" onClick={() => setReplacing(false)}>
+              Cancel
+            </button>
+          ) : null
         }
       />
       {connection.isPending || requirements.isPending ? (
         <Loading />
       ) : connection.isError || requirements.isError ? (
-        <ErrorState
-          message={errorMessage(connection.error ?? requirements.error)}
-          onRetry={() => {
-            void connection.refetch();
-            void requirements.refetch();
-          }}
-        />
-      ) : connected && !replacing ? (
+        <Banner
+          tone="error"
+          title="Couldn’t load your Meta connection"
+          action={
+            <button
+              type="button"
+              className="rp-btn-light"
+              onClick={() => {
+                void connection.refetch();
+                void requirements.refetch();
+              }}
+            >
+              Try again
+            </button>
+          }
+        >
+          {errorMessage(connection.error ?? requirements.error)}
+        </Banner>
+      ) : summary ? (
         <ConnectedSummary
           connection={connection.data}
           celebrate={celebrate}
@@ -118,6 +135,6 @@ export function ConnectMeta() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

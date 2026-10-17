@@ -20,7 +20,7 @@ export const STEPS: StepDefinition[] = [
   {
     id: "sign_in",
     title: "Create your account",
-    description: "Sign in with your phone number.",
+    description: "Sign in with Google.",
     available: true,
   },
   {

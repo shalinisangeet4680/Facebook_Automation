@@ -102,7 +102,7 @@ test("chooses a style for the plugin's previews and gets the set back", async ({
   });
 
   const accessibility = await new AxeBuilder({ page })
-    .exclude("[data-sonner-toaster]")
+    .exclude(".rp-toast")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(

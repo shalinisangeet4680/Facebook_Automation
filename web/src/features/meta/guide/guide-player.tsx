@@ -5,7 +5,6 @@ import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/
 import { useEffect, useState } from "react";
 
 import type { GuideStep } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 
 import { BrowserFrame } from "./frame";
 import {
@@ -71,16 +70,16 @@ export function GuidePlayer({
   return (
     <MotionConfig reducedMotion="user">
       <div
-        className="grid min-w-0 gap-4"
+        style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <div className="relative min-w-0">
+        <div style={{ position: "relative", minWidth: 0 }}>
           <BrowserFrame url={URLS[step.id] ?? "business.facebook.com"}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={step.id}
-                className="absolute inset-0"
+                style={{ position: "absolute", inset: 0 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -95,9 +94,24 @@ export function GuidePlayer({
               type="button"
               onClick={() => setPaused((p) => !p)}
               aria-label={paused ? "Play guide" : "Pause guide"}
-              className="absolute right-3 bottom-3 z-40 grid size-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition-colors hover:bg-black/75"
+              style={{
+                position: "absolute",
+                right: 12,
+                bottom: 12,
+                zIndex: 40,
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(25,25,23,.7)",
+                color: "#fff",
+                cursor: "pointer",
+              }}
             >
-              {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+              {paused ? <Play size={14} /> : <Pause size={14} />}
             </button>
           ) : null}
         </div>
@@ -105,7 +119,12 @@ export function GuidePlayer({
         <div
           role="tablist"
           aria-label="Guide steps"
-          className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 150px), 1fr))",
+            gap: 8,
+            minWidth: 0,
+          }}
           onKeyDown={(e) => {
             if (e.key === "ArrowRight") onIndexChange(Math.min(steps.length - 1, index + 1));
             if (e.key === "ArrowLeft") onIndexChange(Math.max(0, index - 1));
@@ -121,33 +140,54 @@ export function GuidePlayer({
                 aria-selected={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => onIndexChange(i)}
-                className={cn(
-                  "group relative overflow-hidden rounded-[var(--radius-control)] border px-2.5 py-2 text-left transition-colors",
-                  active
-                    ? "border-accent bg-accent-soft/50"
-                    : "border-border bg-surface hover:border-border-strong",
-                )}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  minWidth: 0,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: `1px solid ${active ? "#191917" : "#E6E4DF"}`,
+                  background: active ? "#fff" : "#FAF9F7",
+                  color: "#191917",
+                  transition: "border-color .15s, background .15s",
+                }}
               >
                 <span
-                  className={cn(
-                    "text-caption block font-semibold tabular-nums",
-                    active ? "text-accent" : "text-subtle",
-                  )}
+                  className="rp-mono"
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    color: active ? "#0F6B4A" : "#6C6962",
+                  }}
                 >
                   Step {i + 1}
                 </span>
                 <span
-                  className={cn(
-                    "text-small mt-0.5 block truncate font-medium",
-                    active ? "text-foreground" : "text-muted",
-                  )}
+                  style={{
+                    display: "block",
+                    marginTop: 2,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: active ? "#191917" : "#6C6962",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {s.title}
                 </span>
                 {active && playing ? (
                   <motion.span
                     key={`${s.id}-${index}`}
-                    className="bg-accent absolute bottom-0 left-0 h-0.5"
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      bottom: 0,
+                      height: 2,
+                      background: "#0F6B4A",
+                    }}
                     initial={{ width: "0%" }}
                     animate={{ width: "100%" }}
                     transition={{ duration: STEP_MS / 1000, ease: "linear" }}

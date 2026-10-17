@@ -1,8 +1,9 @@
 import { ExternalLink } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import { Button } from "@/components/ui/button";
 import type { GuideStep } from "@/lib/api/types";
+
+import { SOFT } from "./ui";
 
 export function StepInstructions({
   step,
@@ -14,7 +15,7 @@ export function StepInstructions({
   total: number;
 }) {
   return (
-    <div className="min-h-[148px]">
+    <div style={{ minHeight: 148 }}>
       <AnimatePresence mode="wait">
         <motion.div
           key={step.id}
@@ -22,18 +23,27 @@ export function StepInstructions({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.2 }}
+          style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}
         >
-          <p className="text-caption text-accent font-semibold tracking-wide uppercase">
+          <span className="rp-label" style={{ color: "#0F6B4A", fontWeight: 600 }}>
             Step {index + 1} of {total}
+          </span>
+          <h2 className="rp-serif" style={{ fontSize: 26, lineHeight: 1.1, margin: 0 }}>
+            {step.title}
+          </h2>
+          <p style={{ color: SOFT, fontSize: 13.5, lineHeight: 1.55, margin: 0 }}>
+            {step.description}
           </p>
-          <h2 className="text-heading mt-1.5 font-semibold">{step.title}</h2>
-          <p className="text-muted mt-1.5">{step.description}</p>
           {step.actionUrl ? (
-            <Button asChild variant="secondary" size="sm" className="mt-4">
-              <a href={step.actionUrl} target="_blank" rel="noopener noreferrer">
-                {step.actionLabel ?? "Open"} <ExternalLink />
-              </a>
-            </Button>
+            <a
+              href={step.actionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rp-btn-light"
+              style={{ marginTop: 6, padding: "7px 12px" }}
+            >
+              {step.actionLabel ?? "Open"} <ExternalLink size={13} />
+            </a>
           ) : null}
         </motion.div>
       </AnimatePresence>

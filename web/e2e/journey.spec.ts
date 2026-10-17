@@ -9,20 +9,21 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
     await page.goto("/setup");
     await expect(page).toHaveURL(/\/login\?next=%2Fsetup/);
     await page.goto("/login?error=Google+sign-in+was+cancelled.");
-    await expect(page.getByRole("alert")).toHaveText(/Google sign-in was cancelled/);
+    await expect(page.getByText("Google sign-in was cancelled.")).toHaveAttribute("role", "alert");
   });
 
   await test.step("signs in with Google", async () => {
     await signInWithGoogle(page, `journey-${phone}@treevook.test`);
     await expect(page).toHaveURL(/\/setup$/);
-    await expect(page.getByRole("heading", { name: "Set up your workspace" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
     await page.request.delete("/api/v1/meta/connection");
     await page.reload();
-    await expect(page.getByText("1 of 9 complete")).toBeVisible();
+    await expect(page.getByText("Get set up")).toBeVisible();
+    await expect(page.getByText("0/3")).toBeVisible();
   });
 
   await test.step("explains missing permissions", async () => {
-    await page.getByRole("link", { name: "Continue" }).click();
+    await page.getByRole("link", { name: "Start" }).click();
     await expect(page).toHaveURL(/\/setup\/connect-meta$/);
     await page.getByLabel("System user access token").fill(NO_PERMS_TOKEN);
     await page.getByRole("button", { name: "Connect and verify" }).click();
@@ -40,7 +41,7 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
     await expect(page.getByRole("heading", { name: "Choose your accounts" })).toBeVisible();
     await page.getByRole("button", { name: "Save and continue" }).click();
     await expect(page).toHaveURL(/\/setup$/);
-    await expect(page.getByText("3 of 9 complete")).toBeVisible();
+    await expect(page.getByText("2/3")).toBeVisible();
   });
 
   await test.step("disconnects Meta", async () => {
@@ -51,8 +52,7 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
   });
 
   await test.step("signs out", async () => {
-    await page.getByRole("button", { name: "Account" }).click();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Sign out" }).first().click();
     await expect(page).toHaveURL(/\/login$/);
     await page.goto("/setup");
     await expect(page).toHaveURL(/\/login/);

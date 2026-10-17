@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { STORAGE_STATE, ensureMetaConnected } from "./fixtures";
+import { STORAGE_STATE } from "./fixtures";
 
 test.use({ storageState: STORAGE_STATE });
 
@@ -23,35 +23,4 @@ test("uploads an image to the library and deletes it", async ({ page }, info) =>
   await card.getByRole("button", { name: "Delete clinic-banner" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText("Image deleted")).toBeVisible();
-});
-
-test("posts an image to Facebook and Instagram and shows it under Posts", async ({
-  page,
-}, info) => {
-  const tag = `festive-${Date.now()}`;
-  await ensureMetaConnected(page.request);
-  await page.goto("/creatives");
-  await page
-    .getByLabel("Upload an image")
-    .setInputFiles({ name: `${tag}.png`, mimeType: "image/png", buffer: PNG_1080 });
-  const card = page.getByRole("listitem").filter({ hasText: tag });
-  await card.getByRole("button", { name: "Post" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByRole("checkbox", { name: /Facebook/ }).check();
-  await dialog.getByRole("checkbox", { name: /Instagram/ }).check();
-  await dialog.getByLabel("Facebook caption").fill(`Run your whole clinic from one app ${tag}`);
-  await dialog.getByLabel("Instagram caption").fill("One app for your clinic #clinic #doctors");
-  await page.screenshot({ path: info.outputPath("publish-dialog.png") });
-  await dialog.getByRole("button", { name: "Review" }).click();
-  await expect(dialog.getByText("Ready to publish?")).toBeVisible();
-  await dialog.getByRole("button", { name: "Publish now" }).click();
-  await expect(page.getByText(/Posting now/)).toBeVisible();
-  await page.getByRole("tab", { name: "Posts" }).click();
-  const row = page.getByRole("listitem").filter({ hasText: tag }).first();
-  await expect(row.getByText("Published")).toBeVisible({ timeout: 20_000 });
-  await expect(row.getByRole("link", { name: "View on Instagram" })).toBeVisible();
-  await expect(
-    page.getByRole("region", { name: "On Instagram" }).getByRole("listitem").first(),
-  ).toBeVisible();
-  await page.screenshot({ path: info.outputPath("posts.png"), fullPage: true });
 });

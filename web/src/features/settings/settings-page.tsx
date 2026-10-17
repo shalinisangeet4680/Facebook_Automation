@@ -1,34 +1,17 @@
 "use client";
 
-import {
-  ArrowRight,
-  Bot,
-  Building2,
-  LogOut,
-  PlugZap,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-  Wallet,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { toast } from "sonner";
+import { RadioGroup } from "radix-ui";
+import { useId, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 
-import { PageHeader } from "@/components/shell/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Field, Input } from "@/components/ui/input";
-import { RadioCard, RadioCardGroup } from "@/components/ui/radio-card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import {
   useAutomationSettings,
   useConnectedApps,
+  useMe,
   useMetaConnection,
   useSettings,
   useSignOutEverywhere,
@@ -37,6 +20,25 @@ import {
   useUpdateWorkspace,
 } from "@/lib/api/queries";
 import type { AutomationSettings, AutomationSettingsUpdate, Settings } from "@/lib/api/types";
+import { ConfirmDialog } from "@/features/replyly/dialog";
+import {
+  Banner,
+  PageHead,
+  SettingRow,
+  Skel,
+  Spinner,
+  Toggle,
+  useToast,
+} from "@/features/replyly/ui";
+
+const MUTED = "#6C6962";
+const DIVIDER = "1px solid #EFEDE8";
+
+const PILLS = {
+  good: { bg: "#EAF3EE", fg: "#0F6B4A" },
+  bad: { bg: "#FDF0EE", fg: "#B42318" },
+  off: { bg: "#EFEDE8", fg: "#55534E" },
+};
 
 function money(amount: number, currency: string) {
   try {
@@ -57,72 +59,149 @@ function optionalNumber(value: string): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
-export function SettingsPage() {
-  const settings = useSettings();
+function Pill({ tone, children }: { tone: keyof typeof PILLS; children: ReactNode }) {
   return (
-    <>
-      <PageHeader
-        title="Settings"
-        description="Your workspace, spending guardrails, AI, profile and connections."
-      />
-      {settings.isPending ? (
-        <div className="grid gap-6">
-          <Skeleton className="h-56 w-full" />
-          <Skeleton className="h-56 w-full" />
-        </div>
-      ) : settings.isError ? (
-        <ErrorState
-          message={errorMessage(settings.error)}
-          onRetry={() => void settings.refetch()}
-        />
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-6">
-            <WorkspaceForm
-              key={JSON.stringify([settings.data.workspace, settings.data.budget])}
-              settings={settings.data}
-            />
-            <AutomationSection />
-            <ProfileForm key={JSON.stringify(settings.data.profile)} settings={settings.data} />
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
-            <Connections />
-            <Security />
-          </div>
-        </div>
-      )}
-    </>
+    <span
+      style={{
+        padding: "2px 8px",
+        borderRadius: 999,
+        fontSize: 11.5,
+        fontWeight: 500,
+        background: PILLS[tone].bg,
+        color: PILLS[tone].fg,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
-function SectionCard({
-  icon,
+function Panel({
+  id,
   title,
-  description,
+  desc,
   children,
 }: {
-  icon: ReactNode;
+  id?: string;
   title: string;
-  description?: string;
+  desc?: ReactNode;
   children: ReactNode;
 }) {
+  const headingId = useId();
   return (
-    <Card>
-      <div className="grid grid-cols-1 gap-5 p-5 sm:p-6">
-        <div>
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold">
-            <span className="text-accent">{icon}</span>
-            {title}
-          </h2>
-          {description ? <p className="text-small text-muted mt-1">{description}</p> : null}
-        </div>
-        {children}
+    <section
+      id={id}
+      aria-labelledby={headingId}
+      style={{ display: "flex", flexDirection: "column", gap: 12, scrollMarginTop: 24 }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <h2 id={headingId} style={{ fontWeight: 600, fontSize: 15 }}>
+          {title}
+        </h2>
+        {desc ? <span style={{ fontSize: 13, color: MUTED }}>{desc}</span> : null}
       </div>
-    </Card>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  error,
+  children,
+  style,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string | null;
+  children: (props: {
+    id: string;
+    "aria-describedby"?: string;
+    "aria-invalid"?: boolean;
+  }) => ReactNode;
+  style?: CSSProperties;
+}) {
+  const id = useId();
+  const noteId = `${id}-note`;
+  const note = error ?? hint;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, ...style }}>
+      <label htmlFor={id} style={{ fontSize: 12.5, fontWeight: 500, color: "#55534E" }}>
+        {label}
+      </label>
+      {children({
+        id,
+        "aria-describedby": note ? noteId : undefined,
+        "aria-invalid": error ? true : undefined,
+      })}
+      {note ? (
+        <span
+          id={noteId}
+          style={{ fontSize: 12, color: error ? "#B42318" : MUTED, lineHeight: 1.45 }}
+        >
+          {note}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+const INPUT: CSSProperties = { width: "100%", padding: "9px 11px", fontSize: 13.5 };
+
+const GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 16,
+};
+
+export function SettingsPage() {
+  const settings = useSettings();
+  return (
+    <div
+      className="rp-in"
+      style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 860 }}
+    >
+      <PageHead
+        title="Settings"
+        sub="Your workspace, spending guardrails, AI, profile and connections."
+      />
+      {settings.isPending ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Skel h={260} r={14} />
+          <Skel h={140} r={14} />
+        </div>
+      ) : settings.isError ? (
+        <Banner
+          tone="error"
+          title="Couldn’t load settings"
+          action={
+            <button type="button" className="rp-btn-light" onClick={() => void settings.refetch()}>
+              Try again
+            </button>
+          }
+        >
+          {errorMessage(settings.error)}
+        </Banner>
+      ) : (
+        <>
+          <WorkspaceForm
+            key={JSON.stringify([settings.data.workspace, settings.data.budget])}
+            settings={settings.data}
+          />
+          <Connections />
+          <AutomationSection />
+          <Security />
+          <ProfileForm key={JSON.stringify(settings.data.profile)} settings={settings.data} />
+        </>
+      )}
+    </div>
   );
 }
 
 function WorkspaceForm({ settings }: { settings: Settings }) {
+  const toast = useToast();
   const update = useUpdateWorkspace();
   const { budget } = settings;
   const [name, setName] = useState(settings.workspace.name);
@@ -178,38 +257,46 @@ function WorkspaceForm({ settings }: { settings: Settings }) {
         targetCostPerResult: targetValue,
       },
       {
-        onSuccess: () => toast.success("Settings saved"),
-        onError: (err) => toast.error(errorMessage(err)),
+        onSuccess: () => toast("Settings saved"),
+        onError: (err) => toast(errorMessage(err)),
       },
     );
   };
 
   return (
-    <form onSubmit={submit} noValidate>
-      <SectionCard
-        icon={<Building2 className="size-5" />}
-        title="Workspace and budget"
-        description="These limits apply everywhere: in TreeVook, in Claude and in suggestions."
+    <Panel
+      title="Workspace and budget"
+      desc="These limits apply everywhere: in TreeVook, in Claude and in suggestions."
+    >
+      <form
+        onSubmit={submit}
+        noValidate
+        className="rp-card"
+        style={{ padding: 20, display: "flex", flexDirection: "column", gap: 18 }}
       >
-        <Field label="Workspace name" error={errors.name}>
+        <Field label="Workspace name" error={errors.name} style={{ maxWidth: 420 }}>
           {(p) => (
-            <Input
+            <input
               {...p}
+              className="rp-input"
+              style={INPUT}
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="organization"
             />
           )}
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div style={{ ...GRID, paddingTop: 18, borderTop: DIVIDER }}>
           <Field
             label={`Daily limit per campaign (${budget.currency})`}
             error={errors.maxDaily}
             hint={`Nothing can be set above this. Platform maximum ${money(budget.platformMaxDailyBudget, budget.currency)}.`}
           >
             {(p) => (
-              <Input
+              <input
                 {...p}
+                className="rp-input"
+                style={INPUT}
                 type="number"
                 inputMode="decimal"
                 min={1}
@@ -224,8 +311,10 @@ function WorkspaceForm({ settings }: { settings: Settings }) {
             hint="Optional. Used for pacing alerts."
           >
             {(p) => (
-              <Input
+              <input
                 {...p}
+                className="rp-input"
+                style={INPUT}
                 type="number"
                 inputMode="decimal"
                 min={1}
@@ -235,32 +324,155 @@ function WorkspaceForm({ settings }: { settings: Settings }) {
               />
             )}
           </Field>
+          <Field
+            label={`Target cost per result (${budget.currency})`}
+            error={errors.target}
+            hint="Optional. What a lead or sign-up is worth paying. Suggestions compare against it."
+          >
+            {(p) => (
+              <input
+                {...p}
+                className="rp-input"
+                style={INPUT}
+                type="number"
+                inputMode="decimal"
+                min={1}
+                placeholder="Use account average"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+              />
+            )}
+          </Field>
         </div>
-        <Field
-          label={`Target cost per result (${budget.currency})`}
-          error={errors.target}
-          hint="Optional. What a lead or sign-up is worth paying. Suggestions compare against it."
-        >
-          {(p) => (
-            <Input
-              {...p}
-              type="number"
-              inputMode="decimal"
-              min={1}
-              placeholder="Use account average"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              className="sm:max-w-xs"
-            />
-          )}
-        </Field>
-        <div className="flex justify-end">
-          <Button type="submit" disabled={!dirty || invalid} loading={update.isPending}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="submit" className="rp-btn" disabled={!dirty || invalid || update.isPending}>
+            {update.isPending ? <Spinner /> : null}
             Save changes
-          </Button>
+          </button>
         </div>
-      </SectionCard>
-    </form>
+      </form>
+    </Panel>
+  );
+}
+
+function ConnectionRow({
+  first,
+  name,
+  status,
+  pill,
+  href,
+  action,
+}: {
+  first?: boolean;
+  name: string;
+  status: ReactNode;
+  pill?: ReactNode;
+  href: string;
+  action: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "14px 16px",
+        borderTop: first ? "none" : DIVIDER,
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#F4F2EE",
+          border: "1px solid #E6E4DF",
+          fontWeight: 600,
+          fontSize: 13,
+        }}
+      >
+        {name.slice(0, 1)}
+      </span>
+      <span
+        style={{ display: "flex", flexDirection: "column", gap: 2, flex: "1 1 180px", minWidth: 0 }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 500, fontSize: 13.5 }}>{name}</span>
+          {pill}
+        </span>
+        <span style={{ fontSize: 12.5, color: MUTED, overflowWrap: "anywhere" }}>{status}</span>
+      </span>
+      <Link
+        href={href}
+        className="rp-btn-light"
+        style={{ padding: "6px 12px", fontSize: 12.5 }}
+        aria-label={`${action} ${name} connection`}
+      >
+        {action}
+      </Link>
+    </div>
+  );
+}
+
+function Connections() {
+  const meta = useMetaConnection();
+  const apps = useConnectedApps();
+  const metaState = meta.data?.status;
+  const count = apps.data?.data.length ?? 0;
+  return (
+    <Panel title="Connections">
+      <div className="rp-card">
+        <ConnectionRow
+          first
+          name="Meta"
+          href="/setup/connect-meta"
+          action={metaState === "active" || metaState === "invalid" ? "Manage" : "Connect"}
+          status={
+            metaState === "active"
+              ? `Connected as ${meta.data?.systemUser?.name ?? "system user"}`
+              : metaState === "invalid"
+                ? "Token stopped working"
+                : meta.isPending
+                  ? "Checking…"
+                  : "Not connected"
+          }
+          pill={
+            meta.data ? (
+              <Pill
+                tone={metaState === "active" ? "good" : metaState === "invalid" ? "bad" : "off"}
+              >
+                {metaState === "active"
+                  ? "Active"
+                  : metaState === "invalid"
+                    ? "Needs attention"
+                    : "Off"}
+              </Pill>
+            ) : null
+          }
+        />
+        <ConnectionRow
+          name="Claude"
+          href="/claude"
+          action="Manage"
+          status={
+            apps.data
+              ? `${count} connected app${count === 1 ? "" : "s"}`
+              : apps.isError
+                ? "Couldn’t check connected apps"
+                : "Checking…"
+          }
+          pill={
+            apps.data ? <Pill tone={count ? "good" : "off"}>{count ? "Active" : "Off"}</Pill> : null
+          }
+        />
+      </div>
+    </Panel>
   );
 }
 
@@ -284,19 +496,41 @@ function aiSummary(a: AutomationSettings) {
 
 function AutomationSection() {
   const automation = useAutomationSettings();
-  if (automation.isPending) return <Skeleton className="h-72 w-full" />;
-  if (automation.isError)
-    return (
-      <ErrorState
-        message={errorMessage(automation.error)}
-        onRetry={() => void automation.refetch()}
-      />
-    );
-  return <AutomationForm key={automation.data.slackChannel ?? ""} settings={automation.data} />;
+  return (
+    <Panel
+      id="ai"
+      title="AI & automation"
+      desc="Shared by Play Reviews, Google Business and every agent connected to this workspace."
+    >
+      {automation.isPending ? (
+        <Skel h={300} r={14} />
+      ) : automation.isError ? (
+        <Banner
+          tone="error"
+          title="Couldn’t load AI settings"
+          action={
+            <button
+              type="button"
+              className="rp-btn-light"
+              onClick={() => void automation.refetch()}
+            >
+              Try again
+            </button>
+          }
+        >
+          {errorMessage(automation.error)}
+        </Banner>
+      ) : (
+        <AutomationForm key={automation.data.slackChannel ?? ""} settings={automation.data} />
+      )}
+    </Panel>
+  );
 }
 
 function AutomationForm({ settings }: { settings: AutomationSettings }) {
+  const toast = useToast();
   const update = useUpdateAutomationSettings();
+  const modeLabel = useId();
   const [key, setKey] = useState("");
   const [hook, setHook] = useState("");
   const [channel, setChannel] = useState(settings.slackChannel ?? "");
@@ -304,42 +538,83 @@ function AutomationForm({ settings }: { settings: AutomationSettings }) {
   const save = (body: AutomationSettingsUpdate, message: string, after?: () => void) =>
     update.mutate(body, {
       onSuccess: () => {
-        toast.success(message);
+        toast(message);
         after?.();
       },
-      onError: (err) => toast.error(errorMessage(err)),
+      onError: (err) => toast(errorMessage(err)),
     });
 
   return (
-    <section id="ai" className="scroll-mt-24">
-      <SectionCard
-        icon={<Bot className="size-5" />}
-        title="AI & automation"
-        description="Shared by Play Reviews, Google Business and every agent connected to this workspace."
-      >
-        <div className="grid gap-3">
-          <p className="text-small text-foreground font-medium" id="ai-mode">
-            AI drafting
-          </p>
-          <RadioCardGroup
-            aria-labelledby="ai-mode"
-            value={settings.aiMode}
-            disabled={update.isPending}
-            onValueChange={(v) =>
-              save({ aiMode: v as AutomationSettings["aiMode"] }, "AI drafting updated")
-            }
-            className="sm:grid-cols-3"
-          >
-            {AI_MODES.map(([mode, title, description]) => (
-              <RadioCard key={mode} value={mode} title={title} description={description} />
-            ))}
-          </RadioCardGroup>
-          <p className="text-small text-muted">{aiSummary(settings)}</p>
-        </div>
+    <div className="rp-card">
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        <span id={modeLabel} style={{ fontWeight: 500, fontSize: 13.5 }}>
+          AI drafting
+        </span>
+        <RadioGroup.Root
+          aria-labelledby={modeLabel}
+          value={settings.aiMode}
+          disabled={update.isPending}
+          onValueChange={(v) =>
+            save({ aiMode: v as AutomationSettings["aiMode"] }, "AI drafting updated")
+          }
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {AI_MODES.map(([mode, title, description]) => {
+            const on = settings.aiMode === mode;
+            return (
+              <RadioGroup.Item
+                key={mode}
+                value={mode}
+                style={{
+                  textAlign: "left",
+                  padding: 14,
+                  borderRadius: 12,
+                  border: `1.5px solid ${on ? "#191917" : "#E6E4DF"}`,
+                  background: "#fff",
+                  cursor: update.isPending ? "default" : "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  color: "#191917",
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: 13.5 }}>{title}</span>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 14,
+                      height: 14,
+                      flexShrink: 0,
+                      borderRadius: "50%",
+                      boxSizing: "border-box",
+                      border: `1.5px solid ${on ? "#191917" : "#C9C5BC"}`,
+                      background: on ? "#191917" : "#fff",
+                      boxShadow: on ? "inset 0 0 0 2.5px #fff" : "none",
+                    }}
+                  />
+                </span>
+                <span style={{ fontSize: 12.5, color: "#55534E" }}>{description}</span>
+              </RadioGroup.Item>
+            );
+          })}
+        </RadioGroup.Root>
+        <span style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{aiSummary(settings)}</span>
         {settings.aiMode === "own" ? (
           <form
             noValidate
-            className="flex flex-col gap-3 sm:flex-row sm:items-start"
+            style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}
             onSubmit={(e) => {
               e.preventDefault();
               if (key.trim()) save({ aiKey: key.trim() }, "API key saved", () => setKey(""));
@@ -348,11 +623,13 @@ function AutomationForm({ settings }: { settings: AutomationSettings }) {
             <Field
               label="Anthropic API key"
               hint="Stored encrypted. Only the last four characters are shown."
-              className="min-w-0 flex-1"
+              style={{ flex: "1 1 240px" }}
             >
               {(p) => (
-                <Input
+                <input
                   {...p}
+                  className="rp-input"
+                  style={INPUT}
                   type="password"
                   autoComplete="off"
                   placeholder={settings.aiKeyHint ?? "sk-ant-…"}
@@ -361,297 +638,280 @@ function AutomationForm({ settings }: { settings: AutomationSettings }) {
                 />
               )}
             </Field>
-            <Button
+            <button
               type="submit"
-              variant="secondary"
-              disabled={!key.trim()}
-              className="sm:mt-[1.6rem] sm:h-11"
+              className="rp-btn-light"
+              style={{ marginBottom: 24 }}
+              disabled={!key.trim() || update.isPending}
             >
               Save key
-            </Button>
+            </button>
           </form>
         ) : null}
-        <form
-          noValidate
-          className="border-border grid gap-4 border-t pt-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save(
-              {
-                ...(hook.trim() ? { slackWebhook: hook.trim() } : {}),
-                slackChannel: channel.trim() || null,
-              },
-              "Slack saved",
-              () => setHook(""),
-            );
+      </div>
+      <form
+        noValidate
+        style={{
+          padding: 16,
+          borderTop: DIVIDER,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          save(
+            {
+              ...(hook.trim() ? { slackWebhook: hook.trim() } : {}),
+              slackChannel: channel.trim() || null,
+            },
+            "Slack saved",
+            () => setHook(""),
+          );
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
           }}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-small text-foreground font-medium">Slack escalation</p>
-              <p className="text-small text-muted mt-0.5">
-                {settings.slackConnected
-                  ? `Low ratings post to ${settings.slackChannel ?? "your Slack channel"} when escalation is on for an app or business.`
-                  : "Add an incoming webhook so low ratings reach your team."}
-              </p>
-            </div>
-            <Badge tone={settings.slackConnected ? "success" : "neutral"}>
-              {settings.slackConnected ? "Connected" : "Off"}
-            </Badge>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <span style={{ fontWeight: 500, fontSize: 13.5 }}>Slack escalation</span>
+            <span style={{ fontSize: 12.5, color: MUTED }}>
+              {settings.slackConnected
+                ? `Low ratings post to ${settings.slackChannel ?? "your Slack channel"} when escalation is on for an app or business.`
+                : "Add an incoming webhook so low ratings reach your team."}
+            </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
-            <Field label="Incoming webhook URL">
-              {(p) => (
-                <Input
-                  {...p}
-                  autoComplete="off"
-                  placeholder={
-                    settings.slackConnected
-                      ? "Saved · paste a new one to replace"
-                      : "https://hooks.slack.com/services/…"
-                  }
-                  value={hook}
-                  onChange={(e) => setHook(e.target.value)}
-                />
-              )}
-            </Field>
-            <Field label="Channel">
-              {(p) => (
-                <Input
-                  {...p}
-                  autoComplete="off"
-                  placeholder="#support"
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                />
-              )}
-            </Field>
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            {settings.slackConnected ? (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={update.isPending}
-                onClick={() => save({ slackWebhook: null }, "Slack disconnected")}
-              >
-                Disconnect
-              </Button>
-            ) : null}
-            <Button
-              type="submit"
-              variant="secondary"
-              disabled={!hook.trim() && channel.trim() === (settings.slackChannel ?? "")}
+          <Pill tone={settings.slackConnected ? "good" : "off"}>
+            {settings.slackConnected ? "Connected" : "Off"}
+          </Pill>
+        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Field label="Incoming webhook URL" style={{ flex: "2 1 260px" }}>
+            {(p) => (
+              <input
+                {...p}
+                className="rp-input"
+                style={INPUT}
+                autoComplete="off"
+                placeholder={
+                  settings.slackConnected
+                    ? "Saved · paste a new one to replace"
+                    : "https://hooks.slack.com/services/…"
+                }
+                value={hook}
+                onChange={(e) => setHook(e.target.value)}
+              />
+            )}
+          </Field>
+          <Field label="Channel" style={{ flex: "1 1 140px" }}>
+            {(p) => (
+              <input
+                {...p}
+                className="rp-input"
+                style={INPUT}
+                autoComplete="off"
+                placeholder="#support"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+              />
+            )}
+          </Field>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+          {settings.slackConnected ? (
+            <button
+              type="button"
+              className="rp-btn-light rp-btn-danger"
+              disabled={update.isPending}
+              onClick={() => save({ slackWebhook: null }, "Slack disconnected")}
             >
-              Save Slack
-            </Button>
-          </div>
-        </form>
-        <div className="border-border flex items-start justify-between gap-4 border-t pt-5">
-          <div className="min-w-0">
-            <p className="text-small text-foreground font-medium" id="agents-can-post">
-              Allow agents to post replies
-            </p>
-            <p className="text-small text-muted mt-0.5">
-              Off: Claude and other MCP agents can only create drafts that wait in your inbox.
-            </p>
-          </div>
+              Disconnect
+            </button>
+          ) : null}
           <button
-            type="button"
-            role="switch"
-            aria-checked={settings.agentsCanPost}
-            aria-labelledby="agents-can-post"
-            disabled={update.isPending}
-            onClick={() =>
-              save(
-                { agentsCanPost: !settings.agentsCanPost },
-                settings.agentsCanPost ? "Agents can only draft" : "Agents can post replies",
-              )
+            type="submit"
+            className="rp-btn-light"
+            disabled={
+              update.isPending || (!hook.trim() && channel.trim() === (settings.slackChannel ?? ""))
             }
-            className="border-border bg-surface-muted aria-checked:border-accent aria-checked:bg-accent relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)] disabled:opacity-60"
           >
-            <span
-              aria-hidden
-              className={`bg-surface size-[18px] rounded-full shadow-[var(--shadow-raised)] transition-transform ${settings.agentsCanPost ? "translate-x-[22px]" : "translate-x-[2px]"}`}
-            />
+            Save Slack
           </button>
         </div>
-      </SectionCard>
-    </section>
+      </form>
+      <SettingRow
+        label="Allow agents to post replies"
+        desc="Off: Claude and other MCP agents can only create drafts that wait in your inbox."
+      >
+        <Toggle
+          on={settings.agentsCanPost}
+          label="Allow agents to post replies"
+          disabled={update.isPending}
+          onChange={() =>
+            save(
+              { agentsCanPost: !settings.agentsCanPost },
+              settings.agentsCanPost ? "Agents can only draft" : "Agents can post replies",
+            )
+          }
+        />
+      </SettingRow>
+    </div>
+  );
+}
+
+function Security() {
+  const router = useRouter();
+  const toast = useToast();
+  const signOut = useSignOutEverywhere();
+  const [open, setOpen] = useState(false);
+  return (
+    <Panel title="Security">
+      <div className="rp-card">
+        <SettingRow
+          first
+          label="Sign out everywhere"
+          desc="Sign out of TreeVook on every phone and computer, including this one. Claude connections are not affected."
+        >
+          <button type="button" className="rp-btn-light" onClick={() => setOpen(true)}>
+            <LogOut size={14} aria-hidden /> Sign out everywhere
+          </button>
+        </SettingRow>
+        <div style={{ padding: "12px 16px", borderTop: DIVIDER, fontSize: 12.5, color: MUTED }}>
+          Budget limits above protect you even if someone gets access.
+        </div>
+      </div>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Sign out everywhere?"
+        description="You’ll need to sign in with Google again on every device."
+        confirm="Sign out everywhere"
+        danger
+        pending={signOut.isPending}
+        onConfirm={() =>
+          signOut.mutate(undefined, {
+            onSuccess: () => router.replace("/login"),
+            onError: (err) => toast(errorMessage(err)),
+          })
+        }
+      />
+    </Panel>
   );
 }
 
 function ProfileForm({ settings }: { settings: Settings }) {
+  const toast = useToast();
+  const me = useMe();
   const update = useUpdateProfile();
   const [name, setName] = useState(settings.profile.name ?? "");
-  const [email, setEmail] = useState(settings.profile.email ?? "");
-  const emailError =
-    email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-      ? "Enter a valid email."
-      : null;
-  const dirty = name !== (settings.profile.name ?? "") || email !== (settings.profile.email ?? "");
+  const dirty = name !== (settings.profile.name ?? "");
+  const email = me.data?.user.email ?? settings.profile.email;
+  const avatar = me.data?.user.avatarUrl;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (emailError) return;
     update.mutate(
-      { name: name.trim() || null, email: email.trim() || null },
+      { name: name.trim() || null, email: settings.profile.email },
       {
-        onSuccess: () => toast.success("Profile saved"),
-        onError: (err) => toast.error(errorMessage(err)),
+        onSuccess: () => toast("Profile saved"),
+        onError: (err) => toast(errorMessage(err)),
       },
     );
   };
 
   return (
-    <form onSubmit={submit} noValidate>
-      <SectionCard icon={<UserRound className="size-5" />} title="Your profile">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name">
+    <Panel title="Your profile">
+      <form onSubmit={submit} noValidate className="rp-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "14px 16px",
+            flexWrap: "wrap",
+          }}
+        >
+          {avatar ? (
+            <Image
+              unoptimized
+              src={avatar}
+              alt=""
+              width={36}
+              height={36}
+              referrerPolicy="no-referrer"
+              style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0 }}
+            />
+          ) : (
+            <span
+              aria-hidden
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#EFEDE8",
+                fontWeight: 600,
+              }}
+            >
+              {(name || email || "?").slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              flex: "1 1 200px",
+              minWidth: 0,
+            }}
+          >
+            <span style={{ fontSize: 12, color: MUTED }}>Signed in with Google</span>
+            <span style={{ fontWeight: 500, fontSize: 13.5, overflowWrap: "anywhere" }}>
+              {email ?? "No Google account linked"}
+            </span>
+          </span>
+        </div>
+        <div
+          style={{
+            padding: 16,
+            borderTop: DIVIDER,
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
+          <Field label="Name" style={{ flex: "1 1 240px", maxWidth: 420 }}>
             {(p) => (
-              <Input
+              <input
                 {...p}
+                className="rp-input"
+                style={INPUT}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
               />
             )}
           </Field>
-          <Field label="Email" error={emailError} hint="For alerts and reports later.">
-            {(p) => (
-              <Input
-                {...p}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            )}
-          </Field>
-        </div>
-        <Field label="Mobile number" hint="Used to sign in. Can't be changed here.">
-          {(p) => (
-            <Input
-              {...p}
-              value={settings.profile.phone}
-              readOnly
-              disabled
-              className="sm:max-w-xs"
-            />
-          )}
-        </Field>
-        <div className="flex justify-end">
-          <Button type="submit" disabled={!dirty || Boolean(emailError)} loading={update.isPending}>
+          <button
+            type="submit"
+            className="rp-btn"
+            style={{ marginLeft: "auto" }}
+            disabled={!dirty || update.isPending}
+          >
+            {update.isPending ? <Spinner /> : null}
             Save profile
-          </Button>
+          </button>
         </div>
-      </SectionCard>
-    </form>
-  );
-}
-
-function Connections() {
-  const meta = useMetaConnection();
-  const apps = useConnectedApps();
-  const metaState = meta.data?.status;
-  return (
-    <SectionCard icon={<PlugZap className="size-5" />} title="Connections">
-      <ul className="divide-border border-border divide-y rounded-lg border">
-        <li className="flex items-center gap-3 p-4">
-          <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-medium">Meta</p>
-            <p className="text-caption text-muted truncate">
-              {metaState === "active"
-                ? `Connected as ${meta.data?.systemUser?.name ?? "system user"}`
-                : metaState === "invalid"
-                  ? "Token stopped working"
-                  : "Not connected"}
-            </p>
-          </div>
-          {meta.data ? (
-            <Badge
-              tone={
-                metaState === "active" ? "success" : metaState === "invalid" ? "danger" : "neutral"
-              }
-            >
-              {metaState === "active"
-                ? "Active"
-                : metaState === "invalid"
-                  ? "Needs attention"
-                  : "Off"}
-            </Badge>
-          ) : null}
-          <Button asChild variant="ghost" size="sm" aria-label="Manage Meta connection">
-            <Link href="/setup/connect-meta">
-              <ArrowRight />
-            </Link>
-          </Button>
-        </li>
-        <li className="flex items-center gap-3 p-4">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-[14px] font-medium">
-              <Sparkles className="text-accent size-4" aria-hidden /> Claude
-            </p>
-            <p className="text-caption text-muted">
-              {apps.data
-                ? `${apps.data.data.length} connected app${apps.data.data.length === 1 ? "" : "s"}`
-                : "Checking…"}
-            </p>
-          </div>
-          <Button asChild variant="ghost" size="sm" aria-label="Manage Claude connection">
-            <Link href="/claude">
-              <ArrowRight />
-            </Link>
-          </Button>
-        </li>
-      </ul>
-    </SectionCard>
-  );
-}
-
-function Security() {
-  const router = useRouter();
-  const signOut = useSignOutEverywhere();
-  const [open, setOpen] = useState(false);
-  return (
-    <SectionCard
-      icon={<ShieldCheck className="size-5" />}
-      title="Security"
-      description="Sign out of TreeVook on every phone and computer, including this one. Claude connections are not affected."
-    >
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="secondary" className="justify-self-start">
-            <LogOut /> Sign out everywhere
-          </Button>
-        </DialogTrigger>
-        <DialogContent
-          title="Sign out everywhere?"
-          description="You'll need your mobile number and a code to sign in again."
-        >
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
-            </DialogClose>
-            <Button
-              variant="danger"
-              loading={signOut.isPending}
-              onClick={() =>
-                signOut.mutate(undefined, {
-                  onSuccess: () => router.replace("/login"),
-                  onError: (err) => toast.error(errorMessage(err)),
-                })
-              }
-            >
-              Sign out everywhere
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <p className="text-caption text-muted flex items-center gap-1.5">
-        <Wallet className="size-3.5" aria-hidden /> Budget limits above protect you even if someone
-        gets access.
-      </p>
-    </SectionCard>
+      </form>
+    </Panel>
   );
 }

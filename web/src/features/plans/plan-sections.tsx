@@ -1,20 +1,89 @@
 "use client";
 
 import { Globe2, MapPin, Plus, Sparkles, Tag, X } from "lucide-react";
+import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
-import { Card } from "@/components/ui/card";
-import { inputClass } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { errorMessage } from "@/lib/api/errors";
 import { type TargetingType, useTargetingSearch } from "@/lib/api/queries";
-import type { CampaignPlan, TargetingOption } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
+import type { CampaignPlan, PlanStatus, TargetingOption } from "@/lib/api/types";
+import { Spinner } from "@/features/replyly/ui";
 
 import { displaySrc } from "./creative-picker";
-import { CTA_LABELS } from "./labels";
+import { CTA_LABELS, STATUS_LABELS } from "./labels";
 
-export function Section({
+export const MUTED = "#6C6962";
+
+export function StatusPill({ status }: { status: PlanStatus }) {
+  const s = STATUS_LABELS[status];
+  return (
+    <span
+      style={{
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: s.bg,
+        color: s.fg,
+        fontWeight: 500,
+        fontSize: 12,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+export function Field({
+  label,
+  hint,
+  error,
+  inRow,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string | null;
+  inRow?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rp-field" style={inRow ? { flex: "1 1 140px" } : { flex: "none" }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span className="rp-label">{label}</span>
+        {children}
+      </label>
+      {error ? (
+        <span role="alert" style={{ fontSize: 12, color: "#B42318" }}>
+          {error}
+        </span>
+      ) : hint ? (
+        <span style={{ fontSize: 12, color: MUTED }}>{hint}</span>
+      ) : null}
+    </div>
+  );
+}
+
+export function Group({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontWeight: 500, fontSize: 13.5 }}>{title}</span>
+        {desc ? <span style={{ fontSize: 12.5, color: MUTED }}>{desc}</span> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function PlanSection({
   title,
   icon,
   reason,
@@ -26,32 +95,51 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <Card>
-      <div className="grid grid-cols-1 gap-5 p-5 sm:p-6">
-        <div className="flex items-center gap-2">
-          <span className="text-accent">{icon}</span>
-          <h2 className="text-[15px] font-semibold">{title}</h2>
-        </div>
+    <section className="rp-card" style={{ overflow: "visible" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "16px 20px",
+          borderBottom: "1px solid #EFEDE8",
+        }}
+      >
+        <span style={{ display: "flex", color: "#0F6B4A" }}>{icon}</span>
+        <h2 style={{ fontSize: 15, fontWeight: 600 }}>{title}</h2>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: 20 }}>
         <Reason text={reason} />
         {children}
       </div>
-    </Card>
+    </section>
   );
 }
 
 export function Reason({ text }: { text: string }) {
   return (
-    <div className="bg-accent-soft/60 border-accent/15 flex gap-2.5 rounded-lg border px-3.5 py-3">
-      <Sparkles className="text-accent mt-0.5 size-4 shrink-0" aria-hidden />
-      <p className="text-[13px] leading-5">
-        <span className="font-medium">Why: </span>
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        padding: "10px 12px",
+        borderRadius: 10,
+        background: "#F1F5F2",
+        color: "#0F3D2C",
+        fontSize: 13,
+        lineHeight: 1.5,
+      }}
+    >
+      <Sparkles size={14} color="#0F6B4A" style={{ marginTop: 3, flexShrink: 0 }} aria-hidden />
+      <p>
+        <span style={{ fontWeight: 600 }}>Why: </span>
         {text}
       </p>
     </div>
   );
 }
 
-export function Chip({
+function Chip({
   children,
   onRemove,
   label,
@@ -61,20 +149,48 @@ export function Chip({
   label: string;
 }) {
   return (
-    <span className="border-border bg-surface inline-flex items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-3 text-[13px]">
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: onRemove ? "4px 4px 4px 10px" : "4px 10px",
+        borderRadius: 999,
+        border: "1px solid #E6E4DF",
+        background: "#fff",
+        fontSize: 12.5,
+        maxWidth: "100%",
+      }}
+    >
       {children}
       {onRemove ? (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${label}`}
-          className="text-muted hover:bg-surface-muted hover:text-foreground grid size-5 place-items-center rounded-full"
+          className="rp-btn-quiet"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 20,
+            height: 20,
+            borderRadius: 999,
+          }}
         >
-          <X className="size-3.5" />
+          <X size={13} />
         </button>
       ) : null}
     </span>
   );
+}
+
+function Chips({ children }: { children: ReactNode }) {
+  return <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{children}</div>;
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return <span style={{ fontSize: 13, color: MUTED }}>{children}</span>;
 }
 
 type Targeting = CampaignPlan["targeting"];
@@ -91,8 +207,8 @@ export function LocationsEditor({
   const empty =
     !targeting.cities.length && !targeting.regions.length && !targeting.countries.length;
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap gap-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Chips>
         {targeting.cities.map((c) => (
           <Chip
             key={`c${c.key}`}
@@ -107,9 +223,9 @@ export function LocationsEditor({
                     })
             }
           >
-            <MapPin className="text-muted size-3.5" aria-hidden />
+            <MapPin size={13} color={MUTED} aria-hidden />
             {c.name}
-            {c.radiusKm ? <span className="text-muted">+{c.radiusKm} km</span> : null}
+            {c.radiusKm ? <span style={{ color: MUTED }}>+{c.radiusKm} km</span> : null}
           </Chip>
         ))}
         {targeting.regions.map((r) => (
@@ -126,7 +242,7 @@ export function LocationsEditor({
                     })
             }
           >
-            <Globe2 className="text-muted size-3.5" aria-hidden />
+            <Globe2 size={13} color={MUTED} aria-hidden />
             {r.name}
           </Chip>
         ))}
@@ -144,14 +260,12 @@ export function LocationsEditor({
                     })
             }
           >
-            <Globe2 className="text-muted size-3.5" aria-hidden />
+            <Globe2 size={13} color={MUTED} aria-hidden />
             {code}
           </Chip>
         ))}
-        {empty ? (
-          <p className="text-small text-muted">Whole of India (no locations chosen).</p>
-        ) : null}
-      </div>
+        {empty ? <Empty>Whole of India (no locations chosen).</Empty> : null}
+      </Chips>
       {disabled ? null : (
         <Search
           types={["city", "region"]}
@@ -203,8 +317,8 @@ export function WhoEditor({
     ((targeting[field] ?? []) as Named[]).map((item) => ({ field, label, item })),
   );
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap gap-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Chips>
         {chips.map(({ field, label, item }) => (
           <Chip
             key={`${field}${item.id}`}
@@ -221,14 +335,12 @@ export function WhoEditor({
                     })
             }
           >
-            <Tag className="text-muted size-3.5" aria-hidden />
-            <span className="text-muted">{label}:</span> {item.name}
+            <Tag size={13} color={MUTED} aria-hidden />
+            <span style={{ color: MUTED }}>{label}:</span> {item.name}
           </Chip>
         ))}
-        {!chips.length ? (
-          <p className="text-small text-muted">Anyone in the locations and ages above.</p>
-        ) : null}
-      </div>
+        {!chips.length ? <Empty>Anyone in the locations and ages above.</Empty> : null}
+      </Chips>
       {disabled ? null : (
         <Search
           types={["work_position", "industry", "interest"]}
@@ -258,8 +370,8 @@ export function BehaviorsEditor({
 }) {
   const behaviors = (targeting.behaviors ?? []) as Named[];
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap gap-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Chips>
         {behaviors.map((b) => (
           <Chip
             key={b.id}
@@ -274,8 +386,8 @@ export function BehaviorsEditor({
             {b.name}
           </Chip>
         ))}
-        {!behaviors.length ? <p className="text-small text-muted">No extra condition.</p> : null}
-      </div>
+        {!behaviors.length ? <Empty>No extra condition.</Empty> : null}
+      </Chips>
       {disabled ? null : (
         <Search
           types={["behavior"]}
@@ -294,6 +406,8 @@ function dedupe<T extends { key: string }>(items: T[]): T[] {
   return [...new Map(items.map((i) => [i.key, i])).values()];
 }
 
+const compact = new Intl.NumberFormat("en-IN", { notation: "compact" });
+
 function Search({
   types,
   placeholder,
@@ -308,12 +422,13 @@ function Search({
   const results = useTargetingSearch(type, q);
   const open = q.trim().length >= 2;
   return (
-    <div className="relative">
-      <div className="flex gap-2">
+    <div style={{ position: "relative" }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {types.length > 1 ? (
           <select
             aria-label="Location type"
-            className={cn(inputClass, "w-28 shrink-0")}
+            className="rp-select"
+            style={{ flex: "0 0 auto" }}
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
           >
@@ -324,14 +439,23 @@ function Search({
             ))}
           </select>
         ) : null}
-        <div className="relative flex-1">
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 0 }}>
           <Plus
-            className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+            size={14}
+            color={MUTED}
             aria-hidden
+            style={{
+              position: "absolute",
+              left: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}
           />
           <input
             aria-label={placeholder}
-            className={cn(inputClass, "pl-9")}
+            className="rp-input"
+            style={{ width: "100%", paddingLeft: 30 }}
             placeholder={placeholder}
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -339,38 +463,48 @@ function Search({
         </div>
       </div>
       {open ? (
-        <div className="border-border bg-surface absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-auto rounded-lg border shadow-[var(--shadow-floating)]">
+        <div
+          className="rp-pop"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "100%",
+            marginTop: 6,
+            maxHeight: 260,
+            overflowY: "auto",
+          }}
+        >
           {results.isError ? (
-            <p role="alert" className="text-small text-danger p-3">
+            <p role="alert" style={{ padding: 12, color: "#B42318" }}>
               {errorMessage(results.error)}
             </p>
           ) : results.isFetching && !results.data ? (
-            <div className="flex justify-center p-4">
-              <Spinner />
+            <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
+              <Spinner dark />
             </div>
           ) : results.data?.results.length ? (
-            <ul role="listbox" aria-label="Suggestions">
+            <ul role="listbox" aria-label="Suggestions" style={{ listStyle: "none", margin: 0, padding: 4 }}>
               {results.data.results.map((o) => (
                 <li key={`${o.type}${o.key}`}>
                   <button
                     type="button"
                     role="option"
                     aria-selected={false}
-                    className="hover:bg-surface-muted flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[14px]"
+                    className="rp-tpl-item"
+                    style={{ width: "100%", alignItems: "center" }}
                     onClick={() => {
                       onPick(o);
                       setQ("");
                     }}
                   >
-                    <span>
+                    <span style={{ minWidth: 0 }}>
                       {o.name}
-                      {o.region ? <span className="text-muted">, {o.region}</span> : null}
+                      {o.region ? <span style={{ color: MUTED }}>, {o.region}</span> : null}
                     </span>
                     {o.audienceSize ? (
-                      <span className="text-caption text-muted">
-                        {new Intl.NumberFormat("en-IN", { notation: "compact" }).format(
-                          o.audienceSize,
-                        )}
+                      <span className="rp-mono" style={{ fontSize: 11.5, color: MUTED }}>
+                        {compact.format(o.audienceSize)}
                       </span>
                     ) : null}
                   </button>
@@ -378,13 +512,19 @@ function Search({
               ))}
             </ul>
           ) : (
-            <p className="text-small text-muted p-3">No matches.</p>
+            <p style={{ padding: 12, color: MUTED }}>No matches.</p>
           )}
         </div>
       ) : null}
     </div>
   );
 }
+
+const ellipsis = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
 
 export function AdPreview({
   pageName,
@@ -399,44 +539,98 @@ export function AdPreview({
   } catch {
     host = "";
   }
+  const src = displaySrc(creative.post?.imageUrl ?? creative.imageUrl);
   return (
     <figure
       aria-label="Ad preview"
-      className="border-border bg-surface overflow-hidden rounded-xl border text-[13px] shadow-[var(--shadow-raised)]"
+      style={{
+        margin: 0,
+        overflow: "hidden",
+        borderRadius: 12,
+        border: "1px solid #E6E4DF",
+        background: "#fff",
+        fontSize: 13,
+        boxShadow: "0 8px 24px -16px rgba(25,25,23,.3)",
+      }}
     >
-      <div className="flex items-center gap-2 p-3">
-        <span className="bg-accent text-accent-foreground grid size-8 place-items-center rounded-full text-[12px] font-semibold">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 12 }}>
+        <span
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            background: "#0F6B4A",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+        >
           {pageName.slice(0, 1)}
         </span>
-        <div>
-          <p className="font-semibold">{pageName}</p>
-          <p className="text-caption text-muted">Sponsored</p>
-        </div>
+        <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <span style={{ fontWeight: 600 }}>{pageName}</span>
+          <span style={{ fontSize: 11.5, color: MUTED }}>Sponsored</span>
+        </span>
       </div>
-      <p className="px-3 pb-3 whitespace-pre-line">{creative.post?.text ?? creative.primaryText}</p>
-      <div className="bg-surface-muted aspect-[1.91/1] w-full">
-        {displaySrc(creative.post?.imageUrl ?? creative.imageUrl) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displaySrc(creative.post?.imageUrl ?? creative.imageUrl)!}
-            alt=""
-            className="size-full object-cover"
-          />
+      <p style={{ padding: "0 12px 12px", whiteSpace: "pre-line", lineHeight: 1.45 }}>
+        {creative.post?.text ?? creative.primaryText}
+      </p>
+      <div
+        style={{ position: "relative", aspectRatio: "1.91 / 1", width: "100%", background: "#F4F2EE" }}
+      >
+        {src ? (
+          <Image unoptimized fill src={src} alt="" sizes="480px" style={{ objectFit: "cover" }} />
         ) : (
-          <div className="text-muted grid size-full place-items-center p-6 text-center text-[13px]">
+          <div
+            style={{
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 24,
+              boxSizing: "border-box",
+              textAlign: "center",
+              color: MUTED,
+            }}
+          >
             {creative.imageIdea ? `Image idea: ${creative.imageIdea}` : "Add an image"}
           </div>
         )}
       </div>
-      <div className="bg-surface-muted border-border flex items-center gap-3 border-t px-3 py-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="text-caption text-muted truncate">{host}</p>
-          <p className="truncate font-semibold">{creative.headline}</p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 12px",
+          background: "#F7F6F3",
+          borderTop: "1px solid #EFEDE8",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1, minWidth: 0 }}>
+          <span style={{ ...ellipsis, fontSize: 11.5, color: MUTED }}>{host}</span>
+          <span style={{ ...ellipsis, fontWeight: 600 }}>{creative.headline}</span>
           {creative.description ? (
-            <p className="text-caption text-muted truncate">{creative.description}</p>
+            <span style={{ ...ellipsis, fontSize: 11.5, color: MUTED }}>
+              {creative.description}
+            </span>
           ) : null}
         </div>
-        <span className="border-border bg-surface shrink-0 rounded-md border px-3 py-1.5 text-[12px] font-semibold">
+        <span
+          style={{
+            flexShrink: 0,
+            padding: "6px 12px",
+            borderRadius: 6,
+            border: "1px solid #E6E4DF",
+            background: "#fff",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
           {CTA_LABELS[creative.callToAction] ?? creative.callToAction}
         </span>
       </div>

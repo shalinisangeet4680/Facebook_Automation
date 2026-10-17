@@ -156,8 +156,6 @@ function SetupCard() {
             <Link href={s.href} className="rp-btn">
               {i === 0 ? "Start" : "Continue"} <ArrowRight size={14} />
             </Link>
-          ) : s.done ? (
-            <span style={{ fontSize: 12, color: "#0F6B4A", fontWeight: 500 }}>Done</span>
           ) : null}
         </div>
       ))}
@@ -237,7 +235,10 @@ function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
       { onSuccess: () => toast(done), onError: (err) => toast(errorMessage(err)) },
     );
   return (
-    <div className="rp-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div
+      className="rp-card"
+      style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span
           style={{
@@ -254,7 +255,7 @@ function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         <span style={{ fontSize: 12.5, color: "#6C6962" }}>{suggestion.entityName}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ fontWeight: 600, fontSize: 15 }}>{suggestion.title}</span>
+        <h3 style={{ fontWeight: 600, fontSize: 15, margin: 0 }}>{suggestion.title}</h3>
         <span style={{ fontSize: 13, color: "#55534E", lineHeight: 1.5 }}>{suggestion.body}</span>
       </div>
       {evidence.length ? (
@@ -345,7 +346,9 @@ function Inbox() {
                   borderTop: i ? "1px solid #EFEDE8" : "none",
                 }}
               >
-                <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                <span
+                  style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}
+                >
                   <span style={{ fontWeight: 500 }}>Review plan: {p.name}</span>
                   <span style={{ fontSize: 12.5, color: "#6C6962" }}>
                     {p.source.startsWith("mcp:") ? `From ${p.source.slice(4)}` : "From TreeVook"} ·{" "}
@@ -386,14 +389,24 @@ function Inbox() {
         ) : (
           <div
             className="rp-card"
-            style={{ padding: "28px 20px", display: "flex", flexDirection: "column", gap: 4, alignItems: "center", textAlign: "center" }}
+            style={{
+              padding: "28px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              alignItems: "center",
+              textAlign: "center",
+            }}
           >
             <span className="rp-serif" style={{ fontSize: 24 }}>
               All clear
             </span>
             <span style={{ fontSize: 13, color: "#6C6962", maxWidth: 420 }}>
               Nothing needs changing right now. Set a target cost per result in{" "}
-              <Link href="/settings">Settings</Link> for sharper suggestions.
+              <Link href="/settings" style={{ textDecoration: "underline" }}>
+                Settings
+              </Link>{" "}
+              for sharper suggestions.
             </span>
           </div>
         )}

@@ -34,14 +34,11 @@ export const CTA_LABELS: Record<string, string> = {
   WHATSAPP_MESSAGE: "Send WhatsApp message",
 };
 
-export const STATUS_LABELS: Record<
-  PlanStatus,
-  { label: string; tone: "accent" | "warning" | "success" | "neutral" }
-> = {
-  draft: { label: "Ready for review", tone: "accent" },
-  created: { label: "Created in Meta · paused", tone: "warning" },
-  launched: { label: "Live", tone: "success" },
-  discarded: { label: "Discarded", tone: "neutral" },
+export const STATUS_LABELS: Record<PlanStatus, { label: string; bg: string; fg: string }> = {
+  draft: { label: "Ready for review", bg: "#EEF2FB", fg: "#2B4C9A" },
+  created: { label: "Created in Meta · paused", bg: "#FBF3E2", fg: "#8A5A00" },
+  launched: { label: "Live", bg: "#EAF3EE", fg: "#0F6B4A" },
+  discarded: { label: "Discarded", bg: "#F4F2EE", fg: "#6C6962" },
 };
 
 export function money(amount: number, currency: string): string {

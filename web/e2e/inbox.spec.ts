@@ -14,7 +14,7 @@ test("shows suggestions from a check and applies one", async ({ page }, info) =>
       targetCostPerResult: 300,
     },
   });
-  await page.goto("/inbox");
+  await page.goto("/setup");
   await page.getByRole("button", { name: "Check now" }).click();
   const heading = page.getByRole("heading", { level: 3, name: /more budget/ });
   await expect(heading).toBeVisible();

@@ -220,7 +220,7 @@ test("filters the dashboard by app and period, and shows MCP access", async ({ p
   await page.getByRole("button", { name: "All", exact: true }).click();
   await expect(page.getByText("Reply rate · all time")).toBeVisible();
   await page.getByRole("button", { name: /Custom/ }).click();
-  await page.getByRole("button", { name: "This year" }).click();
+  await page.getByRole("dialog").getByText("This year", { exact: true }).click();
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.getByText("Reply rate · range")).toBeVisible();
   await expect(page.getByRole("button", { name: /Jan 1 – / })).toBeVisible();

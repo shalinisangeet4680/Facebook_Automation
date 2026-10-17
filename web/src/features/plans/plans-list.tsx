@@ -1,106 +1,171 @@
 "use client";
 
-import { ChevronRight, Megaphone, Sparkles } from "lucide-react";
+import { Check, ChevronRight, Copy, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
-import { PageHeader } from "@/components/shell/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CopyButton } from "@/components/ui/copy-button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import { usePlans } from "@/lib/api/queries";
+import { Banner, PageHead, Section, Skel, copyText, useToast } from "@/features/replyly/ui";
 
-import { GOAL_LABELS, STATUS_LABELS, sourceLabel } from "./labels";
+import { GOAL_LABELS, sourceLabel } from "./labels";
+import { MUTED, StatusPill } from "./plan-sections";
 
 const PROMPT =
   "Plan a new Meta campaign for my business. Look at my account, past results and website, ask me anything you need, then propose the plan with your reasons for every setting.";
 
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" });
 
-export function PlansList() {
-  const plans = usePlans();
+function PromptCard() {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (await copyText(PROMPT)) {
+      setCopied(true);
+      toast("Prompt copied");
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast("Couldn’t copy. Select the text instead.");
+    }
+  };
   return (
-    <>
-      <PageHeader
-        title="Campaigns"
-        description="Claude proposes every setting with its reasons. You review, adjust and launch here."
-      />
-      <Card className="mb-6">
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-          <span className="bg-accent-soft text-accent grid size-11 shrink-0 place-items-center rounded-full">
-            <Sparkles className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-semibold">Plan a campaign with Claude</h2>
-            <p className="text-small text-muted mt-0.5">
-              In Claude with the TreeVook connector on, paste this. The plan appears here for
-              review.
-            </p>
-            <p className="bg-surface-muted border-border mt-3 rounded-lg border px-3 py-2 text-[13px]">
-              {PROMPT}
-            </p>
-          </div>
-          <CopyButton value={PROMPT} label="Copy prompt" className="self-start sm:self-center" />
-        </div>
-      </Card>
+    <div
+      className="rp-card"
+      style={{ padding: 20, display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}
+    >
+      <span
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 999,
+          background: "#EAF3EE",
+          color: "#0F6B4A",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Sparkles size={18} aria-hidden />
+      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 0 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600 }}>Plan a campaign with Claude</h2>
+        <span style={{ fontSize: 13, color: "#55534E" }}>
+          In Claude with the TreeVook connector on, paste this. The plan appears here for review.
+        </span>
+        <p
+          style={{
+            marginTop: 8,
+            padding: "10px 12px",
+            borderRadius: 10,
+            background: "#F7F6F3",
+            border: "1px solid #EFEDE8",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          {PROMPT}
+        </p>
+      </div>
+      <button type="button" className="rp-btn-light" onClick={() => void copy()}>
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+        {copied ? "Copied" : "Copy prompt"}
+      </button>
+    </div>
+  );
+}
 
-      <Card>
-        <div className="border-border border-b px-5 py-4">
-          <h2 className="text-[15px] font-semibold">Plans</h2>
-        </div>
-        {plans.isPending ? (
-          <div className="grid gap-3 p-5">
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-full" />
-          </div>
-        ) : plans.isError ? (
-          <ErrorState
-            className="m-5"
-            message={errorMessage(plans.error)}
-            onRetry={() => void plans.refetch()}
-          />
-        ) : plans.data.data.length === 0 ? (
-          <EmptyState
-            icon={<Megaphone className="size-5" />}
-            title="No plans yet"
-            description="Ask Claude to plan a campaign. It will show up here for you to review."
-            action={
-              <Button asChild variant="secondary">
-                <Link href="/claude">Set up Claude</Link>
-              </Button>
-            }
-          />
-        ) : (
-          <ul className="divide-border divide-y">
-            {plans.data.data.map((plan) => {
-              const status = STATUS_LABELS[plan.status];
-              return (
-                <li key={plan.id}>
-                  <Link
-                    href={`/campaigns/plans/${plan.id}`}
-                    className="hover:bg-surface-muted focus-visible:bg-surface-muted flex items-center gap-4 px-5 py-4 transition-colors outline-none"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-[14px] font-medium">{plan.name}</p>
-                        <Badge tone={status.tone}>{status.label}</Badge>
-                      </div>
-                      <p className="text-caption text-muted mt-0.5">
-                        {GOAL_LABELS[plan.goal]?.title ?? plan.goal} · {sourceLabel(plan.source)} ·{" "}
-                        {date.format(new Date(plan.createdAt))}
-                      </p>
-                    </div>
-                    <ChevronRight className="text-subtle size-4 shrink-0" aria-hidden />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
-    </>
+function Plans() {
+  const plans = usePlans();
+  if (plans.isPending)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Skel h={64} r={14} />
+        <Skel h={64} r={14} />
+      </div>
+    );
+  if (plans.isError)
+    return (
+      <Banner
+        tone="error"
+        title="Couldn’t load plans"
+        action={
+          <button type="button" className="rp-btn-light" onClick={() => void plans.refetch()}>
+            Try again
+          </button>
+        }
+      >
+        {errorMessage(plans.error)}
+      </Banner>
+    );
+  if (!plans.data.data.length)
+    return (
+      <div
+        className="rp-card"
+        style={{
+          padding: "28px 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          alignItems: "center",
+          textAlign: "center",
+        }}
+      >
+        <span className="rp-serif" style={{ fontSize: 24 }}>
+          No plans yet
+        </span>
+        <span style={{ fontSize: 13, color: MUTED, maxWidth: 420 }}>
+          Ask Claude to plan a campaign. It will show up here for you to review.
+        </span>
+        <Link href="/claude" className="rp-btn-light" style={{ marginTop: 8 }}>
+          Set up Claude
+        </Link>
+      </div>
+    );
+  return (
+    <div className="rp-card" style={{ overflow: "hidden" }}>
+      {plans.data.data.map((plan, i) => (
+        <Link
+          key={plan.id}
+          href={`/campaigns/plans/${plan.id}`}
+          className="rp-row"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "14px 18px",
+            color: "inherit",
+            borderTop: i ? "1px solid #EFEDE8" : "none",
+          }}
+        >
+          <span style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 500, overflowWrap: "anywhere" }}>{plan.name}</span>
+              <StatusPill status={plan.status} />
+            </span>
+            <span style={{ fontSize: 12.5, color: MUTED }}>
+              {GOAL_LABELS[plan.goal]?.title ?? plan.goal} · {sourceLabel(plan.source)} ·{" "}
+              {date.format(new Date(plan.createdAt))}
+            </span>
+          </span>
+          <ChevronRight size={16} color={MUTED} aria-hidden style={{ flexShrink: 0 }} />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+export function PlansList() {
+  return (
+    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      <PageHead
+        title="Campaigns"
+        sub="Claude proposes every setting with its reasons. You review, adjust and launch here."
+      />
+      <PromptCard />
+      <Section title="Plans">
+        <Plans />
+      </Section>
+    </div>
   );
 }

@@ -2,21 +2,34 @@
 
 import { Check, ChevronDown, Copy, Settings } from "lucide-react";
 import { motion } from "motion/react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { BRAND } from "@/lib/config";
 
 import { Cursor, Pulse, Reveal } from "./cursor";
 
 const META_BLUE = "#0866ff";
-const panel = "bg-white dark:bg-[#242526]";
-const line = "border-[#dadde1] dark:border-[#3e4042]";
-const soft = "text-[#65676b] dark:text-[#b0b3b8]";
+const LINE = "#dadde1";
+const SOFT = "#65676b";
 
-function Bar({ w, className = "" }: { w: string; className?: string }) {
+const flex = (gap: number, extra?: CSSProperties): CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  gap,
+  ...extra,
+});
+
+const box: CSSProperties = { borderRadius: 6, border: `1px solid ${LINE}` };
+const card: CSSProperties = { borderRadius: 8, border: `1px solid ${LINE}`, background: "#fff" };
+const soft: CSSProperties = { color: SOFT };
+const bold = (fontSize: number): CSSProperties => ({ fontSize, fontWeight: 700, margin: 0 });
+const navActive: CSSProperties = { background: "#e7f0ff", fontWeight: 600, color: "#0050c8" };
+const navItem: CSSProperties = { borderRadius: 4, padding: "3px 6px", margin: 0 };
+
+function Bar({ w }: { w: string }) {
   return (
     <span
-      className={`block h-2 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] ${className}`}
-      style={{ width: w }}
+      style={{ display: "block", height: 8, borderRadius: 999, background: "#e4e6eb", width: w }}
     />
   );
 }
@@ -24,13 +37,27 @@ function Bar({ w, className = "" }: { w: string; className?: string }) {
 function Toggle({ delay }: { delay: number }) {
   return (
     <motion.span
-      className="relative inline-flex h-4 w-7 items-center rounded-full"
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        alignItems: "center",
+        height: 16,
+        width: 28,
+        borderRadius: 999,
+      }}
       initial={{ backgroundColor: "#ccd0d5" }}
       animate={{ backgroundColor: META_BLUE }}
       transition={{ delay, duration: 0.25 }}
     >
       <motion.span
-        className="absolute size-3 rounded-full bg-white shadow"
+        style={{
+          position: "absolute",
+          width: 12,
+          height: 12,
+          borderRadius: 999,
+          background: "#fff",
+          boxShadow: "0 1px 2px rgba(0,0,0,.2)",
+        }}
         initial={{ left: 2 }}
         animate={{ left: 14 }}
         transition={{ delay, duration: 0.25 }}
@@ -40,16 +67,25 @@ function Toggle({ delay }: { delay: number }) {
 }
 
 function Tick({ delay }: { delay: number }) {
+  const square: CSSProperties = {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    boxSizing: "border-box",
+  };
   return (
-    <span className="grid size-3.5 place-items-center rounded-[3px] border border-[#ccd0d5] dark:border-[#4e4f50]">
+    <span style={{ ...square, border: "1px solid #ccd0d5" }}>
       <motion.span
-        className="grid size-3.5 place-items-center rounded-[3px]"
-        style={{ backgroundColor: META_BLUE }}
+        style={{ ...square, backgroundColor: META_BLUE }}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay, duration: 0.2 }}
       >
-        <Check className="size-2.5 text-white" strokeWidth={4} />
+        <Check size={10} color="#fff" strokeWidth={4} />
       </motion.span>
     </span>
   );
@@ -63,17 +99,24 @@ function SettingsNav({ active }: { active: string }) {
   ];
   return (
     <div
-      className={`absolute inset-y-0 left-0 w-[24%] border-r ${line} ${panel} p-[2.5%] text-[10px]`}
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: "24%",
+        borderRight: `1px solid ${LINE}`,
+        background: "#fff",
+        padding: "2.5%",
+        fontSize: 10,
+      }}
     >
-      <p className="mb-3 text-[11px] font-bold">Business settings</p>
+      <p style={{ ...bold(11), marginBottom: 12 }}>Business settings</p>
       {groups.map((g) => (
-        <div key={g.title} className="mb-2.5">
-          <p className={`mb-1 font-semibold ${soft}`}>{g.title}</p>
+        <div key={g.title} style={{ marginBottom: 10 }}>
+          <p style={{ ...soft, fontWeight: 600, margin: "0 0 4px" }}>{g.title}</p>
           {g.items.map((i) => (
-            <p
-              key={i}
-              className={`rounded-[4px] px-1.5 py-[3px] ${i === active ? "bg-[#e7f0ff] font-semibold text-[#0050c8] dark:bg-[#263951] dark:text-[#9fc4ff]" : ""}`}
-            >
+            <p key={i} style={{ ...navItem, ...(i === active ? navActive : null) }}>
               {i}
             </p>
           ))}
@@ -87,75 +130,129 @@ function Modal({
   title,
   delay,
   children,
-  className = "",
+  width = "58%",
 }: {
   title: string;
   delay: number;
-  children: React.ReactNode;
-  className?: string;
+  children: ReactNode;
+  width?: string;
 }) {
   return (
     <>
       <motion.div
-        className="absolute inset-0 z-10 bg-black/30"
+        style={{ position: "absolute", inset: 0, zIndex: 10, background: "rgba(0,0,0,.3)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay, duration: 0.25 }}
       />
       <motion.div
-        className={`absolute top-1/2 left-1/2 z-10 w-[58%] -translate-x-1/2 -translate-y-1/2 rounded-[8px] border ${line} ${panel} p-[3%] text-[10px] shadow-xl ${className}`}
+        style={{
+          ...card,
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          x: "-50%",
+          y: "-50%",
+          zIndex: 10,
+          width,
+          padding: "3%",
+          fontSize: 10,
+          boxShadow: "0 20px 25px -5px rgba(0,0,0,.15), 0 8px 10px -6px rgba(0,0,0,.1)",
+        }}
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >
-        <p className="mb-2.5 text-[12px] font-bold">{title}</p>
+        <p style={{ ...bold(12), marginBottom: 10 }}>{title}</p>
         {children}
       </motion.div>
     </>
   );
 }
 
-function PrimaryBtn({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function PrimaryBtn({ children }: { children: ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-[6px] px-2.5 py-1 text-[10px] font-semibold text-white ${className}`}
-      style={{ backgroundColor: META_BLUE }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 6,
+        padding: "4px 10px",
+        fontSize: 10,
+        fontWeight: 600,
+        color: "#fff",
+        backgroundColor: META_BLUE,
+      }}
     >
       {children}
     </span>
   );
 }
 
+const fill = (left: string): CSSProperties => ({
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  right: 0,
+  left,
+  padding: "4%",
+  fontSize: 10,
+});
+
 export function SceneOpenSettings() {
   return (
     <>
       <div
-        className={`absolute inset-y-0 left-0 w-[22%] border-r ${line} ${panel} p-[2.5%] text-[10px]`}
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: "22%",
+          borderRight: `1px solid ${LINE}`,
+          background: "#fff",
+          padding: "2.5%",
+          fontSize: 10,
+        }}
       >
-        <p className="mb-3 text-[11px] font-bold">Business Suite</p>
+        <p style={{ ...bold(11), marginBottom: 12 }}>Business Suite</p>
         {["Home", "Notifications", "Ads", "Insights"].map((i, n) => (
-          <p
-            key={i}
-            className={`rounded-[4px] px-1.5 py-[3px] ${n === 0 ? "bg-[#e7f0ff] font-semibold text-[#0050c8] dark:bg-[#263951] dark:text-[#9fc4ff]" : ""}`}
-          >
+          <p key={i} style={{ ...navItem, ...(n === 0 ? navActive : null) }}>
             {i}
           </p>
         ))}
-        <p className="mt-auto mb-[8%] flex items-center gap-1 px-1.5 font-semibold">
-          <Settings className="size-3" /> Settings
+        <p
+          style={flex(4, {
+            position: "absolute",
+            bottom: "8%",
+            left: "2.5%",
+            padding: "0 6px",
+            margin: 0,
+            fontWeight: 600,
+          })}
+        >
+          <Settings size={12} /> Settings
         </p>
       </div>
-      <div className="absolute inset-y-0 right-0 left-[22%] grid grid-cols-2 gap-[3%] p-[4%]">
+      <div
+        style={{
+          ...fill("22%"),
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "3%",
+        }}
+      >
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className={`rounded-[8px] border ${line} ${panel} grid content-start gap-2 p-[6%]`}
+            style={{
+              ...card,
+              display: "grid",
+              alignContent: "start",
+              gap: 8,
+              padding: "6%",
+            }}
           >
             <Bar w="45%" />
             <Bar w="80%" />
@@ -163,13 +260,19 @@ export function SceneOpenSettings() {
           </div>
         ))}
       </div>
-      <Pulse delay={1.9} className="bottom-[8%] left-[4%] h-[7%] w-[15%]" />
-      <Reveal delay={2.7} from={0} className="absolute inset-0 z-10 bg-[#f6f7f9] dark:bg-[#18191a]">
+      <Pulse delay={1.9} style={{ bottom: "8%", left: "4%", height: "7%", width: "15%" }} />
+      <Reveal
+        delay={2.7}
+        from={0}
+        style={{ position: "absolute", inset: 0, zIndex: 10, background: "#f6f7f9" }}
+      >
         <SettingsNav active="People" />
-        <div className="absolute inset-y-0 right-0 left-[24%] p-[4%] text-[10px]">
-          <p className="text-[13px] font-bold">Business settings</p>
-          <p className={`mt-1 ${soft}`}>Manage people, assets and access for your business.</p>
-          <div className="mt-4 grid gap-2">
+        <div style={fill("24%")}>
+          <p style={bold(13)}>Business settings</p>
+          <p style={{ ...soft, margin: "4px 0 0" }}>
+            Manage people, assets and access for your business.
+          </p>
+          <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
             <Bar w="70%" />
             <Bar w="50%" />
           </div>
@@ -191,25 +294,53 @@ export function SceneCreateApp() {
   return (
     <>
       <div
-        className={`absolute inset-x-0 top-0 flex h-[13%] items-center border-b ${line} ${panel} px-[4%] text-[11px] font-bold`}
+        style={flex(0, {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "13%",
+          borderBottom: `1px solid ${LINE}`,
+          background: "#fff",
+          padding: "0 4%",
+          fontSize: 11,
+          fontWeight: 700,
+        })}
       >
         Meta for Developers
-        <span className="ml-auto">
+        <span style={{ marginLeft: "auto" }}>
           <PrimaryBtn>Create app</PrimaryBtn>
         </span>
       </div>
-      <div className="absolute inset-x-0 top-[13%] bottom-0 p-[4%] text-[10px]">
-        <p className="text-[13px] font-bold">Apps</p>
-        <div className={`mt-3 grid grid-cols-3 gap-[3%]`}>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: "13%",
+          bottom: 0,
+          padding: "4%",
+          fontSize: 10,
+        }}
+      >
+        <p style={bold(13)}>Apps</p>
+        <div
+          style={{
+            marginTop: 12,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "3%",
+          }}
+        >
           {[0, 1, 2].map((i) => (
-            <div key={i} className={`rounded-[8px] border ${line} ${panel} grid gap-2 p-[8%]`}>
+            <div key={i} style={{ ...card, display: "grid", gap: 8, padding: "8%" }}>
               <Bar w="50%" />
               <Bar w="80%" />
             </div>
           ))}
         </div>
       </div>
-      <Pulse delay={1.2} className="top-[3%] right-[3%] h-[7%] w-[13%]" />
+      <Pulse delay={1.2} style={{ top: "3%", right: "3%", height: "7%", width: "13%" }} />
       <Modal title="Select an app type" delay={2}>
         {[
           ["Business", "Manage ads, Pages and business assets with the Marketing API."],
@@ -218,17 +349,29 @@ export function SceneCreateApp() {
         ].map(([t, d], i) => (
           <div
             key={t}
-            className={`mb-1.5 flex items-center gap-2 rounded-[6px] border p-1.5 ${i === 0 ? "" : line}`}
-            style={i === 0 ? { borderColor: META_BLUE } : undefined}
+            style={flex(8, {
+              ...box,
+              marginBottom: 6,
+              padding: 6,
+              borderColor: i === 0 ? META_BLUE : LINE,
+            })}
           >
             <span
-              className="grid size-3 place-items-center rounded-full border"
-              style={{ borderColor: i === 0 ? META_BLUE : "#ccd0d5" }}
+              style={{
+                width: 12,
+                height: 12,
+                flexShrink: 0,
+                boxSizing: "border-box",
+                borderRadius: 999,
+                border: `1px solid ${i === 0 ? META_BLUE : "#ccd0d5"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               {i === 0 ? (
                 <motion.span
-                  className="size-1.5 rounded-full"
-                  style={{ backgroundColor: META_BLUE }}
+                  style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: META_BLUE }}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 3.3 }}
@@ -236,12 +379,12 @@ export function SceneCreateApp() {
               ) : null}
             </span>
             <span>
-              <span className="block font-semibold">{t}</span>
-              <span className={`block text-[9px] ${soft}`}>{d}</span>
+              <span style={{ display: "block", fontWeight: 600 }}>{t}</span>
+              <span style={{ ...soft, display: "block", fontSize: 9 }}>{d}</span>
             </span>
           </div>
         ))}
-        <div className="mt-2 text-right">
+        <div style={{ marginTop: 8, textAlign: "right" }}>
           <PrimaryBtn>Next</PrimaryBtn>
         </div>
       </Modal>
@@ -263,23 +406,28 @@ export function SceneAddSystemUser() {
   return (
     <>
       <SettingsNav active="System users" />
-      <div className="absolute inset-y-0 right-0 left-[24%] p-[4%] text-[10px]">
-        <div className="flex items-center">
-          <p className="text-[13px] font-bold">System users</p>
-          <span className="ml-auto">
+      <div style={fill("24%")}>
+        <div style={flex(0)}>
+          <p style={bold(13)}>System users</p>
+          <span style={{ marginLeft: "auto" }}>
             <PrimaryBtn>+ Add</PrimaryBtn>
           </span>
         </div>
-        <p className={`mt-1 ${soft}`}>
+        <p style={{ ...soft, margin: "4px 0 0" }}>
           System users act on behalf of your business through the API.
         </p>
       </div>
-      <Pulse delay={1.1} className="top-[5%] right-[3.6%] h-[7%] w-[8.5%]" />
+      <Pulse delay={1.1} style={{ top: "5%", right: "3.6%", height: "7%", width: "8.5%" }} />
       <Modal title="Create system user" delay={1.8}>
-        <p className={`mb-1 ${soft}`}>System username</p>
-        <div className={`mb-2.5 rounded-[6px] border ${line} px-2 py-1.5`}>
+        <p style={{ ...soft, margin: "0 0 4px" }}>System username</p>
+        <div style={{ ...box, marginBottom: 10, padding: "6px 8px" }}>
           <motion.span
-            className="inline-block overflow-hidden align-bottom whitespace-nowrap"
+            style={{
+              display: "inline-block",
+              overflow: "hidden",
+              verticalAlign: "bottom",
+              whiteSpace: "nowrap",
+            }}
             initial={{ width: 0 }}
             animate={{ width: "auto" }}
             transition={{ delay: 2.4, duration: 0.8 }}
@@ -287,14 +435,14 @@ export function SceneAddSystemUser() {
             {BRAND.name}
           </motion.span>
         </div>
-        <p className={`mb-1 ${soft}`}>System user role</p>
-        <div className={`mb-3 flex items-center rounded-[6px] border ${line} px-2 py-1.5`}>
+        <p style={{ ...soft, margin: "0 0 4px" }}>System user role</p>
+        <div style={flex(0, { ...box, marginBottom: 12, padding: "6px 8px" })}>
           <Reveal delay={3.4} from={0}>
-            <span className="font-semibold">Admin</span>
+            <span style={{ fontWeight: 600 }}>Admin</span>
           </Reveal>
-          <ChevronDown className="ml-auto size-3" />
+          <ChevronDown size={12} style={{ marginLeft: "auto" }} />
         </div>
-        <div className="text-right">
+        <div style={{ textAlign: "right" }}>
           <PrimaryBtn>Create system user</PrimaryBtn>
         </div>
       </Modal>
@@ -322,24 +470,21 @@ export function SceneAssignAssets() {
   return (
     <>
       <SettingsNav active="System users" />
-      <Modal title="Assign assets" delay={0.3} className="w-[64%]">
-        <div className="grid gap-1">
+      <Modal title="Assign assets" delay={0.3} width="64%">
+        <div style={{ display: "grid", gap: 4 }}>
           {rows.map((r) => (
-            <div
-              key={r.type}
-              className={`flex items-center gap-2 rounded-[6px] border ${line} px-2 py-1.5`}
-            >
+            <div key={r.type} style={flex(8, { ...box, padding: "6px 8px" })}>
               <Tick delay={r.delay - 0.3} />
-              <span className="flex-1">
-                <span className="block font-semibold">{r.name}</span>
-                <span className={`block text-[9px] ${soft}`}>{r.type}</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: "block", fontWeight: 600 }}>{r.name}</span>
+                <span style={{ ...soft, display: "block", fontSize: 9 }}>{r.type}</span>
               </span>
-              <span className={soft}>Full control</span>
+              <span style={soft}>Full control</span>
               <Toggle delay={r.delay} />
             </div>
           ))}
         </div>
-        <div className="mt-2 text-right">
+        <div style={{ marginTop: 8, textAlign: "right" }}>
           <PrimaryBtn>Assign assets</PrimaryBtn>
         </div>
       </Modal>
@@ -363,36 +508,37 @@ export function SceneGenerateToken({ permissions }: { permissions: string[] }) {
   return (
     <>
       <SettingsNav active="System users" />
-      <Modal title="Generate token" delay={0.3} className="w-[62%]">
-        <div className="mb-2 grid grid-cols-2 gap-2">
+      <Modal title="Generate token" delay={0.3} width="62%">
+        <div style={{ marginBottom: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <div>
-            <p className={`mb-1 ${soft}`}>App</p>
-            <div className={`flex items-center rounded-[6px] border ${line} px-2 py-1`}>
-              <span className="font-semibold">{BRAND.name}</span>
-              <ChevronDown className="ml-auto size-3" />
+            <p style={{ ...soft, margin: "0 0 4px" }}>App</p>
+            <div style={flex(0, { ...box, padding: "4px 8px" })}>
+              <span style={{ fontWeight: 600 }}>{BRAND.name}</span>
+              <ChevronDown size={12} style={{ marginLeft: "auto" }} />
             </div>
           </div>
           <div>
-            <p className={`mb-1 ${soft}`}>Token expiration</p>
-            <div
-              className="flex items-center rounded-[6px] border px-2 py-1"
-              style={{ borderColor: META_BLUE }}
-            >
-              <span className="font-semibold">Never</span>
-              <ChevronDown className="ml-auto size-3" />
+            <p style={{ ...soft, margin: "0 0 4px" }}>Token expiration</p>
+            <div style={flex(0, { ...box, padding: "4px 8px", borderColor: META_BLUE })}>
+              <span style={{ fontWeight: 600 }}>Never</span>
+              <ChevronDown size={12} style={{ marginLeft: "auto" }} />
             </div>
           </div>
         </div>
-        <p className={`mb-1 ${soft}`}>Permissions</p>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+        <p style={{ ...soft, margin: "0 0 4px" }}>Permissions</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px" }}>
           {shown.map((p, i) => (
-            <span key={p} className="flex items-center gap-1.5 font-mono text-[9px]">
+            <span
+              key={p}
+              className="rp-mono"
+              style={flex(6, { fontSize: 9, minWidth: 0, overflow: "hidden" })}
+            >
               <Tick delay={1.3 + i * 0.35} />
               {p}
             </span>
           ))}
         </div>
-        <div className="mt-2.5 text-right">
+        <div style={{ marginTop: 10, textAlign: "right" }}>
           <PrimaryBtn>Generate token</PrimaryBtn>
         </div>
       </Modal>
@@ -416,29 +562,69 @@ export function SceneCopyToken() {
     <>
       <SettingsNav active="System users" />
       <Modal title="Token generated" delay={0.2}>
-        <p className={`mb-2 ${soft}`}>Copy this token now. Meta won&apos;t show it again.</p>
-        <div
-          className={`flex items-center gap-2 rounded-[6px] border ${line} bg-[#f0f2f5] px-2 py-1.5 dark:bg-[#3a3b3c]`}
-        >
-          <span className="flex-1 truncate font-mono text-[9px]">
+        <p style={{ ...soft, margin: "0 0 8px" }}>
+          Copy this token now. Meta won&apos;t show it again.
+        </p>
+        <div style={flex(8, { ...box, background: "#f0f2f5", padding: "6px 8px" })}>
+          <span
+            className="rp-mono"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 9,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             EAAG•••••••••••••••••••••••••••••Zd3
           </span>
-          <span className="inline-flex items-center gap-1 rounded-[5px] border border-[#ccd0d5] px-1.5 py-0.5 text-[9px] font-semibold dark:border-[#4e4f50]">
-            <Copy className="size-2.5" /> Copy
+          <span
+            style={flex(4, {
+              display: "inline-flex",
+              borderRadius: 5,
+              border: "1px solid #ccd0d5",
+              padding: "2px 6px",
+              fontSize: 9,
+              fontWeight: 600,
+            })}
+          >
+            <Copy size={10} /> Copy
           </span>
         </div>
         <Reveal
           delay={2.1}
           from={4}
-          className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[#e6f4ea] px-2 py-0.5 text-[9px] font-semibold text-[#1e8e3e] dark:bg-[#1e3a26]"
+          style={flex(4, {
+            display: "inline-flex",
+            marginTop: 10,
+            borderRadius: 999,
+            background: "#e6f4ea",
+            padding: "2px 8px",
+            fontSize: 9,
+            fontWeight: 600,
+            color: "#1e8e3e",
+          })}
         >
-          <Check className="size-2.5" strokeWidth={3} /> Copied to clipboard
+          <Check size={10} strokeWidth={3} /> Copied to clipboard
         </Reveal>
       </Modal>
       <Reveal
         delay={2.8}
         from={0}
-        className="absolute right-[4%] bottom-[8%] z-20 flex items-center gap-2 rounded-full bg-[var(--accent)] px-3 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] shadow-lg"
+        style={flex(8, {
+          position: "absolute",
+          right: "4%",
+          bottom: "8%",
+          zIndex: 20,
+          borderRadius: 999,
+          background: "#191917",
+          padding: "6px 12px",
+          fontSize: 11,
+          fontWeight: 600,
+          color: "#fff",
+          boxShadow: "0 10px 15px -3px rgba(0,0,0,.2)",
+        })}
       >
         Now paste it into {BRAND.name} →
       </Reveal>

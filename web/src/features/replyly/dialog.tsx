@@ -35,11 +35,11 @@ export function RpDialogContent({
         className="rp-in"
         style={{
           position: "fixed",
-          top: "50%",
+          top: "max(24px, 10vh)",
           left: "50%",
-          translate: "-50% -50%",
+          translate: "-50% 0",
           width: `min(${width}px, calc(100vw - 32px))`,
-          maxHeight: "calc(100vh - 48px)",
+          maxHeight: "calc(100vh - max(48px, 20vh))",
           overflowY: "auto",
           boxSizing: "border-box",
           padding: 24,
@@ -48,8 +48,8 @@ export function RpDialogContent({
           border: "1px solid #E6E4DF",
           boxShadow: "0 24px 60px -20px rgba(25,25,23,.35)",
           zIndex: 51,
-          display: "flex",
-          flexDirection: "column",
+          display: "grid",
+          alignContent: "start",
           gap: 16,
         }}
       >

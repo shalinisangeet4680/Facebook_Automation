@@ -168,24 +168,25 @@ function Footer() {
   );
 }
 
-function AccountLinks() {
+function AccountLinks({ mobile }: { mobile?: boolean }) {
   const router = useRouter();
   const signOut = useSignOut();
   const toast = useToast();
   const pathname = usePathname();
   return (
-    <div style={{ display: "flex", gap: 2, marginTop: -22 }}>
+    <div style={mobile ? { display: "flex", gap: 4 } : { display: "flex", gap: 2, marginTop: -22 }}>
       <Link
         href="/settings"
         aria-current={pathname === "/settings" ? "page" : undefined}
         className={cx("rp-nav rp-nav-small", pathname === "/settings" && "rp-nav-on")}
-        style={{ flex: 1 }}
+        style={mobile ? { flexShrink: 0 } : { flex: 1 }}
       >
         Settings
       </Link>
       <button
         type="button"
         className="rp-nav rp-nav-small"
+        style={mobile ? { flexShrink: 0 } : undefined}
         disabled={signOut.isPending}
         onClick={() =>
           signOut.mutate(undefined, {
@@ -236,6 +237,12 @@ export function ProductShell({
           </span>
           <Suspense>
             <Nav mobile />
+          </Suspense>
+          <Link href="/home" className="rp-nav rp-nav-small" style={{ flexShrink: 0 }}>
+            All products
+          </Link>
+          <Suspense>
+            <AccountLinks mobile />
           </Suspense>
         </nav>
         <main className="rp-main">

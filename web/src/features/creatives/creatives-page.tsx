@@ -1,26 +1,40 @@
 "use client";
 
-import { ImagePlus, Link2, Send, Sparkles, Trash2, Upload } from "lucide-react";
-import { useRef, useState, type DragEvent } from "react";
-import { toast } from "sonner";
+import { ImagePlus, Link2, Sparkles, Trash2, Upload } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRef, useState, type CSSProperties, type DragEvent } from "react";
 
-import { PageHeader } from "@/components/shell/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/ui/state";
+import { ConfirmDialog } from "@/features/replyly/dialog";
+import { Banner, PageHead, Skel, Spinner, copyText, cx, useToast } from "@/features/replyly/ui";
 import { errorMessage } from "@/lib/api/errors";
 import { useCreatives, useDeleteCreative, useUploadCreative } from "@/lib/api/queries";
 import type { Creative } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
-
-import { PostsPanel } from "./posts-panel";
-import { PublishDialog } from "./publish-dialog";
 
 const ACCEPT = "image/png,image/jpeg,image/webp,video/mp4,video/quicktime";
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
+const MUTED = "#6C6962";
+
+const GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(min(220px, 100%), 1fr))",
+  gap: 14,
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+};
+
+const VISUALLY_HIDDEN: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
 
 export function mediaSrc(url: string): string {
   try {
@@ -39,9 +53,9 @@ function sizeLabel(bytes: number) {
 export function CreativesPage() {
   const creatives = useCreatives();
   const upload = useUploadCreative();
+  const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [tab, setTab] = useState<"images" | "posts">("images");
 
   const send = (files: FileList | null) => {
     const file = files?.[0];
@@ -49,8 +63,8 @@ export function CreativesPage() {
     upload.mutate(
       { file },
       {
-        onSuccess: (c) => toast.success(`${c.name} added`),
-        onError: (err) => toast.error(errorMessage(err)),
+        onSuccess: (c) => toast(`${c.name} added`),
+        onError: (err) => toast(errorMessage(err)),
       },
     );
   };
@@ -63,6 +77,8 @@ export function CreativesPage() {
 
   return (
     <div
+      className="rp-in"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -70,102 +86,123 @@ export function CreativesPage() {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
-      <PageHeader
+      <PageHead
         title="Creatives"
-        description="Your ad images. Upload your own, or ask Claude to design one; it lands here ready to post or use in an ad."
+        sub="Your ad images. Upload your own, or ask Claude to design one; it lands here ready to use in an ad."
         actions={
           <>
             <input
               ref={input}
               type="file"
               accept={ACCEPT}
-              className="sr-only"
+              style={VISUALLY_HIDDEN}
               aria-label="Upload an image"
               onChange={(e) => {
                 send(e.target.files);
                 e.target.value = "";
               }}
             />
-            <Button onClick={() => input.current?.click()} loading={upload.isPending}>
-              <Upload /> Upload image
-            </Button>
+            <button
+              type="button"
+              className="rp-btn"
+              disabled={upload.isPending}
+              onClick={() => input.current?.click()}
+            >
+              {upload.isPending ? <Spinner /> : <Upload size={14} />}
+              Upload image
+            </button>
           </>
         }
       />
 
       <div
-        role="tablist"
-        aria-label="Creatives sections"
-        className="border-border mb-6 flex gap-6 border-b"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          fontSize: 13,
+          color: "#55534E",
+        }}
       >
-        {(["images", "posts"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "-mb-px border-b-2 px-1 pb-2.5 text-[14px] font-medium outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-              tab === t
-                ? "border-accent text-foreground"
-                : "text-muted hover:text-foreground border-transparent",
-            )}
-          >
-            {t === "images" ? "Images" : "Posts"}
-          </button>
-        ))}
+        <span>Want to post organically?</span>
+        <Link href="/instagram" className="rp-chip">
+          Instagram Autopost →
+        </Link>
+        <Link href="/facebook" className="rp-chip">
+          Facebook Autopost →
+        </Link>
       </div>
-      {tab === "posts" ? (
-        <PostsPanel />
+
+      {creatives.isPending ? (
+        <div style={GRID}>
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skel key={i} h={300} r={14} />
+          ))}
+        </div>
+      ) : creatives.isError ? (
+        <Banner
+          tone="error"
+          title="Couldn’t load your creatives"
+          action={
+            <button type="button" className="rp-btn-light" onClick={() => void creatives.refetch()}>
+              Try again
+            </button>
+          }
+        >
+          {errorMessage(creatives.error)}
+        </Banner>
+      ) : creatives.data.data.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          className={cx("rp-drop", dragging && "rp-drop-over")}
+          style={{ padding: "56px 24px", textAlign: "center", gap: 8 }}
+        >
+          <span
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 999,
+              background: "#EAF3EE",
+              color: "#0F6B4A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ImagePlus size={20} />
+          </span>
+          <span style={{ fontWeight: 600, fontSize: 15, marginTop: 6 }}>
+            Drop an image here or choose a file
+          </span>
+          <span style={{ fontSize: 13, color: MUTED, maxWidth: 460, lineHeight: 1.5 }}>
+            Images (PNG, JPEG, WebP up to 8 MB) or vertical videos for Reels (MP4 up to 200 MB).
+            Square 1080 × 1080 images work everywhere. Or ask Claude: “Design a square ad image for
+            my clinic app and save it to TreeVook.”
+          </span>
+        </button>
       ) : (
         <>
-          {creatives.isPending ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="aspect-[4/5]" />
-              ))}
-            </div>
-          ) : creatives.isError ? (
-            <ErrorState
-              message={errorMessage(creatives.error)}
-              onRetry={() => void creatives.refetch()}
-            />
-          ) : creatives.data.data.length === 0 ? (
-            <button
-              type="button"
-              onClick={() => input.current?.click()}
-              className={cn(
-                "border-border-strong hover:border-accent hover:bg-accent-soft/30 flex w-full flex-col items-center rounded-[var(--radius-card)] border-2 border-dashed px-6 py-16 text-center transition-colors outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-                dragging && "border-accent bg-accent-soft/40",
-              )}
+          {dragging ? (
+            <div
+              className="rp-drop rp-drop-over"
+              style={{ color: "#0F6B4A", fontWeight: 500, cursor: "default" }}
             >
-              <span className="bg-accent-soft text-accent grid size-12 place-items-center rounded-full">
-                <ImagePlus className="size-5" />
-              </span>
-              <span className="mt-4 text-[15px] font-semibold">
-                Drop an image here or choose a file
-              </span>
-              <span className="text-small text-muted mt-1 max-w-md">
-                Images (PNG, JPEG, WebP up to 8 MB) or vertical videos for Reels (MP4 up to 200 MB).
-                Square 1080 × 1080 images work everywhere. Or ask Claude: “Design a square ad image
-                for my clinic app and save it to TreeVook.”
-              </span>
-            </button>
-          ) : (
-            <>
-              {dragging ? (
-                <div className="border-accent bg-accent-soft/40 text-accent mb-4 rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center font-medium">
-                  Drop to upload
-                </div>
-              ) : null}
-              <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                {creatives.data.data.map((c) => (
-                  <CreativeCard key={c.id} creative={c} />
-                ))}
-              </ul>
-            </>
-          )}
+              Drop to upload
+            </div>
+          ) : null}
+          <ul style={GRID}>
+            {creatives.data.data.map((c) => (
+              <CreativeCard key={c.id} creative={c} />
+            ))}
+          </ul>
+          <span
+            style={{ fontSize: 12.5, color: MUTED, display: "flex", gap: 6, alignItems: "center" }}
+          >
+            <Sparkles size={13} />
+            Ask Claude: “Design a square ad image for my clinic app and save it to TreeVook.”
+          </span>
         </>
       )}
     </div>
@@ -174,12 +211,22 @@ export function CreativesPage() {
 
 function CreativeCard({ creative }: { creative: Creative }) {
   const [confirm, setConfirm] = useState(false);
-  const [publish, setPublish] = useState(false);
   const remove = useDeleteCreative();
+  const toast = useToast();
   return (
-    <li>
-      <Card className="flex h-full flex-col overflow-hidden">
-        <div className="bg-surface-muted relative aspect-square">
+    <li style={{ minWidth: 0 }}>
+      <div
+        className="rp-card"
+        style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}
+      >
+        <div
+          style={{
+            position: "relative",
+            aspectRatio: "1 / 1",
+            background: creative.kind === "video" ? "#000" : "#F7F6F3",
+            borderBottom: "1px solid #EFEDE8",
+          }}
+        >
           {creative.kind === "video" ? (
             <video
               src={mediaSrc(creative.url)}
@@ -188,87 +235,108 @@ function CreativeCard({ creative }: { creative: Creative }) {
               muted
               playsInline
               preload="metadata"
-              className="size-full bg-black object-contain"
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
             />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
+              unoptimized
               src={mediaSrc(creative.url)}
               alt={creative.name}
-              loading="lazy"
-              className="size-full object-contain"
+              width={creative.width || 1080}
+              height={creative.height || 1080}
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
             />
           )}
           {creative.source === "claude" ? (
-            <Badge tone="accent" className="absolute top-2 left-2">
-              <Sparkles className="size-3" /> Claude
-            </Badge>
+            <span
+              style={{
+                position: "absolute",
+                top: 8,
+                left: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                borderRadius: 999,
+                fontSize: 11.5,
+                fontWeight: 500,
+                background: "#EAF3EE",
+                color: "#0F6B4A",
+              }}
+            >
+              <Sparkles size={11} /> Claude
+            </span>
           ) : null}
         </div>
-        <div className="flex flex-1 flex-col gap-3 p-4">
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-medium">{creative.name}</p>
-            <p className="text-caption text-muted">
+        <div
+          style={{
+            padding: "12px 14px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flex: 1,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
+            <span
+              style={{
+                fontWeight: 500,
+                fontSize: 13.5,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {creative.name}
+            </span>
+            <span style={{ fontSize: 12, color: MUTED }}>
               {creative.kind === "video" ? `Video · ${creative.durationSeconds ?? 0}s · ` : ""}
               {creative.width} × {creative.height} · {sizeLabel(creative.bytes)} ·{" "}
               {date.format(new Date(creative.createdAt))}
-            </p>
+            </span>
           </div>
-          <div className="mt-auto flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => setPublish(true)}>
-              <Send /> Post
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Copy link to ${creative.name}`}
-              onClick={async () => {
-                await navigator.clipboard.writeText(creative.url);
-                toast.success("Image link copied");
-              }}
-            >
-              <Link2 />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-danger hover:bg-danger-soft hover:text-danger"
-              aria-label={`Delete ${creative.name}`}
-              onClick={() => setConfirm(true)}
-            >
-              <Trash2 />
-            </Button>
-          </div>
+          <button
+            type="button"
+            className="rp-btn-light"
+            style={{ padding: 7 }}
+            aria-label={`Copy link to ${creative.name}`}
+            onClick={async () => {
+              toast(
+                (await copyText(creative.url)) ? "Image link copied" : "Couldn’t copy the link",
+              );
+            }}
+          >
+            <Link2 size={14} />
+          </button>
+          <button
+            type="button"
+            className="rp-btn-light rp-btn-danger"
+            style={{ padding: 7 }}
+            aria-label={`Delete ${creative.name}`}
+            onClick={() => setConfirm(true)}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
-      </Card>
-      <PublishDialog creative={creative} open={publish} onOpenChange={setPublish} />
-      <Dialog open={confirm} onOpenChange={setConfirm}>
-        <DialogContent
-          title={`Delete ${creative.name}?`}
-          description="It's removed from your library. Posts and ads already using it on Facebook or Instagram stay as they are."
-        >
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
-            </DialogClose>
-            <Button
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() =>
-                remove.mutate(creative.id, {
-                  onSuccess: () => {
-                    setConfirm(false);
-                    toast.success("Image deleted");
-                  },
-                  onError: (err) => toast.error(errorMessage(err)),
-                })
-              }
-            >
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      </div>
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={`Delete ${creative.name}?`}
+        description="It's removed from your library. Posts and ads already using it on Facebook or Instagram stay as they are."
+        confirm="Delete"
+        danger
+        pending={remove.isPending}
+        onConfirm={() =>
+          remove.mutate(creative.id, {
+            onSuccess: () => {
+              setConfirm(false);
+              toast("Image deleted");
+            },
+            onError: (err) => toast(errorMessage(err)),
+          })
+        }
+      />
     </li>
   );
 }

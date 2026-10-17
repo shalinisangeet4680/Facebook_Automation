@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import type { CSSProperties, ReactNode } from "react";
 
 export interface CursorStop {
   x: number;
@@ -25,7 +26,13 @@ export function Cursor({
     <>
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute z-30 -mt-1 -ml-1"
+        style={{
+          position: "absolute",
+          zIndex: 30,
+          marginTop: -4,
+          marginLeft: -4,
+          pointerEvents: "none",
+        }}
         initial={{ left: `${stops[0]!.x}%`, top: `${stops[0]!.y}%`, opacity: 0 }}
         animate={{
           left: stops.map((s) => `${s.x}%`),
@@ -42,7 +49,7 @@ export function Cursor({
           width="22"
           height="22"
           viewBox="0 0 24 24"
-          className="drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]"
+          style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))" }}
         >
           <path
             d="M4 2.5 19.5 11l-6.6 1.6L10 19.5z"
@@ -57,8 +64,20 @@ export function Cursor({
         <motion.span
           key={i}
           aria-hidden
-          className="pointer-events-none absolute z-20 size-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#0866ff] bg-[#0866ff]/20"
-          style={{ left: `${c.x}%`, top: `${c.y}%` }}
+          style={{
+            position: "absolute",
+            zIndex: 20,
+            width: 32,
+            height: 32,
+            left: `${c.x}%`,
+            top: `${c.y}%`,
+            x: "-50%",
+            y: "-50%",
+            borderRadius: 999,
+            border: "2px solid #0866ff",
+            background: "rgba(8,102,255,.2)",
+            pointerEvents: "none",
+          }}
           initial={{ scale: 0.2, opacity: 0 }}
           animate={{ scale: [0.2, 1.4], opacity: [0.9, 0] }}
           transition={{ duration: 0.55, delay: c.at, ease: "easeOut" }}
@@ -71,17 +90,17 @@ export function Cursor({
 export function Reveal({
   delay,
   children,
-  className,
+  style,
   from = 8,
 }: {
   delay: number;
-  children: React.ReactNode;
-  className?: string;
+  children: ReactNode;
+  style?: CSSProperties;
   from?: number;
 }) {
   return (
     <motion.div
-      className={className}
+      style={style}
       initial={{ opacity: 0, y: from }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -91,11 +110,18 @@ export function Reveal({
   );
 }
 
-export function Pulse({ delay, className }: { delay: number; className?: string }) {
+export function Pulse({ delay, style }: { delay: number; style: CSSProperties }) {
   return (
     <motion.span
       aria-hidden
-      className={`pointer-events-none absolute rounded-[8px] ring-2 ring-[#0866ff] ring-offset-2 ring-offset-transparent ${className ?? ""}`}
+      style={{
+        position: "absolute",
+        borderRadius: 8,
+        outline: "2px solid #0866ff",
+        outlineOffset: 2,
+        pointerEvents: "none",
+        ...style,
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: [0, 1, 1, 0.6] }}
       transition={{ delay, duration: 1.2, times: [0, 0.2, 0.8, 1] }}

@@ -14,17 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useMemo, useState, type CSSProperties } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
-import { Field, Input, Textarea, inputClass } from "@/components/ui/input";
-import { RadioCard, RadioCardGroup } from "@/components/ui/radio-card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import {
   useCreatePlanInMeta,
@@ -35,30 +26,127 @@ import {
   useSavePlan,
 } from "@/lib/api/queries";
 import type { CampaignPlan, PlanDetail } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
+import { RpDialogClose, RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
+import { Banner, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
-import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, STATUS_LABELS, money, sourceLabel } from "./labels";
 import { CreativePicker } from "./creative-picker";
-import { AdPreview, BehaviorsEditor, LocationsEditor, Section, WhoEditor } from "./plan-sections";
+import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, money, sourceLabel } from "./labels";
+import {
+  AdPreview,
+  BehaviorsEditor,
+  Field,
+  Group,
+  LocationsEditor,
+  MUTED,
+  PlanSection,
+  StatusPill,
+  WhoEditor,
+} from "./plan-sections";
+
+const full: CSSProperties = { width: "100%" };
+const row: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap" };
 
 export function PlanReview() {
   const { id } = useParams<{ id: string }>();
   const plan = usePlan(id);
   if (plan.isPending) {
     return (
-      <div className="grid gap-6">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <Skel h={96} r={14} />
+        <Skel h={260} r={14} />
+        <Skel h={260} r={14} />
       </div>
     );
   }
   if (plan.isError)
-    return <ErrorState message={errorMessage(plan.error)} onRetry={() => void plan.refetch()} />;
+    return (
+      <Banner
+        tone="error"
+        title="Couldn’t load this plan"
+        action={
+          <button type="button" className="rp-btn-light" onClick={() => void plan.refetch()}>
+            Try again
+          </button>
+        }
+      >
+        {errorMessage(plan.error)}
+      </Banner>
+    );
   return <PlanEditor key={plan.data.updatedAt} detail={plan.data} />;
 }
 
+function GoalPicker({
+  value,
+  goals,
+  onChange,
+}: {
+  value: string;
+  goals: { name: string }[];
+  onChange: (goal: string) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Campaign goal"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+        gap: 8,
+      }}
+    >
+      {goals.map((g) => {
+        const on = g.name === value;
+        return (
+          <button
+            key={g.name}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(g.name)}
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              padding: "12px 14px",
+              borderRadius: 10,
+              border: on ? "1.5px solid #0F6B4A" : "1px solid #E6E4DF",
+              background: on ? "#F1F5F2" : "#fff",
+              textAlign: "left",
+              cursor: "pointer",
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                marginTop: 2,
+                width: 14,
+                height: 14,
+                borderRadius: 999,
+                flexShrink: 0,
+                boxSizing: "border-box",
+                border: on ? "4px solid #0F6B4A" : "1.5px solid #C9C5BC",
+                background: "#fff",
+              }}
+            />
+            <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontWeight: 500, fontSize: 13.5 }}>
+                {GOAL_LABELS[g.name]?.title ?? g.name}
+              </span>
+              {GOAL_LABELS[g.name]?.description ? (
+                <span style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
+                  {GOAL_LABELS[g.name]!.description}
+                </span>
+              ) : null}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PlanEditor({ detail }: { detail: PlanDetail }) {
+  const toast = useToast();
   const [draft, setDraft] = useState<CampaignPlan>(detail.plan);
   const [launchOpen, setLaunchOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -85,7 +173,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
         ? "Enter a daily budget."
         : null;
   const busy = save.isPending || create.isPending || launch.isPending || discard.isPending;
-  const status = STATUS_LABELS[detail.status];
+  const monthly = money(Math.round(draft.dailyBudget * 30.4), options.currency);
 
   const set = <K extends keyof CampaignPlan>(key: K, value: CampaignPlan[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -95,9 +183,9 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
   const onSave = async () => {
     try {
       await save.mutateAsync(draft);
-      toast.success("Plan saved");
+      toast("Plan saved");
     } catch (err) {
-      toast.error(errorMessage(err));
+      toast(errorMessage(err));
     }
   };
 
@@ -105,263 +193,268 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
     try {
       if (dirty) await save.mutateAsync(draft);
       await create.mutateAsync(undefined);
-      toast.success("Created in Meta. Everything is paused.");
+      toast("Created in Meta. Everything is paused.");
     } catch (err) {
-      toast.error(errorMessage(err));
+      toast(errorMessage(err));
     }
   };
 
+  const live = detail.status === "launched";
+
   return (
-    <div className="pb-28">
+    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <Link
         href="/campaigns"
-        className="text-small text-muted hover:text-foreground mb-4 inline-flex items-center gap-1.5"
+        className="rp-btn-quiet"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
       >
-        <ArrowLeft className="size-4" /> Campaigns
+        <ArrowLeft size={14} /> Campaigns
       </Link>
 
-      <div className="mb-6 grid gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={status.tone}>{status.label}</Badge>
-          <span className="text-caption text-muted">{sourceLabel(detail.source)}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <StatusPill status={detail.status} />
+          <span style={{ fontSize: 12.5, color: MUTED }}>{sourceLabel(detail.source)}</span>
         </div>
         {editable ? (
           <input
             aria-label="Campaign name"
-            className="text-title hover:bg-surface-muted focus:bg-surface -mx-2 w-full rounded-md bg-transparent px-2 font-semibold tracking-tight outline-none focus:ring-4 focus:ring-[var(--ring)]"
+            className="rp-serif"
+            style={{
+              fontSize: 36,
+              lineHeight: 1.1,
+              width: "calc(100% + 16px)",
+              boxSizing: "border-box",
+              margin: "0 -8px",
+              padding: "2px 8px",
+              border: "1px solid transparent",
+              borderRadius: 8,
+              background: "transparent",
+              color: "#191917",
+            }}
             value={draft.name}
             onChange={(e) => set("name", e.target.value)}
           />
         ) : (
-          <h1 className="text-title font-semibold tracking-tight">{draft.name}</h1>
+          <h1 className="rp-serif" style={{ fontSize: 36, lineHeight: 1.1 }}>
+            {draft.name}
+          </h1>
         )}
-        <p className="text-muted max-w-3xl">{draft.summary}</p>
+        <p style={{ color: "#55534E", fontSize: 14, lineHeight: 1.55, maxWidth: 720 }}>
+          {draft.summary}
+        </p>
         {draft.expectedResults ? (
-          <p className="text-small">
-            <span className="text-muted">Expected: </span>
-            <strong className="font-medium">{draft.expectedResults}</strong>
+          <p style={{ fontSize: 13.5 }}>
+            <span style={{ color: MUTED }}>Expected: </span>
+            <span style={{ fontWeight: 500 }}>{draft.expectedResults}</span>
           </p>
         ) : null}
       </div>
 
-      {detail.status === "created" || detail.status === "launched" ? (
-        <Card className="mb-6">
-          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-            <span
-              className={cn(
-                "grid size-11 shrink-0 place-items-center rounded-full",
-                detail.status === "launched"
-                  ? "bg-success-soft text-success"
-                  : "bg-warning-soft text-warning",
-              )}
-            >
-              {detail.status === "launched" ? (
-                <CheckCircle2 className="size-5" />
-              ) : (
-                <Rocket className="size-5" />
-              )}
+      {detail.status === "created" || live ? (
+        <div
+          className="rp-card"
+          style={{ padding: 18, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}
+        >
+          <span
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: live ? "#EAF3EE" : "#FBF3E2",
+              color: live ? "#0F6B4A" : "#8A5A00",
+            }}
+          >
+            {live ? <CheckCircle2 size={18} /> : <Rocket size={18} />}
+          </span>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: 2, flex: "1 1 220px", minWidth: 0 }}
+          >
+            <span style={{ fontWeight: 600 }}>
+              {live ? "This campaign is live" : "Created in Meta and paused"}
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">
-                {detail.status === "launched"
-                  ? "This campaign is live"
-                  : "Created in Meta and paused"}
-              </p>
-              <p className="text-small text-muted">
-                {detail.status === "launched"
-                  ? "Meta is delivering your ads. Ask Claude how it's doing any time."
-                  : "Check it in Ads Manager if you like, then launch when you're ready."}
-              </p>
-            </div>
-            {detail.meta ? (
-              <Button asChild variant="secondary">
-                <a href={detail.meta.adsManagerUrl} target="_blank" rel="noreferrer">
-                  Ads Manager <ExternalLink />
-                </a>
-              </Button>
-            ) : null}
+            <span style={{ fontSize: 13, color: MUTED }}>
+              {live
+                ? "Meta is delivering your ads. Ask Claude how it's doing any time."
+                : "Check it in Ads Manager if you like, then launch when you're ready."}
+            </span>
           </div>
-        </Card>
+          {detail.meta ? (
+            <a
+              href={detail.meta.adsManagerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rp-btn-light"
+            >
+              Ads Manager <ExternalLink size={14} />
+            </a>
+          ) : null}
+        </div>
       ) : null}
 
       {detail.error && editable ? (
-        <div
-          role="alert"
-          className="border-danger/30 bg-danger-soft text-danger mb-6 rounded-lg border px-4 py-3 text-[14px]"
-        >
-          Meta rejected the last attempt: {detail.error}
-        </div>
+        <Banner tone="error">Meta rejected the last attempt: {detail.error}</Banner>
       ) : null}
 
       <fieldset
         disabled={!editable || busy}
-        className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
+        style={{
+          margin: 0,
+          padding: 0,
+          border: "none",
+          minWidth: 0,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 20,
+          alignItems: "flex-start",
+        }}
       >
-        <div className="flex min-w-0 flex-col gap-6">
-          <Section title="Goal" icon={<Target className="size-5" />} reason={draft.reasons.goal}>
-            <RadioCardGroup
-              value={draft.goal}
-              onValueChange={(v) => set("goal", v)}
-              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-              aria-label="Campaign goal"
-            >
-              {options.goals.map((g) => (
-                <RadioCard
-                  key={g.name}
-                  value={g.name}
-                  title={GOAL_LABELS[g.name]?.title ?? g.name}
-                  description={GOAL_LABELS[g.name]?.description}
-                  disabled={!editable}
-                />
-              ))}
-            </RadioCardGroup>
+        <div
+          style={{
+            flex: "1.35 1 340px",
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
+          <PlanSection title="Goal" icon={<Target size={18} />} reason={draft.reasons.goal}>
+            <GoalPicker value={draft.goal} goals={options.goals} onChange={(v) => set("goal", v)} />
             {goal?.needsPixel ? (
               <Field label="Result to optimise for" hint="Must be an event your Pixel sends.">
-                {(p) => (
-                  <select
-                    {...p}
-                    className={inputClass}
-                    value={draft.conversionEvent ?? ""}
-                    onChange={(e) => set("conversionEvent", e.target.value || null)}
-                  >
-                    <option value="">Choose an event</option>
-                    {options.conversionEvents.map((e) => (
-                      <option key={e} value={e}>
-                        {EVENT_LABELS[e] ?? e}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  className="rp-select"
+                  style={full}
+                  value={draft.conversionEvent ?? ""}
+                  onChange={(e) => set("conversionEvent", e.target.value || null)}
+                >
+                  <option value="">Choose an event</option>
+                  {options.conversionEvents.map((e) => (
+                    <option key={e} value={e}>
+                      {EVENT_LABELS[e] ?? e}
+                    </option>
+                  ))}
+                </select>
               </Field>
             ) : null}
-          </Section>
+          </PlanSection>
 
-          <Section
-            title="Audience"
-            icon={<Users className="size-5" />}
-            reason={draft.reasons.audience}
-          >
-            <div className="grid gap-2">
-              <p className="text-[14px] font-medium">Locations</p>
+          <PlanSection title="Audience" icon={<Users size={18} />} reason={draft.reasons.audience}>
+            <Group title="Locations">
               <LocationsEditor
                 targeting={draft.targeting}
                 onChange={(t) => set("targeting", t)}
                 disabled={!editable}
               />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1.4fr]">
-              <Field label="Age from">
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={18}
-                    max={65}
-                    value={draft.targeting.ageMin}
-                    onChange={(e) =>
-                      set("targeting", { ...draft.targeting, ageMin: Number(e.target.value) })
-                    }
-                  />
-                )}
+            </Group>
+            <div style={row}>
+              <Field inRow label="Age from">
+                <input
+                  className="rp-input"
+                  type="number"
+                  min={18}
+                  max={65}
+                  value={draft.targeting.ageMin}
+                  onChange={(e) =>
+                    set("targeting", { ...draft.targeting, ageMin: Number(e.target.value) })
+                  }
+                />
               </Field>
-              <Field label="Age to">
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={18}
-                    max={65}
-                    value={draft.targeting.ageMax}
-                    onChange={(e) =>
-                      set("targeting", { ...draft.targeting, ageMax: Number(e.target.value) })
-                    }
-                  />
-                )}
+              <Field inRow label="Age to">
+                <input
+                  className="rp-input"
+                  type="number"
+                  min={18}
+                  max={65}
+                  value={draft.targeting.ageMax}
+                  onChange={(e) =>
+                    set("targeting", { ...draft.targeting, ageMax: Number(e.target.value) })
+                  }
+                />
               </Field>
-              <Field label="Gender">
-                {(p) => (
-                  <select
-                    {...p}
-                    className={inputClass}
-                    value={draft.targeting.genders}
-                    onChange={(e) =>
-                      set("targeting", {
-                        ...draft.targeting,
-                        genders: e.target.value as CampaignPlan["targeting"]["genders"],
-                      })
-                    }
-                  >
-                    <option value="all">Everyone</option>
-                    <option value="female">Women</option>
-                    <option value="male">Men</option>
-                  </select>
-                )}
+              <Field inRow label="Gender">
+                <select
+                  className="rp-select"
+                  style={full}
+                  value={draft.targeting.genders}
+                  onChange={(e) =>
+                    set("targeting", {
+                      ...draft.targeting,
+                      genders: e.target.value as CampaignPlan["targeting"]["genders"],
+                    })
+                  }
+                >
+                  <option value="all">Everyone</option>
+                  <option value="female">Women</option>
+                  <option value="male">Men</option>
+                </select>
               </Field>
             </div>
-            <div className="grid gap-2">
-              <p className="text-[14px] font-medium">Who they are</p>
-              <p className="text-caption text-muted -mt-1">People matching any of these.</p>
+            <Group title="Who they are" desc="People matching any of these.">
               <WhoEditor
                 targeting={draft.targeting}
                 onChange={(t) => set("targeting", t)}
                 disabled={!editable}
               />
-            </div>
-            <div className="grid gap-2">
-              <p className="text-[14px] font-medium">And also</p>
-              <p className="text-caption text-muted -mt-1">
-                People must also match one of these, e.g. small business owners, to reach clinic
-                owners.
-              </p>
+            </Group>
+            <Group
+              title="And also"
+              desc="People must also match one of these, e.g. small business owners, to reach clinic owners."
+            >
               <BehaviorsEditor
                 targeting={draft.targeting}
                 onChange={(t) => set("targeting", t)}
                 disabled={!editable}
               />
-            </div>
-          </Section>
+            </Group>
+          </PlanSection>
 
-          <Section
-            title="Budget"
-            icon={<Wallet className="size-5" />}
-            reason={draft.reasons.budget}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
+          <PlanSection title="Budget" icon={<Wallet size={18} />} reason={draft.reasons.budget}>
+            <div style={{ maxWidth: 280 }}>
               <Field
                 label={`Daily budget (${options.currency})`}
                 error={budgetError}
-                hint={`About ${money(Math.round(draft.dailyBudget * 30.4), options.currency)} a month`}
+                hint={`About ${monthly} a month`}
               >
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={1}
-                    step={50}
-                    value={draft.dailyBudget}
-                    onChange={(e) => set("dailyBudget", Number(e.target.value))}
-                  />
-                )}
+                <input
+                  className="rp-input"
+                  type="number"
+                  min={1}
+                  step={50}
+                  value={draft.dailyBudget}
+                  onChange={(e) => set("dailyBudget", Number(e.target.value))}
+                />
               </Field>
             </div>
-          </Section>
+          </PlanSection>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <Section
-            title="Ad"
-            icon={<Megaphone className="size-5" />}
-            reason={draft.reasons.creative}
-          >
+        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+          <PlanSection title="Ad" icon={<Megaphone size={18} />} reason={draft.reasons.creative}>
             <AdPreview pageName={pageName} creative={draft.creative} />
-            <div className="border-border flex flex-wrap items-center gap-3 rounded-lg border p-3">
-              <p className="text-small min-w-0 flex-1">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+                padding: 12,
+                borderRadius: 10,
+                border: "1px solid #EFEDE8",
+                background: "#FAF9F7",
+              }}
+            >
+              <p style={{ flex: "1 1 180px", minWidth: 0, fontSize: 13, lineHeight: 1.5 }}>
                 {draft.creative.post ? (
                   <>
                     Using your existing{" "}
-                    <strong className="font-medium">
+                    <span style={{ fontWeight: 600 }}>
                       {draft.creative.post.platform === "facebook" ? "Facebook" : "Instagram"} post
-                    </strong>
+                    </span>
                     {draft.creative.post.platform === "facebook"
                       ? ". Its own text and image are used."
                       : ". Its image and caption are used, with the link and button below."}
@@ -373,25 +466,25 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 )}
               </p>
               {editable ? (
-                <div className="flex gap-2">
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {draft.creative.post ? (
-                    <Button
+                    <button
                       type="button"
-                      size="sm"
-                      variant="ghost"
+                      className="rp-btn-light"
+                      style={{ padding: "6px 10px" }}
                       onClick={() => setCreative({ post: null })}
                     >
                       Remove post
-                    </Button>
+                    </button>
                   ) : null}
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
+                    className="rp-btn-light"
+                    style={{ padding: "6px 10px" }}
                     onClick={() => setPickerOpen(true)}
                   >
                     Choose image or post
-                  </Button>
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -402,28 +495,44 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               onPick={setCreative}
             />
             <Field label="Primary text">
-              {(p) => (
-                <Textarea
-                  {...p}
-                  rows={4}
-                  value={draft.creative.primaryText}
-                  onChange={(e) => setCreative({ primaryText: e.target.value })}
-                />
-              )}
+              <textarea
+                className="rp-input rp-textarea"
+                rows={4}
+                style={{ width: "100%", resize: "vertical", lineHeight: 1.5 }}
+                value={draft.creative.primaryText}
+                onChange={(e) => setCreative({ primaryText: e.target.value })}
+              />
             </Field>
             {draft.creative.alternatives.length && editable ? (
-              <div className="grid gap-2">
-                <p className="text-[14px] font-medium">Other versions from Claude</p>
+              <Group title="Other versions from Claude">
                 {draft.creative.alternatives.map((alt, i) => (
                   <div
                     key={i}
-                    className="border-border flex items-start gap-3 rounded-lg border p-3"
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      padding: 12,
+                      borderRadius: 10,
+                      border: "1px solid #EFEDE8",
+                    }}
                   >
-                    <p className="flex-1 text-[13px] whitespace-pre-line">{alt}</p>
-                    <Button
+                    <p
+                      style={{
+                        flex: "1 1 180px",
+                        minWidth: 0,
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {alt}
+                    </p>
+                    <button
                       type="button"
-                      size="sm"
-                      variant="secondary"
+                      className="rp-btn-light"
+                      style={{ padding: "6px 10px" }}
                       onClick={() =>
                         setCreative({
                           primaryText: alt,
@@ -434,172 +543,204 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                       }
                     >
                       Use this
-                    </Button>
+                    </button>
                   </div>
                 ))}
-              </div>
+              </Group>
             ) : null}
             <Field label="Headline">
-              {(p) => (
-                <Input
-                  {...p}
-                  value={draft.creative.headline}
-                  onChange={(e) => setCreative({ headline: e.target.value })}
-                />
-              )}
+              <input
+                className="rp-input"
+                value={draft.creative.headline}
+                onChange={(e) => setCreative({ headline: e.target.value })}
+              />
             </Field>
             <Field label="Description" hint="Optional, shown under the headline.">
-              {(p) => (
-                <Input
-                  {...p}
-                  value={draft.creative.description ?? ""}
-                  onChange={(e) => setCreative({ description: e.target.value || null })}
-                />
-              )}
+              <input
+                className="rp-input"
+                value={draft.creative.description ?? ""}
+                onChange={(e) => setCreative({ description: e.target.value || null })}
+              />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Website link">
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="url"
-                    value={draft.creative.linkUrl}
-                    onChange={(e) => setCreative({ linkUrl: e.target.value })}
-                  />
-                )}
+            <div style={row}>
+              <Field inRow label="Website link">
+                <input
+                  className="rp-input"
+                  type="url"
+                  value={draft.creative.linkUrl}
+                  onChange={(e) => setCreative({ linkUrl: e.target.value })}
+                />
               </Field>
-              <Field label="Button">
-                {(p) => (
-                  <select
-                    {...p}
-                    className={inputClass}
-                    value={draft.creative.callToAction}
-                    onChange={(e) => setCreative({ callToAction: e.target.value })}
-                  >
-                    {options.callsToAction.map((c) => (
-                      <option key={c} value={c}>
-                        {CTA_LABELS[c] ?? c}
-                      </option>
-                    ))}
-                  </select>
-                )}
+              <Field inRow label="Button">
+                <select
+                  className="rp-select"
+                  style={full}
+                  value={draft.creative.callToAction}
+                  onChange={(e) => setCreative({ callToAction: e.target.value })}
+                >
+                  {options.callsToAction.map((c) => (
+                    <option key={c} value={c}>
+                      {CTA_LABELS[c] ?? c}
+                    </option>
+                  ))}
+                </select>
               </Field>
             </div>
             <Field
               label="Image link"
               hint={
                 draft.creative.imageIdea ? (
-                  <span className="inline-flex items-start gap-1">
-                    <ImageIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Claude suggests:{" "}
-                    {draft.creative.imageIdea}
+                  <span style={{ display: "inline-flex", alignItems: "flex-start", gap: 4 }}>
+                    <ImageIcon size={13} style={{ marginTop: 1, flexShrink: 0 }} aria-hidden />
+                    <span>Claude suggests: {draft.creative.imageIdea}</span>
                   </span>
                 ) : (
                   "A public https link to a 1200×628 image."
                 )
               }
             >
-              {(p) => (
-                <Input
-                  {...p}
-                  type="url"
-                  placeholder="https://…"
-                  value={draft.creative.imageUrl ?? ""}
-                  onChange={(e) => setCreative({ imageUrl: e.target.value || null })}
-                />
-              )}
+              <input
+                className="rp-input"
+                type="url"
+                placeholder="https://…"
+                value={draft.creative.imageUrl ?? ""}
+                onChange={(e) => setCreative({ imageUrl: e.target.value || null })}
+              />
             </Field>
-          </Section>
+          </PlanSection>
         </div>
       </fieldset>
 
       {detail.status === "draft" || detail.status === "created" ? (
-        <div className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur lg:left-[264px]">
-          <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2 px-4 py-3 sm:px-8">
-            {detail.status === "draft" ? (
-              <>
-                <Button
-                  variant="ghost"
-                  className="text-danger hover:bg-danger-soft hover:text-danger mr-auto"
-                  disabled={busy}
-                  onClick={() =>
-                    discard.mutate(undefined, {
-                      onSuccess: () => toast.success("Plan discarded"),
-                      onError: (err) => toast.error(errorMessage(err)),
-                    })
-                  }
-                >
-                  <Trash2 /> Discard
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={!dirty || busy || Boolean(budgetError)}
-                  loading={save.isPending && !create.isPending}
-                  onClick={onSave}
-                >
-                  Save changes
-                </Button>
-                <Button
-                  disabled={busy || Boolean(budgetError) || !hasVisual}
-                  loading={create.isPending}
-                  onClick={onCreate}
-                  title={!hasVisual ? "Choose an image or post first" : undefined}
-                >
-                  Create in Meta (paused)
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setLaunchOpen(true)} disabled={busy}>
-                <Rocket /> Launch
-              </Button>
-            )}
-          </div>
+        <div
+          className="rp-card"
+          style={{
+            position: "sticky",
+            bottom: 16,
+            zIndex: 10,
+            padding: "10px 12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+            flexWrap: "wrap",
+            boxShadow: "0 16px 34px -14px rgba(25,25,23,.28)",
+          }}
+        >
+          {detail.status === "draft" ? (
+            <>
+              <button
+                type="button"
+                className="rp-btn-light rp-btn-danger"
+                style={{ marginRight: "auto" }}
+                disabled={busy}
+                onClick={() =>
+                  discard.mutate(undefined, {
+                    onSuccess: () => toast("Plan discarded"),
+                    onError: (err) => toast(errorMessage(err)),
+                  })
+                }
+              >
+                {discard.isPending ? <Spinner dark /> : <Trash2 size={14} />} Discard
+              </button>
+              <button
+                type="button"
+                className="rp-btn-light"
+                disabled={!dirty || busy || Boolean(budgetError)}
+                onClick={() => void onSave()}
+              >
+                {save.isPending && !create.isPending ? <Spinner dark /> : null}
+                Save changes
+              </button>
+              <button
+                type="button"
+                className="rp-btn"
+                disabled={busy || Boolean(budgetError) || !hasVisual}
+                onClick={() => void onCreate()}
+                title={!hasVisual ? "Choose an image or post first" : undefined}
+              >
+                {create.isPending ? <Spinner /> : null}
+                Create in Meta (paused)
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="rp-btn"
+              onClick={() => setLaunchOpen(true)}
+              disabled={busy}
+            >
+              <Rocket size={14} /> Launch
+            </button>
+          )}
         </div>
       ) : null}
 
-      <Dialog open={launchOpen} onOpenChange={setLaunchOpen}>
-        <DialogContent
+      <RpDialogRoot open={launchOpen} onOpenChange={setLaunchOpen}>
+        <RpDialogContent
           title="Launch this campaign?"
           description={`Meta will start spending up to ${money(draft.dailyBudget, options.currency)} a day as soon as it's approved.`}
         >
-          <ul className="text-small mb-5 grid gap-1.5">
-            <li>
-              <span className="text-muted">Campaign: </span>
-              {draft.name}
-            </li>
-            <li>
-              <span className="text-muted">Goal: </span>
-              {GOAL_LABELS[draft.goal]?.title ?? draft.goal}
-              {draft.conversionEvent
-                ? ` · ${EVENT_LABELS[draft.conversionEvent] ?? draft.conversionEvent}`
-                : ""}
-            </li>
-            <li>
-              <span className="text-muted">Budget: </span>
-              {money(draft.dailyBudget, options.currency)} a day (about{" "}
-              {money(Math.round(draft.dailyBudget * 30.4), options.currency)} a month)
-            </li>
-          </ul>
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="secondary">Not yet</Button>
-            </DialogClose>
-            <Button
-              loading={launch.isPending}
+          <dl
+            style={{
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: 10,
+              border: "1px solid #EFEDE8",
+              fontSize: 13,
+            }}
+          >
+            {[
+              ["Campaign", draft.name],
+              [
+                "Goal",
+                `${GOAL_LABELS[draft.goal]?.title ?? draft.goal}${
+                  draft.conversionEvent
+                    ? ` · ${EVENT_LABELS[draft.conversionEvent] ?? draft.conversionEvent}`
+                    : ""
+                }`,
+              ],
+              [
+                "Budget",
+                `${money(draft.dailyBudget, options.currency)} a day (about ${monthly} a month)`,
+              ],
+            ].map(([k, v], i) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  padding: "10px 12px",
+                  borderTop: i ? "1px solid #EFEDE8" : "none",
+                }}
+              >
+                <dt style={{ color: MUTED, width: 72, flexShrink: 0 }}>{k}</dt>
+                <dd style={{ margin: 0, minWidth: 0, overflowWrap: "anywhere" }}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+            <RpDialogClose className="rp-btn-light">Not yet</RpDialogClose>
+            <button
+              type="button"
+              className="rp-btn"
+              disabled={launch.isPending}
               onClick={() =>
                 launch.mutate(undefined, {
                   onSuccess: () => {
                     setLaunchOpen(false);
-                    toast.success("Campaign launched");
+                    toast("Campaign launched");
                   },
-                  onError: (err) => toast.error(errorMessage(err)),
+                  onError: (err) => toast(errorMessage(err)),
                 })
               }
             >
-              <Rocket /> Launch now
-            </Button>
+              {launch.isPending ? <Spinner /> : <Rocket size={14} />} Launch now
+            </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </RpDialogContent>
+      </RpDialogRoot>
     </div>
   );
 }

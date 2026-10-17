@@ -3,20 +3,63 @@ import type { ReactNode } from "react";
 
 export function BrowserFrame({ url, children }: { url: string; children: ReactNode }) {
   return (
-    <div className="border-border bg-surface overflow-hidden rounded-[14px] border shadow-[var(--shadow-floating)]">
-      <div className="border-border bg-surface-muted flex h-10 items-center gap-3 border-b px-3.5">
-        <span className="flex gap-1.5">
-          <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-          <span className="size-2.5 rounded-full bg-[#febc2e]" />
-          <span className="size-2.5 rounded-full bg-[#28c840]" />
+    <div
+      style={{
+        overflow: "hidden",
+        borderRadius: 14,
+        border: "1px solid #E6E4DF",
+        background: "#fff",
+        boxShadow: "0 18px 40px -24px rgba(25,25,23,.3)",
+      }}
+    >
+      <div
+        style={{
+          height: 38,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 14px",
+          background: "#F4F2EE",
+          borderBottom: "1px solid #E6E4DF",
+        }}
+      >
+        <span style={{ display: "flex", gap: 6 }}>
+          {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+            <span key={c} style={{ width: 10, height: 10, borderRadius: 999, background: c }} />
+          ))}
         </span>
-        <span className="bg-surface text-caption text-muted mx-auto flex h-6 max-w-[70%] min-w-0 items-center gap-1.5 rounded-[6px] px-3">
-          <Lock className="size-3 shrink-0" />
-          <span className="truncate">{url}</span>
+        <span
+          style={{
+            margin: "0 auto",
+            height: 24,
+            maxWidth: "70%",
+            minWidth: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "0 12px",
+            borderRadius: 6,
+            background: "#fff",
+            fontSize: 11.5,
+            color: "#6C6962",
+          }}
+        >
+          <Lock size={11} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {url}
+          </span>
         </span>
-        <span className="w-[38px]" />
+        <span style={{ width: 38 }} />
       </div>
-      <div className="relative aspect-[16/10] overflow-hidden bg-[#f6f7f9] text-[#1c1e21] dark:bg-[#18191a] dark:text-[#e4e6eb]">
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "16 / 10",
+          overflow: "hidden",
+          background: "#f6f7f9",
+          color: "#1c1e21",
+        }}
+      >
         {children}
       </div>
     </div>

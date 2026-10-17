@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { CheckRow, type CheckState } from "@/components/ui/check-row";
 import type { ConnectionCheck } from "@/lib/api/types";
+
+import { CheckRow, type CheckState } from "./ui";
 
 export const CHECKS = [
   { key: "token", label: "Token" },
@@ -42,7 +43,7 @@ export function VerificationList({ result }: { result: ConnectionCheck[] | null 
   }, [result]);
 
   return (
-    <div className="divide-border divide-y" aria-live="polite">
+    <div aria-live="polite">
       {CHECKS.map((c, i) => {
         const found = result?.find((r) => r.key === c.key);
         let state: CheckState = "pending";
@@ -55,7 +56,9 @@ export function VerificationList({ result }: { result: ConnectionCheck[] | null 
         } else if (i === progress) {
           state = "running";
         }
-        return <CheckRow key={c.key} state={state} label={c.label} message={message} />;
+        return (
+          <CheckRow key={c.key} state={state} label={c.label} message={message} first={i === 0} />
+        );
       })}
     </div>
   );

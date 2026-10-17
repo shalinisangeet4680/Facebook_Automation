@@ -1,16 +1,18 @@
 "use client";
 
 import { Check, Heart, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import Image from "next/image";
+import { useState, type ReactNode } from "react";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCreatives, useLibrary } from "@/lib/api/queries";
 import type { CampaignPlan } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
+import { RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
+import { Seg, Skel } from "@/features/replyly/ui";
 
 type Creative = CampaignPlan["creative"];
 type Tab = "images" | "facebook" | "instagram";
+
+const MUTED = "#6C6962";
 
 export function displaySrc(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -46,49 +48,30 @@ export function CreativePicker({
   const library = tab === "facebook" ? facebook : instagram;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+    <RpDialogRoot open={open} onOpenChange={onOpenChange}>
+      <RpDialogContent
+        width={760}
         title="Choose what the ad shows"
         description="Use an image from your library, or run the ad on a post that's already on your Page or Instagram so it keeps its likes and comments."
-        className="max-h-[90dvh] max-w-3xl overflow-y-auto"
       >
-        <div role="tablist" aria-label="Source" className="border-border mb-4 flex gap-5 border-b">
-          {(
-            [
-              ["images", "Your images"],
-              ["facebook", "Facebook posts"],
-              ["instagram", "Instagram posts"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => setTab(value)}
-              className={cn(
-                "-mb-px border-b-2 px-1 pb-2 text-[14px] font-medium outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-                tab === value
-                  ? "border-accent text-foreground"
-                  : "text-muted hover:text-foreground border-transparent",
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ display: "flex", overflowX: "auto" }}>
+          <Seg
+            label="Source"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { id: "images", label: "Your images" },
+              { id: "facebook", label: "Facebook posts" },
+              { id: "instagram", label: "Instagram posts" },
+            ]}
+          />
         </div>
 
         {tab === "images" ? (
           creatives.isPending ? (
-            <Grid>
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="aspect-square" />
-              ))}
-            </Grid>
+            <Loading />
           ) : !creatives.data?.data.length ? (
-            <p className="text-small text-muted py-8 text-center">
-              No images yet. Upload one in Creatives or ask Claude to design one.
-            </p>
+            <Note>No images yet. Upload one in Creatives or ask Claude to design one.</Note>
           ) : (
             <Grid>
               {creatives.data.data
@@ -105,21 +88,15 @@ export function CreativePicker({
             </Grid>
           )
         ) : library.isPending ? (
-          <Grid>
-            {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="aspect-square" />
-            ))}
-          </Grid>
+          <Loading />
         ) : !library.data?.connected ? (
-          <p className="text-small text-muted py-8 text-center">
+          <Note>
             {tab === "instagram"
               ? "No Instagram account is connected."
               : "No Facebook Page is selected."}
-          </p>
+          </Note>
         ) : !library.data.data.length ? (
-          <p className="text-small text-muted py-8 text-center">
-            No posts yet. Publish one from Creatives first.
-          </p>
+          <Note>No posts yet. Publish one from Creatives first.</Note>
         ) : (
           <Grid>
             {library.data.data.map((post) => (
@@ -145,13 +122,46 @@ export function CreativePicker({
             ))}
           </Grid>
         )}
-      </DialogContent>
-    </Dialog>
+      </RpDialogContent>
+    </RpDialogRoot>
   );
 }
 
-function Grid({ children }: { children: React.ReactNode }) {
-  return <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{children}</ul>;
+function Note({ children }: { children: ReactNode }) {
+  return (
+    <p style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: MUTED }}>
+      {children}
+    </p>
+  );
+}
+
+function Grid({ children }: { children: ReactNode }) {
+  return (
+    <ul
+      style={{
+        listStyle: "none",
+        margin: 0,
+        padding: 0,
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+        gap: 12,
+      }}
+    >
+      {children}
+    </ul>
+  );
+}
+
+function Loading() {
+  return (
+    <Grid>
+      {Array.from({ length: 4 }, (_, i) => (
+        <li key={i}>
+          <Skel h={160} r={12} />
+        </li>
+      ))}
+    </Grid>
+  );
 }
 
 function Option({
@@ -173,34 +183,94 @@ function Option({
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
-        className={cn(
-          "border-border bg-surface hover:border-border-strong relative w-full overflow-hidden rounded-[var(--radius-card)] border text-left outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]",
-          selected && "border-accent ring-accent ring-1",
-        )}
+        style={{
+          position: "relative",
+          width: "100%",
+          padding: 0,
+          overflow: "hidden",
+          borderRadius: 12,
+          border: selected ? "1.5px solid #0F6B4A" : "1px solid #E6E4DF",
+          background: "#fff",
+          textAlign: "left",
+          cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
-        <div className="bg-surface-muted aspect-square">
+        <span
+          style={{
+            position: "relative",
+            display: "block",
+            aspectRatio: "1 / 1",
+            width: "100%",
+            background: "#F4F2EE",
+          }}
+        >
           {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="" loading="lazy" className="size-full object-cover" />
+            <Image
+              unoptimized
+              fill
+              src={image}
+              alt=""
+              loading="lazy"
+              sizes="200px"
+              style={{ objectFit: "cover" }}
+            />
           ) : null}
-        </div>
-        <div className="p-2.5">
-          <p className="line-clamp-2 text-[13px]">{label}</p>
+        </span>
+        <span style={{ display: "flex", flexDirection: "column", gap: 4, padding: 10 }}>
+          <span
+            style={{
+              fontSize: 12.5,
+              lineHeight: 1.4,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {label}
+          </span>
           {stats ? (
-            <p className="text-caption text-muted mt-1 flex gap-3">
-              <span className="inline-flex items-center gap-1">
-                <Heart className="size-3" aria-hidden /> {stats.likes ?? 0}
+            <span style={{ display: "flex", gap: 12, fontSize: 11.5, color: MUTED }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Heart size={12} aria-hidden /> {stats.likes ?? 0}
               </span>
-              <span className="inline-flex items-center gap-1">
-                <MessageCircle className="size-3" aria-hidden /> {stats.comments ?? 0}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <MessageCircle size={12} aria-hidden /> {stats.comments ?? 0}
               </span>
-            </p>
+            </span>
           ) : null}
-        </div>
+        </span>
         {selected ? (
-          <span className="bg-accent text-accent-foreground absolute top-2 right-2 grid size-6 place-items-center rounded-full">
-            <Check className="size-3.5" aria-hidden />
-            <span className="sr-only">Selected</span>
+          <span
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 24,
+              height: 24,
+              borderRadius: 999,
+              background: "#0F6B4A",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Check size={14} strokeWidth={3} aria-hidden />
+            <span
+              style={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                overflow: "hidden",
+                clip: "rect(0 0 0 0)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Selected
+            </span>
           </span>
         ) : null}
       </button>

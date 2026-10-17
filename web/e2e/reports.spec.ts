@@ -12,10 +12,7 @@ test("shows KPIs, daily charts and campaigns, and switches periods", async ({ pa
   await expect(page.getByRole("cell", { name: /Clinic owners/ })).toBeVisible();
   await page.getByRole("img", { name: "Spend per day" }).hover({ position: { x: 120, y: 80 } });
   await page.screenshot({ path: info.outputPath("reports.png"), fullPage: true });
-  await page.getByRole("radio", { name: "30 days" }).click();
-  await expect(page.getByRole("radio", { name: "30 days" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await page.getByRole("tab", { name: "30 days" }).click();
+  await expect(page.getByRole("tab", { name: "30 days" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("img", { name: "Results per day" })).toBeVisible();
 });

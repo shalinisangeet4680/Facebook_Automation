@@ -1,32 +1,42 @@
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { CopyButton } from "@/components/ui/copy-button";
 import type { Permission } from "@/lib/api/types";
+
+import { CardTitle, CopyButton, MUTED, Pill, cardHead } from "./ui";
 
 export function PermissionsCard({ permissions }: { permissions: Permission[] }) {
   const needed = permissions.filter((p) => p.level !== "optional");
   return (
-    <Card>
-      <div className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
-        <div>
-          <h3 className="text-[15px] font-semibold">Permissions to tick</h3>
-          <p className="text-small text-muted">Select these when you generate the token.</p>
-        </div>
+    <div className="rp-card" style={{ overflow: "hidden" }}>
+      <div style={cardHead}>
+        <CardTitle title="Permissions to tick" sub="Select these when you generate the token." />
         <CopyButton value={needed.map((p) => p.name).join(", ")} label="Copy all" />
       </div>
-      <ul className="divide-border divide-y">
-        {needed.map((p) => (
-          <li key={p.name} className="flex items-start gap-3 px-5 py-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-small text-foreground font-mono font-medium">{p.name}</p>
-              <p className="text-caption text-muted">{p.purpose}</p>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {needed.map((p, i) => (
+          <li
+            key={p.name}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              padding: "11px 18px",
+              borderTop: i ? "1px solid #EFEDE8" : "none",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+              <span
+                className="rp-mono"
+                style={{ fontSize: 12.5, fontWeight: 500, overflowWrap: "anywhere" }}
+              >
+                {p.name}
+              </span>
+              <span style={{ fontSize: 12, color: MUTED }}>{p.purpose}</span>
             </div>
-            <Badge tone={p.level === "required" ? "accent" : "neutral"}>
+            <Pill tone={p.level === "required" ? "success" : "neutral"}>
               {p.level === "required" ? "Required" : "Recommended"}
-            </Badge>
+            </Pill>
           </li>
         ))}
       </ul>
-    </Card>
+    </div>
   );
 }
