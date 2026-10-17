@@ -1,6 +1,6 @@
 # Plan: Instagram Autopost and Facebook Autopost
 
-Status: planned, not built. Landing page sections are live as "Coming soon".
+Status: built against `META_MOCK` (see `backend/docs/18-social-autopost.md`); waiting for Meta Business Verification and App Review.
 
 Two products, one shared Social engine, built the same way Play Reviews and Google Business share the review engine.
 
