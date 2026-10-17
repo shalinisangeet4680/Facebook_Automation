@@ -241,14 +241,14 @@
 .tv-stage {
   position: relative;
   width: 980px;
-  height: 600px;
+  height: 640px;
   margin: 56px auto 0;
 }
 
 .tv-hub {
   position: absolute;
   left: 438px;
-  top: 248px;
+  top: 268px;
   width: 104px;
   height: 104px;
   border-radius: 28px;
@@ -284,7 +284,7 @@
   position: absolute;
   inset: 0;
   width: 980px;
-  height: 600px;
+  height: 640px;
   overflow: visible;
 }
 
@@ -315,6 +315,162 @@
   border-radius: 50%;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px var(--line);
+}
+
+.tv-nodeTitle {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-top: -2px;
+}
+
+.tv-seqSlot {
+  display: grid;
+}
+
+.tv-seqSlot > * {
+  grid-area: 1 / 1;
+}
+
+.tv-seq {
+  animation-duration: 9s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+.tv-seqReview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  animation-name: seqReview;
+}
+
+.tv-seqTyping {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green);
+  animation-name: seqTyping;
+}
+
+.tv-seqReply {
+  animation-name: seqReply;
+}
+
+.tv-seqDone {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  animation-name: seqDone;
+}
+
+.tv-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.tv-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dot 1s ease-in-out infinite;
+}
+
+.tv-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.tv-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes seqReview {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  8%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes seqTyping {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  16%,
+  34% {
+    opacity: 1;
+  }
+  38%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes seqReply {
+  0%,
+  36% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  42%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes seqDone {
+  0%,
+  48% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  54%,
+  92% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .tv-igThumb {
@@ -1098,8 +1254,14 @@
     animation: none;
   }
 
-  .tv-pulse {
+  .tv-pulse,
+  .tv-seqTyping {
     display: none;
+  }
+
+  .tv-seq,
+  .tv-dots i {
+    animation: none;
   }
 }
 

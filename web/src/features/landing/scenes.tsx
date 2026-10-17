@@ -59,15 +59,15 @@ function Review({
   );
 }
 
-const HUB = { x: 490, y: 300 };
+const HUB = { x: 490, y: 320 };
 
 const NODES = [
   { id: "g", side: "l", top: 0, color: "#0F6B4A" },
-  { id: "ig", side: "l", top: 262, color: "#C2185B" },
-  { id: "m", side: "l", top: 420, color: "#1C64B8" },
-  { id: "p", side: "r", top: 16, color: "#E8590C" },
-  { id: "fb", side: "r", top: 196, color: "#2D5BD7" },
-  { id: "gp", side: "r", top: 440, color: "#0F6B4A" },
+  { id: "ig", side: "l", top: 276, color: "#C2185B" },
+  { id: "m", side: "l", top: 476, color: "#1C64B8" },
+  { id: "p", side: "r", top: 0, color: "#E8590C" },
+  { id: "fb", side: "r", top: 318, color: "#2D5BD7" },
+  { id: "gp", side: "r", top: 524, color: "#0F6B4A" },
 ] as const;
 
 const anchor = (n: (typeof NODES)[number]) => ({
@@ -112,7 +112,7 @@ export function HeroStage() {
   const [g, ig, m, p, fb, gp] = NODES;
   return (
     <div className="tv-stage" aria-hidden>
-      <svg className="tv-wires" viewBox="0 0 980 600">
+      <svg className="tv-wires" viewBox="0 0 980 640">
         {NODES.map((n) => (
           <path key={n.id} id={`wire-${n.id}`} className="tv-wire" d={wire(n)} />
         ))}
@@ -178,16 +178,30 @@ export function HeroStage() {
           <span className="tv-chipBtn">Approve</span>
         </div>
       </Node>
-      <Node node={p} label="Play Store review">
-        <Review initial="R" name="Rahul V." stars={1} text="App crashes after login 😞" />
-        <div className="tv-row">
-          <span className="tv-tag" style={{ background: "#FDF0EE", color: "#B42318" }}>
-            Login issue
-          </span>
-          <span className="tv-tag" style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
-            <Check size={12} /> Replied in Hindi
-          </span>
+      <Node node={p} label="Play Reviews">
+        <span className="tv-nodeTitle">Auto-reply to app reviews</span>
+        <div className="tv-seq tv-seqReview">
+          <Review initial="R" name="Rahul V." stars={1} text="App crashes after login 😞" />
         </div>
+        <div className="tv-seqSlot">
+          <span className="tv-seq tv-seqTyping">
+            <Sparkles size={12} /> AI is writing
+            <span className="tv-dots">
+              <i />
+              <i />
+              <i />
+            </span>
+          </span>
+          <div className="tv-seq tv-seqReply tv-draft">
+            <div className="tv-draftLabel">
+              <Sparkles size={12} /> AI reply
+            </div>
+            Sorry Rahul! It’s fixed in v3.4, please update.
+          </div>
+        </div>
+        <span className="tv-seq tv-seqDone">
+          <Check size={13} /> Posted on Google Play · 2 min
+        </span>
       </Node>
       <Node node={fb} label="Facebook comment">
         <span className="tv-comment" style={{ fontSize: 12.5 }}>
