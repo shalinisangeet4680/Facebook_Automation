@@ -359,9 +359,12 @@ describe("Claude connector (OAuth + MCP)", () => {
       "create_business_profile",
       "create_campaign_draft",
       "delete_review_template",
+      "draft_release_notes",
       "draft_review_reply",
+      "explain_crash",
       "find_business_on_google",
       "get_account_overview",
+      "get_app_health",
       "get_business_insights",
       "get_business_profile",
       "get_campaign",
@@ -380,6 +383,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "list_campaigns",
       "list_creatives",
       "list_play_apps",
+      "list_play_releases",
       "list_play_reviews",
       "list_social_posts",
       "pause",
@@ -406,6 +410,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "update_daily_budget",
       "update_review_settings",
       "update_review_workspace",
+      "update_rollout",
       "upsert_review_template",
     ]);
   });
@@ -1373,13 +1378,15 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(24);
+    expect(names).toHaveLength(28);
     expect(names).toContain("find_business_on_google");
     expect(names).not.toContain("create_business_profile");
     expect(names).toContain("list_business_reviews");
     expect(names).not.toContain("send_business_review_reply");
     expect(names).toContain("list_play_reviews");
     expect(names).not.toContain("send_review_reply");
+    expect(names).toContain("get_app_health");
+    expect(names).not.toContain("update_rollout");
     expect(names).toContain("store_get_project");
     expect(names).not.toContain("activate");
     expect(names).not.toContain("store_save_project");

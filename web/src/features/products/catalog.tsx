@@ -144,7 +144,7 @@ export const CATALOG: ProductPage[] = [
       { icon: Gauge, title: "Safety pause", text: "Stops auto-replies if ratings drop" },
       { icon: ThumbsUp, title: "Topics & trends", text: "Spot crash and login complaints early" },
       { icon: BellRing, title: "Slack alerts", text: "1★ reviews reach your team instantly" },
-      { icon: Layers, title: "Every app", text: "All apps in your developer account" },
+      { icon: ShieldCheck, title: "Safe rollouts", text: "Halts a release when crashes spike" },
     ],
     steps: [
       ["Connect Play Console", "Add a service account with reply permission.", PlugZap],
@@ -159,6 +159,10 @@ export const CATALOG: ProductPage[] = [
       ["Can it import old reviews?", "Yes, from your Play Console reports bucket."],
       ["What if ratings suddenly drop?", "The safety pause holds auto-replies until you check."],
       [
+        "Can it manage releases too?",
+        "Yes. Staged rollouts, AI release notes in every language, crash clusters explained, and an automatic halt when crash or ANR rates spike.",
+      ],
+      [
         "Does it work with Claude?",
         "Yes. Connect TreeVook to Claude and ask it to reply to this week’s reviews.",
       ],
@@ -167,6 +171,7 @@ export const CATALOG: ProductPage[] = [
       "The service account key you upload",
       "Your apps and their store listing details",
       "Reviews and replies, and report files from your Play Console reports bucket",
+      "Release tracks, release notes and Android vitals (crash and ANR rates, crash reports)",
     ],
     platform: "google-play",
   },

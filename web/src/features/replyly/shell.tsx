@@ -13,13 +13,15 @@ const NAV = [
   ["dashboard", "Dashboard", "/reviews"],
   ["apps", "Apps", "/reviews/apps"],
   ["templates", "Templates", "/reviews/templates"],
+  ["releases", "Releases", "/reviews/releases"],
+  ["health", "Health", "/reviews/health"],
   ["mcp", "MCP", "/reviews/mcp"],
 ] as const;
 
 function activeOf(pathname: string) {
   const part = pathname.split("/")[2];
   if (!part) return "dashboard";
-  if (["templates", "mcp"].includes(part)) return part;
+  if (["templates", "releases", "health", "mcp"].includes(part)) return part;
   return "apps";
 }
 
