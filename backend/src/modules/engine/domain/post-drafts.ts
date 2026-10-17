@@ -17,7 +17,7 @@ export function draftPost(input: PostAiInput): PostAiResult {
   const name = b.name || "us";
   const headline = input.idea.replace(/^[^:]+:\s*/, "").slice(0, 60);
   const body = [
-    `${OPENERS[b.voice]}: ${input.idea.charAt(0).toLowerCase()}${input.idea.slice(1)}.`,
+    `${OPENERS[b.voice]}! ${input.idea.replace(/[.!?]*$/, "")}.`,
     b.audience ? `Made for ${b.audience}.` : "",
     b.cta ? `${b.cta}${b.link ? ` ${b.link}` : ""}` : "",
   ]

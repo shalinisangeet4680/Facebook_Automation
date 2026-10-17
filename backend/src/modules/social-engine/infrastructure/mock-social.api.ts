@@ -225,7 +225,10 @@ export class MockSocialApi implements SocialApi {
     const out: RemoteComment[] = [];
     for (const postId of postIds) {
       const parsed = parsePostId(postId);
-      const at = parsed?.at ?? now - 3 * DAY;
+      const history = /^hist_\d+_(\d+)$/.exec(postId);
+      const at =
+        parsed?.at ??
+        (history ? now - (Number(history[1]) * 2 + 2) * DAY : now - 3 * DAY);
       COMMENTS.forEach((c, i) => {
         const id = `${postId}_c${i + 1}`;
         out.push({

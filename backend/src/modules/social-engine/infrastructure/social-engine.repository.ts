@@ -630,6 +630,9 @@ export class SocialEngineRepository {
             isNull(socialComments.replyText),
             isNull(socialComments.skippedAt),
             eq(socialComments.hidden, false),
+            f.classes?.includes("spam")
+              ? undefined
+              : sql`${socialComments.class} <> 'spam'`,
           )
         : f.state === "replied"
           ? isNotNull(socialComments.replyText)
