@@ -30,3 +30,13 @@ www.{$DOMAIN} {
 {$DOMAIN}, googlebusiness.{$DOMAIN}, playreview.{$DOMAIN}, instagram.{$DOMAIN}, facebook.{$DOMAIN}, ads.{$DOMAIN} {
 	import app
 }
+
+api.{$DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy api:4000 {
+		flush_interval -1
+	}
+}

@@ -40,7 +40,7 @@ sudo iptables -I INPUT 5 -m state --state NEW -p tcp --dport 443 -j ACCEPT
 sudo netfilter-persistent save
 ```
 
-To run everything on one server instead, set `CADDYFILE=Caddyfile` and `COMPOSE_PROFILES=web`.
+To run everything on one server instead, set `CADDYFILE=Caddyfile` and `COMPOSE_PROFILES=web`. The full `Caddyfile` also serves `api.<domain>`, so the API keeps working when you switch.
 
 ## 1. DNS
 
