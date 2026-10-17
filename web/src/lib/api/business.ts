@@ -26,6 +26,16 @@ export type GbpAnalytics = Schemas["BusinessAnalyticsDto"];
 export type GbpLocationUpdate = Schemas["UpdateLocationDto"];
 export type GbpSettings = Schemas["BusinessSettingsViewDto"];
 export type GbpRatingRule = Schemas["BusinessRatingRuleViewDto"];
+export type GbpAccount = Schemas["GbpAccountDto"];
+export type GbpCategory = Schemas["GbpCategoryDto"];
+export type GoogleMatch = Schemas["GoogleMatchDto"];
+export type GoogleSearchInput = Schemas["GoogleSearchDto"];
+export type NewBusiness = Schemas["NewBusinessDto"];
+export type CreateProfileInput = Schemas["CreateProfileDto"];
+export type ProfileValidation = Schemas["ProfileValidationDto"];
+export type VerificationOption = Schemas["VerificationOptionDto"];
+export type VerificationStatus = Schemas["VerificationStatusDto"];
+export type StartVerificationInput = Schemas["StartVerificationDto"];
 
 const root = ["business"] as const;
 
@@ -48,6 +58,11 @@ export const businessKeys = {
     [...root, "insights", range, locationId ?? "all"] as const,
   templates: (locationId?: string) => [...root, "templates", locationId ?? "all"] as const,
   posts: (locationId?: string) => [...root, "posts", locationId ?? "all"] as const,
+  accounts: [...root, "accounts"] as const,
+  categories: (q: string, region: string) => [...root, "categories", region, q] as const,
+  verification: (id: string) => [...root, "locations", id, "verification"] as const,
+  verificationOptions: (id: string) =>
+    [...root, "locations", id, "verification", "options"] as const,
 };
 
 function localDay() {
@@ -428,4 +443,109 @@ export function useBusinessSuggestions(id: string) {
         }),
       ),
   });
+}
+
+export function useBusinessAccounts(enabled = true) {
+  return useQuery({
+    queryKey: businessKeys.accounts,
+    queryFn: () => unwrap(api.GET("/api/v1/business/accounts")),
+    enabled,
+  });
+}
+
+export function useCreateBusinessGroup() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { connectionId: string; name: string }) =>
+      unwrap(api.POST("/api/v1/business/accounts/groups", { body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: businessKeys.accounts }),
+  });
+}
+
+export function useBusinessCategories(q: string, region = "IN", enabled = true) {
+  return useQuery({
+    queryKey: businessKeys.categories(q, region),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/business/google/categories", { params: { query: { q, region } } })),
+    enabled,
+    staleTime: 3_600_000,
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useSearchGoogle() {
+  return useMutation({
+    mutationFn: (body: GoogleSearchInput) =>
+      unwrap(api.POST("/api/v1/business/google/search", { body })),
+  });
+}
+
+export function useValidateProfile() {
+  return useMutation({
+    mutationFn: (body: CreateProfileInput) =>
+      unwrap(api.POST("/api/v1/business/profiles/validate", { body })),
+  });
+}
+
+export function useCreateProfile() {
+  const invalidate = useBusinessInvalidate();
+  return useMutation({
+    mutationFn: (body: CreateProfileInput) =>
+      unwrap(api.POST("/api/v1/business/profiles", { body })),
+    onSettled: invalidate,
+  });
+}
+
+export function useVerificationStatus(id: string) {
+  return useQuery({
+    queryKey: businessKeys.verification(id),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/business/locations/{id}/verification", { params: { path: { id } } })),
+  });
+}
+
+export function useVerificationOptions(id: string, enabled: boolean) {
+  return useQuery({
+    queryKey: businessKeys.verificationOptions(id),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/business/locations/{id}/verification/options", {
+          params: { path: { id } },
+        }),
+      ),
+    enabled,
+  });
+}
+
+function useVerificationMutation<T>(id: string, run: (input: T) => Promise<VerificationStatus>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: (status) => {
+      client.setQueryData(businessKeys.verification(id), status);
+      void client.invalidateQueries({ queryKey: businessKeys.locations });
+    },
+  });
+}
+
+export function useStartVerification(id: string) {
+  return useVerificationMutation(id, (body: StartVerificationInput) =>
+    unwrap(
+      api.POST("/api/v1/business/locations/{id}/verification", {
+        params: { path: { id } },
+        body,
+      }),
+    ),
+  );
+}
+
+export function useCompleteVerification(id: string) {
+  return useVerificationMutation(id, (code: string) =>
+    unwrap(
+      api.POST("/api/v1/business/locations/{id}/verification/complete", {
+        params: { path: { id } },
+        body: { code },
+      }),
+    ),
+  );
 }

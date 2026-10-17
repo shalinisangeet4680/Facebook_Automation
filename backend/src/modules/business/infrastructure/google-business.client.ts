@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  BusinessAddress,
   BusinessInfo,
   InfoPatch,
   OpeningPeriod,
@@ -10,15 +11,29 @@ import {
   emptyMetrics,
 } from "../domain/business.types";
 import {
+  BusinessCategory,
+  GoogleSearchInput,
+  NewBusiness,
+  VERIFICATION_METHODS,
+  VerificationMethod,
+  addressText,
+} from "../domain/profile.types";
+import {
   BusinessApi,
   BusinessApiError,
   GBP_SCOPES,
   GbpAccount,
   GbpDailyMetric,
+  GbpGoogleMatch,
   GbpLocation,
   GbpPost,
   GbpReview,
   GbpReviewPage,
+  GbpVerification,
+  GbpVerificationOption,
+  GbpVerificationState,
+  GbpVerifyRequest,
+  GbpVoiceOfMerchant,
   GoogleGrant,
 } from "../domain/ports/business-api";
 
@@ -29,9 +44,10 @@ const ACCOUNTS = "https://mybusinessaccountmanagement.googleapis.com/v1";
 const INFO = "https://mybusinessbusinessinformation.googleapis.com/v1";
 const V4 = "https://mybusiness.googleapis.com/v4";
 const PERFORMANCE = "https://businessprofileperformance.googleapis.com/v1";
+const VERIFY = "https://mybusinessverifications.googleapis.com/v1";
 
 const READ_MASK =
-  "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,regularHours,profile,metadata";
+  "name,title,storefrontAddress,serviceArea,phoneNumbers,websiteUri,categories,regularHours,profile,metadata";
 
 const STARS: Record<string, number> = {
   ONE: 1,
@@ -65,15 +81,23 @@ interface GooglePeriod {
   closeTime?: GoogleTime;
 }
 
+interface GoogleAddress {
+  addressLines?: string[];
+  locality?: string;
+  administrativeArea?: string;
+  postalCode?: string;
+  regionCode?: string;
+  languageCode?: string;
+}
+
 interface GoogleLocation {
   name: string;
   title?: string;
-  storefrontAddress?: {
-    addressLines?: string[];
-    locality?: string;
-    administrativeArea?: string;
-    postalCode?: string;
+  storefrontAddress?: GoogleAddress;
+  serviceArea?: {
+    businessType?: string;
     regionCode?: string;
+    places?: { placeInfos?: { placeName?: string; placeId?: string }[] };
   };
   phoneNumbers?: { primaryPhone?: string };
   websiteUri?: string;
@@ -134,22 +158,40 @@ function toPeriods(hours: OpeningPeriod[]): GooglePeriod[] {
   });
 }
 
+const fromAddress = (a?: GoogleAddress): BusinessAddress | null =>
+  a
+    ? {
+        lines: a.addressLines ?? [],
+        locality: a.locality ?? "",
+        region: a.administrativeArea ?? "",
+        postalCode: a.postalCode ?? "",
+        country: a.regionCode ?? "",
+      }
+    : null;
+
+const toAddress = (a: BusinessAddress, languageCode: string) => ({
+  regionCode: a.country,
+  languageCode,
+  postalCode: a.postalCode,
+  ...(a.region ? { administrativeArea: a.region } : {}),
+  locality: a.locality,
+  addressLines: a.lines.filter((l) => l.trim()),
+});
+
 export function toLocation(l: GoogleLocation): GbpLocation {
-  const a = l.storefrontAddress;
+  const places = (l.serviceArea?.places?.placeInfos ?? [])
+    .map((p) => p.placeName ?? "")
+    .filter(Boolean);
   const info: BusinessInfo = {
     title: l.title ?? "",
     description: l.profile?.description ?? "",
     phone: l.phoneNumbers?.primaryPhone ?? null,
     website: l.websiteUri ?? null,
-    address: a
-      ? {
-          lines: a.addressLines ?? [],
-          locality: a.locality ?? "",
-          region: a.administrativeArea ?? "",
-          postalCode: a.postalCode ?? "",
-          country: a.regionCode ?? "",
-        }
-      : null,
+    address: fromAddress(l.storefrontAddress),
+    serviceArea:
+      l.serviceArea && (places.length || l.serviceArea.regionCode)
+        ? { regionCode: l.serviceArea.regionCode ?? "", places }
+        : null,
     primaryCategory: l.categories?.primaryCategory?.displayName ?? null,
     additionalCategories: (l.categories?.additionalCategories ?? [])
       .map((c) => c.displayName ?? "")
@@ -163,6 +205,70 @@ export function toLocation(l: GoogleLocation): GbpLocation {
     mapsUri: l.metadata?.mapsUri ?? null,
     newReviewUri: l.metadata?.newReviewUri ?? null,
     verified: l.metadata?.hasVoiceOfMerchant ?? true,
+  };
+}
+
+export function toNewLocation(b: NewBusiness) {
+  return {
+    languageCode: b.languageCode,
+    title: b.title.trim(),
+    ...(b.phone ? { phoneNumbers: { primaryPhone: b.phone.trim() } } : {}),
+    ...(b.website ? { websiteUri: b.website.trim() } : {}),
+    categories: {
+      primaryCategory: { name: b.primaryCategory?.name ?? "" },
+      ...(b.additionalCategories.length
+        ? {
+            additionalCategories: b.additionalCategories.map((c) => ({
+              name: c.name,
+            })),
+          }
+        : {}),
+    },
+    ...(b.address
+      ? { storefrontAddress: toAddress(b.address, b.languageCode) }
+      : {}),
+    ...(b.serviceArea
+      ? {
+          serviceArea: {
+            businessType: b.address
+              ? "CUSTOMER_AND_BUSINESS_LOCATION"
+              : "CUSTOMER_LOCATION_ONLY",
+            regionCode: b.serviceArea.regionCode,
+            places: {
+              placeInfos: b.serviceArea.places
+                .filter((p) => p.trim())
+                .map((placeName) => ({ placeName: placeName.trim() })),
+            },
+          },
+        }
+      : {}),
+    ...(b.hours.length
+      ? { regularHours: { periods: toPeriods(b.hours) } }
+      : {}),
+    ...(b.description ? { profile: { description: b.description } } : {}),
+  };
+}
+
+interface GoogleVerification {
+  name: string;
+  method?: string;
+  state?: string;
+  createTime?: string;
+}
+
+const methodOf = (m?: string): VerificationMethod =>
+  VERIFICATION_METHODS.includes(m as VerificationMethod)
+    ? (m as VerificationMethod)
+    : "VETTED_PARTNER";
+
+export function toVerification(v: GoogleVerification): GbpVerification {
+  const state: GbpVerificationState =
+    v.state === "COMPLETED" || v.state === "FAILED" ? v.state : "PENDING";
+  return {
+    name: v.name,
+    method: methodOf(v.method),
+    state,
+    createTime: v.createTime ? new Date(v.createTime) : new Date(),
   };
 }
 
@@ -604,5 +710,223 @@ export class GoogleBusinessClient implements BusinessApi {
         }
       }
     return [...days.values()].sort((a, b) => a.day.localeCompare(b.day));
+  }
+
+  async categories(
+    refreshToken: string,
+    query: string,
+    regionCode: string,
+    languageCode: string,
+  ): Promise<BusinessCategory[]> {
+    const url = new URL(`${INFO}/categories`);
+    url.searchParams.set("regionCode", regionCode);
+    url.searchParams.set("languageCode", languageCode);
+    url.searchParams.set("view", "BASIC");
+    url.searchParams.set("pageSize", "50");
+    if (query.trim())
+      url.searchParams.set("filter", `displayName=${query.trim()}`);
+    const data = await this.call<{
+      categories?: { name: string; displayName?: string }[];
+    }>(refreshToken, url.toString());
+    return (data.categories ?? []).map((c) => ({
+      name: c.name,
+      displayName: c.displayName ?? c.name,
+    }));
+  }
+
+  async searchGoogle(
+    refreshToken: string,
+    input: GoogleSearchInput,
+  ): Promise<GbpGoogleMatch[]> {
+    const data = await this.call<{
+      googleLocations?: {
+        name: string;
+        location?: GoogleLocation;
+        requestAdminRightsUri?: string;
+      }[];
+    }>(refreshToken, `${INFO}/googleLocations:search`, {
+      method: "POST",
+      body: {
+        pageSize: 10,
+        query: [input.query, input.address, input.phone]
+          .filter(Boolean)
+          .join(" "),
+      },
+    });
+    return (data.googleLocations ?? []).map((g) => {
+      const l = g.location ?? { name: g.name };
+      return {
+        name: g.name,
+        title: l.title ?? "",
+        address: addressText(fromAddress(l.storefrontAddress)),
+        phone: l.phoneNumbers?.primaryPhone ?? null,
+        category: l.categories?.primaryCategory?.displayName ?? null,
+        placeId: l.metadata?.placeId ?? null,
+        mapsUri: l.metadata?.mapsUri ?? null,
+        requestAdminRightsUri: g.requestAdminRightsUri ?? null,
+      };
+    });
+  }
+
+  async createLocation(
+    refreshToken: string,
+    account: string,
+    business: NewBusiness,
+    options: { validateOnly: boolean; requestId: string },
+  ): Promise<GbpLocation | null> {
+    const url = new URL(`${INFO}/${account}/locations`);
+    url.searchParams.set("requestId", options.requestId);
+    if (options.validateOnly) url.searchParams.set("validateOnly", "true");
+    const data = await this.call<GoogleLocation>(refreshToken, url.toString(), {
+      method: "POST",
+      body: toNewLocation(business),
+    });
+    if (options.validateOnly) return null;
+    return { ...toLocation(data), verified: false };
+  }
+
+  async createLocationGroup(
+    refreshToken: string,
+    name: string,
+    primaryOwner: string,
+  ): Promise<GbpAccount> {
+    const data = await this.call<{
+      name: string;
+      accountName?: string;
+      type?: string;
+    }>(refreshToken, `${ACCOUNTS}/accounts`, {
+      method: "POST",
+      body: { accountName: name, type: "LOCATION_GROUP", primaryOwner },
+    });
+    return {
+      name: data.name,
+      accountName: data.accountName ?? name,
+      type: data.type ?? "LOCATION_GROUP",
+    };
+  }
+
+  async verificationOptions(
+    refreshToken: string,
+    location: string,
+    languageCode: string,
+    address: NewBusiness["address"],
+  ): Promise<GbpVerificationOption[]> {
+    const data = await this.call<{
+      options?: {
+        verificationMethod?: string;
+        phoneNumber?: string;
+        addressData?: {
+          business?: string;
+          address?: GoogleAddress;
+          expectedDeliveryDaysRegion?: number;
+        };
+        emailData?: {
+          domain?: string;
+          user?: string;
+          isUserNameEditable?: boolean;
+        };
+      }[];
+    }>(refreshToken, `${VERIFY}/${location}:fetchVerificationOptions`, {
+      method: "POST",
+      body: {
+        languageCode,
+        ...(address
+          ? { context: { address: toAddress(address, languageCode) } }
+          : {}),
+      },
+    });
+    return (data.options ?? []).map((o) => ({
+      method: methodOf(o.verificationMethod),
+      phone: o.phoneNumber ?? null,
+      email: o.emailData
+        ? `${o.emailData.user ?? ""}@${o.emailData.domain ?? ""}`
+        : null,
+      emailEditable: o.emailData?.isUserNameEditable ?? false,
+      address: addressText(fromAddress(o.addressData?.address)),
+      contactName: o.addressData?.business ?? null,
+      deliveryDays: o.addressData?.expectedDeliveryDaysRegion ?? null,
+    }));
+  }
+
+  async verify(
+    refreshToken: string,
+    location: string,
+    request: GbpVerifyRequest,
+  ): Promise<GbpVerification> {
+    const data = await this.call<{ verification: GoogleVerification }>(
+      refreshToken,
+      `${VERIFY}/${location}:verify`,
+      {
+        method: "POST",
+        body: {
+          method: request.method,
+          languageCode: request.languageCode,
+          ...(request.phone ? { phoneNumber: request.phone } : {}),
+          ...(request.email ? { emailAddress: request.email } : {}),
+          ...(request.method === "ADDRESS" && request.contactName
+            ? { mailerContact: request.contactName }
+            : {}),
+          ...(request.address
+            ? {
+                context: {
+                  address: toAddress(request.address, request.languageCode),
+                },
+              }
+            : {}),
+        },
+      },
+    );
+    return toVerification(data.verification);
+  }
+
+  async completeVerification(
+    refreshToken: string,
+    verification: string,
+    pin: string,
+  ): Promise<GbpVerification> {
+    const data = await this.call<{ verification: GoogleVerification }>(
+      refreshToken,
+      `${VERIFY}/${verification}:complete`,
+      { method: "POST", body: { pin } },
+    );
+    return toVerification(data.verification);
+  }
+
+  async verifications(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVerification[]> {
+    const data = await this.call<{ verifications?: GoogleVerification[] }>(
+      refreshToken,
+      `${VERIFY}/${location}/verifications?pageSize=20`,
+    );
+    return (data.verifications ?? [])
+      .map(toVerification)
+      .sort((a, b) => b.createTime.getTime() - a.createTime.getTime());
+  }
+
+  async voiceOfMerchant(
+    refreshToken: string,
+    location: string,
+  ): Promise<GbpVoiceOfMerchant> {
+    const data = await this.call<{
+      hasVoiceOfMerchant?: boolean;
+      hasBusinessAuthority?: boolean;
+      waitForVoiceOfMerchant?: object;
+      verify?: { hasPendingVerification?: boolean };
+      resolveOwnershipConflict?: object;
+      complyWithGuidelines?: { recommendationReason?: string };
+    }>(refreshToken, `${VERIFY}/${location}/VoiceOfMerchantState`);
+    return {
+      hasVoiceOfMerchant: data.hasVoiceOfMerchant ?? false,
+      hasBusinessAuthority: data.hasBusinessAuthority ?? false,
+      pendingVerification: data.verify?.hasPendingVerification ?? false,
+      waitingForGoogle: Boolean(data.waitForVoiceOfMerchant),
+      ownershipConflict: Boolean(data.resolveOwnershipConflict),
+      guidelinesIssue: data.complyWithGuidelines
+        ? (data.complyWithGuidelines.recommendationReason ??
+          "BUSINESS_PROFILE_GUIDELINES")
+        : null,
+    };
   }
 }

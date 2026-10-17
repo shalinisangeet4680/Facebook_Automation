@@ -61,12 +61,18 @@ export interface BusinessAddress {
   country: string;
 }
 
+export interface ServiceArea {
+  regionCode: string;
+  places: string[];
+}
+
 export interface BusinessInfo {
   title: string;
   description: string;
   phone: string | null;
   website: string | null;
   address: BusinessAddress | null;
+  serviceArea?: ServiceArea | null;
   primaryCategory: string | null;
   additionalCategories: string[];
   hours: OpeningPeriod[];

@@ -354,10 +354,13 @@ describe("Claude connector (OAuth + MCP)", () => {
       "activate",
       "apply_facebook_profile",
       "check_tracking",
+      "complete_business_verification",
       "create_business_post",
+      "create_business_profile",
       "create_campaign_draft",
       "delete_review_template",
       "draft_review_reply",
+      "find_business_on_google",
       "get_account_overview",
       "get_business_insights",
       "get_business_profile",
@@ -391,6 +394,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "send_review_reply",
       "set_review_rules",
       "set_template_hidden",
+      "start_business_verification",
       "store_get_project",
       "store_save_project",
       "store_start_upload",
@@ -1369,7 +1373,9 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(23);
+    expect(names).toHaveLength(24);
+    expect(names).toContain("find_business_on_google");
+    expect(names).not.toContain("create_business_profile");
     expect(names).toContain("list_business_reviews");
     expect(names).not.toContain("send_business_review_reply");
     expect(names).toContain("list_play_reviews");

@@ -34,31 +34,61 @@ export function LocationsPage() {
         title="Locations"
         sub={`${list.length} location${list.length === 1 ? "" : "s"} on Google. New reviews sync every 30 minutes.`}
         actions={
-          <button
-            type="button"
-            className="rp-btn-light"
-            style={{ padding: "8px 14px" }}
-            disabled={sync.isPending}
-            onClick={() =>
-              sync.mutate(undefined, {
-                onSuccess: (r) =>
-                  toast(
-                    r.error
-                      ? r.error
-                      : `Synced ${r.synced} location${r.synced === 1 ? "" : "s"}${r.added + r.restored ? ` · ${r.added + r.restored} new` : ""}`,
-                  ),
-                onError: (err) => toast(errorMessage(err)),
-              })
-            }
-          >
-            {sync.isPending ? <Spinner size={11} dark /> : null}
-            Sync now
-          </button>
+          <>
+            <Link href="/business/create" className="rp-btn" style={{ padding: "8px 14px" }}>
+              Create a profile
+            </Link>
+            <button
+              type="button"
+              className="rp-btn-light"
+              style={{ padding: "8px 14px" }}
+              disabled={sync.isPending}
+              onClick={() =>
+                sync.mutate(undefined, {
+                  onSuccess: (r) =>
+                    toast(
+                      r.error
+                        ? r.error
+                        : `Synced ${r.synced} location${r.synced === 1 ? "" : "s"}${r.added + r.restored ? ` · ${r.added + r.restored} new` : ""}`,
+                    ),
+                  onError: (err) => toast(errorMessage(err)),
+                })
+              }
+            >
+              {sync.isPending ? <Spinner size={11} dark /> : null}
+              Sync now
+            </button>
+          </>
         }
       />
       {locations.error ? <Banner tone="error">{errorMessage(locations.error)}</Banner> : null}
       {locations.isPending ? (
         <Skel h={200} />
+      ) : !list.length ? (
+        <div
+          className="rp-card"
+          style={{
+            padding: 28,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontWeight: 600, fontSize: 15 }}>No locations yet</span>
+          <span style={{ fontSize: 13.5, color: MUTED, maxWidth: 560 }}>
+            This Google account doesn’t manage a Business Profile yet. Create one here, or claim
+            your business if it’s already on Google Maps.
+          </span>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/business/create" className="rp-btn" style={{ padding: "9px 16px" }}>
+              Create a Business Profile
+            </Link>
+            <Link href="/business/connect" className="rp-btn-light" style={{ padding: "9px 16px" }}>
+              Use another Google account
+            </Link>
+          </div>
+        </div>
       ) : (
         <div
           style={{
@@ -69,7 +99,9 @@ export function LocationsPage() {
         >
           {list.map((l) => {
             const label = MODE_LABEL[l.mode];
-            const [bg, fg] = MODE_STYLE[label] ?? ["#EFEDE8", "#55534E"];
+            const [bg, fg] = l.verified
+              ? (MODE_STYLE[label] ?? ["#EFEDE8", "#55534E"])
+              : ["#FBF3E2", "#8A5A00"];
             return (
               <Link
                 key={l.id}
@@ -127,7 +159,7 @@ export function LocationsPage() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {label}
+                    {l.verified ? label : "Unverified"}
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
@@ -147,7 +179,11 @@ export function LocationsPage() {
                 <span style={{ fontSize: 12, color: l.syncError ? "#B42318" : MUTED }}>
                   {l.syncError ??
                     (l.pauseReason ? "Safety pause is on" : `Synced ${ago(l.lastSyncedAt)}`)}
-                  {!l.verified ? " · Not verified on Google" : ""}
+                  {!l.verified
+                    ? l.verificationState === "pending"
+                      ? " · Waiting for your Google code"
+                      : " · Finish verification on Google"
+                    : ""}
                 </span>
               </Link>
             );

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -313,6 +314,33 @@ export function BusinessConnectPage() {
           <div style={{ height: 220 }}>
             <ProfileArt />
           </div>
+        </div>
+      )}
+      {loading ? null : (
+        <div
+          className="rp-card"
+          style={{
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 14,
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: "1 1 280px" }}>
+            <span style={{ fontWeight: 500, fontSize: 13.5 }}>Business not on Google yet?</span>
+            <span style={{ fontSize: 12.5, color: "#6C6962" }}>
+              {connected
+                ? "Create a Business Profile from TreeVook. We check Maps first so you can claim an existing listing instead of making a duplicate."
+                : "Sign in with Google above, then create a Business Profile from TreeVook."}
+            </span>
+          </span>
+          {connected ? (
+            <Link href="/business/create" className="rp-btn-light" style={{ padding: "9px 14px" }}>
+              Create a Business Profile
+            </Link>
+          ) : null}
         </div>
       )}
     </div>

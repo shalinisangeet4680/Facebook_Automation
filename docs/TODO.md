@@ -79,8 +79,8 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 ## 6. Google Business: later features
 
-- [ ] Create and verify new Business Profiles for users (search first, claim existing, verification flow).
-- [ ] MCP end-to-end test for the Google Business tools.
+- [x] Create and verify new Business Profiles for users (search first, claim existing, verification flow).
+- [x] MCP end-to-end test for the Google Business tools.
 
 ## 7. Platform cleanup
 

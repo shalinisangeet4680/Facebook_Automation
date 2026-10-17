@@ -1876,6 +1876,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/business/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessProfilesController_accounts_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/accounts/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessProfilesController_createGroup_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/google/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessProfilesController_categories_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/google/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessProfilesController_search_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/profiles/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessProfilesController_validate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessProfilesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessProfilesController_verification_v1"];
+        put?: never;
+        post: operations["BusinessProfilesController_startVerification_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/verification/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessProfilesController_verificationOptions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/verification/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessProfilesController_completeVerification_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3344,6 +3488,10 @@ export interface components {
         GbpLocationDto: {
             /** @enum {string} */
             mode: "auto" | "approval" | "manual" | "mixed";
+            /** @enum {string} */
+            verificationState: "verified" | "unverified" | "pending" | "failed";
+            /** @enum {string|null} */
+            verificationMethod: "SMS" | "PHONE_CALL" | "EMAIL" | "ADDRESS" | "AUTO" | "VETTED_PARTNER" | null;
             id: string;
             title: string;
             address: string | null;
@@ -3354,6 +3502,7 @@ export interface components {
             needsReply: number;
             waiting: number;
             verified: boolean;
+            createdInApp: boolean;
             mapsUri: string | null;
             newReviewUri: string | null;
             connectionId: string;
@@ -3380,6 +3529,10 @@ export interface components {
             postalCode: string;
             country: string;
         };
+        ServiceAreaViewDto: {
+            regionCode: string;
+            places: string[];
+        };
         OpeningPeriodViewDto: {
             /** @enum {string} */
             day: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
@@ -3392,6 +3545,7 @@ export interface components {
             phone: string | null;
             website: string | null;
             address: components["schemas"]["BusinessAddressDto"] | null;
+            serviceArea?: components["schemas"]["ServiceAreaViewDto"] | null;
             primaryCategory: string | null;
             additionalCategories: string[];
             hours: components["schemas"]["OpeningPeriodViewDto"][];
@@ -3427,6 +3581,10 @@ export interface components {
         GbpLocationDetailDto: {
             /** @enum {string} */
             mode: "auto" | "approval" | "manual" | "mixed";
+            /** @enum {string} */
+            verificationState: "verified" | "unverified" | "pending" | "failed";
+            /** @enum {string|null} */
+            verificationMethod: "SMS" | "PHONE_CALL" | "EMAIL" | "ADDRESS" | "AUTO" | "VETTED_PARTNER" | null;
             id: string;
             title: string;
             address: string | null;
@@ -3437,6 +3595,7 @@ export interface components {
             needsReply: number;
             waiting: number;
             verified: boolean;
+            createdInApp: boolean;
             mapsUri: string | null;
             newReviewUri: string | null;
             connectionId: string;
@@ -3793,6 +3952,131 @@ export interface components {
             /** @enum {string} */
             when: "now" | "schedule" | "draft";
             scheduledAt?: string | null;
+        };
+        GbpAccountDto: {
+            connectionId: string;
+            email: string;
+            account: string;
+            name: string;
+            type: string;
+        };
+        GbpAccountListDto: {
+            data: components["schemas"]["GbpAccountDto"][];
+        };
+        CreateGroupDto: {
+            /** Format: uuid */
+            connectionId: string;
+            name: string;
+        };
+        GbpCategoryDto: {
+            name: string;
+            displayName: string;
+        };
+        GbpCategoryListDto: {
+            data: components["schemas"]["GbpCategoryDto"][];
+        };
+        GoogleSearchDto: {
+            query: string;
+            address?: string | null;
+            phone?: string | null;
+            regionCode?: string;
+        };
+        GoogleMatchDto: {
+            name: string;
+            title: string;
+            address: string | null;
+            phone: string | null;
+            category: string | null;
+            placeId: string | null;
+            mapsUri: string | null;
+            requestAdminRightsUri: string | null;
+            locationId: string | null;
+        };
+        GoogleMatchListDto: {
+            data: components["schemas"]["GoogleMatchDto"][];
+        };
+        CategoryDto: {
+            name: string;
+            displayName: string;
+        };
+        NewAddressDto: {
+            lines: string[];
+            locality: string;
+            region: string;
+            postalCode: string;
+            country: string;
+        };
+        ServiceAreaDto: {
+            regionCode: string;
+            places: string[];
+        };
+        NewBusinessDto: {
+            title: string;
+            primaryCategory: components["schemas"]["CategoryDto"] | null;
+            additionalCategories?: components["schemas"]["CategoryDto"][];
+            phone?: string | null;
+            website?: string | null;
+            description?: string | null;
+            address?: components["schemas"]["NewAddressDto"] | null;
+            serviceArea?: components["schemas"]["ServiceAreaDto"] | null;
+            hours?: components["schemas"]["OpeningPeriodDto"][];
+        };
+        CreateProfileDto: {
+            /** Format: uuid */
+            connectionId?: string | null;
+            account?: string | null;
+            business: components["schemas"]["NewBusinessDto"];
+            /** Format: uuid */
+            requestId?: string;
+        };
+        ProfileValidationDto: {
+            valid: boolean;
+            problems: string[];
+            summary: string[];
+        };
+        VerificationStatusDto: {
+            /** @enum {string} */
+            state: "verified" | "unverified" | "pending" | "failed";
+            /** @enum {string|null} */
+            method: "SMS" | "PHONE_CALL" | "EMAIL" | "ADDRESS" | "AUTO" | "VETTED_PARTNER" | null;
+            locationId: string;
+            title: string;
+            verified: boolean;
+            methodLabel: string | null;
+            target: string | null;
+            startedAt: string | null;
+            needsCode: boolean;
+            waitingForGoogle: boolean;
+            ownershipConflict: boolean;
+            guidelinesIssue: string | null;
+            note: string;
+            error: string | null;
+            manageUrl: string;
+        };
+        VerificationOptionDto: {
+            /** @enum {string} */
+            method: "SMS" | "PHONE_CALL" | "EMAIL" | "ADDRESS" | "AUTO" | "VETTED_PARTNER";
+            label: string;
+            needsCode: boolean;
+            phone: string | null;
+            email: string | null;
+            emailEditable: boolean;
+            address: string | null;
+            contactName: string | null;
+            deliveryDays: number | null;
+        };
+        VerificationOptionListDto: {
+            data: components["schemas"]["VerificationOptionDto"][];
+            manageUrl: string;
+        };
+        StartVerificationDto: {
+            /** @enum {string} */
+            method: "SMS" | "PHONE_CALL" | "EMAIL" | "ADDRESS" | "AUTO" | "VETTED_PARTNER";
+            email?: string | null;
+            contactName?: string | null;
+        };
+        CompleteVerificationDto: {
+            code: string;
         };
     };
     responses: never;
@@ -8188,6 +8472,312 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_accounts_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpAccountListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_createGroup_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGroupDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpAccountDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_categories_v1: {
+        parameters: {
+            query?: {
+                q?: string;
+                region?: string;
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpCategoryListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_search_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleSearchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleMatchListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_validate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileValidationDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProfileDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpLocationDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_verification_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationStatusDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_startVerification_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartVerificationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationStatusDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_verificationOptions_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationOptionListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessProfilesController_completeVerification_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteVerificationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationStatusDto"];
+                };
             };
             default: {
                 headers: {

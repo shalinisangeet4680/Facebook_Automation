@@ -29,6 +29,7 @@ import { PlayInboxService } from "@modules/play/application/play-inbox.service";
 import { PlayWorkspaceService } from "@modules/play/application/play-workspace.service";
 import { PlayAgentService } from "@modules/play/application/play-agent.service";
 import { StoreService } from "@modules/store/application/store.service";
+import { BusinessProfilesService } from "@modules/business/application/business-profiles.service";
 import { BusinessReviewsService } from "@modules/business/application/business-reviews.service";
 import { BusinessService } from "@modules/business/application/business.service";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
@@ -98,6 +99,7 @@ export class McpServerFactory {
     private readonly playAgent: PlayAgentService,
     private readonly business: BusinessService,
     private readonly businessReviews: BusinessReviewsService,
+    private readonly businessProfiles: BusinessProfilesService,
     private readonly workspaceAi: WorkspaceAiService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
@@ -1482,6 +1484,7 @@ export class McpServerFactory {
     return {
       business: this.business,
       reviews: this.businessReviews,
+      profiles: this.businessProfiles,
       workspaceAi: this.workspaceAi,
       config: this.config,
     };
