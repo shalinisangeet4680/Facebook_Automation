@@ -84,9 +84,9 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 ## 7. Platform cleanup
 
-- [ ] Move workspace AI and Slack settings from the Play Reviews MCP page into the main Settings page (shared by every product).
+- [x] Move workspace AI and Slack settings from the Play Reviews MCP page into the main Settings page (shared by every product).
 - [ ] Unify reply templates (`play_templates` and `gbp_templates`) in the shared engine.
 - [ ] Rename internal `replyly` folders and route group to `play-reviews`.
-- [ ] Compute hero card positions from live heights instead of measured constants.
-- [ ] One AI draft quota across products (each product counts separately today).
+- [x] Compute hero card positions from live heights instead of measured constants.
+- [x] One AI draft quota across products (each product counts separately today).
 - [ ] Pricing and billing before early access ends (30 days' notice promised on the site).
