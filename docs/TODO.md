@@ -5,10 +5,11 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 ## 1. Before real users can sign up
 
 - [ ] Send sign-in codes by SMS. Today codes are only written to the server log (`LogOtpSender`). Pick a provider (MSG91, Twilio or Firebase) and add its sender.
-- [ ] Privacy Policy page (`/privacy`): Google Limited Use sentence, Meta data use, AI processing, deletion.
-- [ ] Terms of Service page (`/terms`).
-- [ ] Data deletion page or URL (needed for Meta App Review).
-- [ ] Link Privacy, Terms and Contact from the landing page footer and the sign-in page.
+- [x] Privacy Policy page (`/privacy`): Google Limited Use sentence, Meta data use, AI processing, deletion.
+- [x] Terms of Service page (`/terms`).
+- [x] Data deletion page or URL (needed for Meta App Review).
+- [x] Link Privacy, Terms and Contact from the landing page footer and the sign-in page.
+- [ ] **You:** fill in the registered office address, Grievance Officer name and court city in `web/src/features/legal/legal-page.tsx` (`LEGAL`), and have a lawyer review the three pages.
 - [ ] Check the landing page at phone width (the stacked layout below 1100px is untested).
 - [ ] **You:** email on the domain (e.g. hello@treevook.com) and verify treevook.com in Google Search Console.
 - [ ] Deploy to treevook.com:

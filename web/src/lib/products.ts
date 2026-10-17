@@ -32,7 +32,9 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-export const SHARED_PATHS = ["/login", "/oauth", "/claude", "/settings", "/kit"];
+export const PUBLIC_PATHS = ["/privacy", "/terms", "/data-deletion"];
+
+export const SHARED_PATHS = ["/login", "/oauth", "/claude", "/settings", "/kit", ...PUBLIC_PATHS];
 
 const under = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);
@@ -45,6 +47,10 @@ export function productForHost(host: string | null): Product | null {
 
 export function productForPath(pathname: string): Product | null {
   return PRODUCTS.find((p) => p.paths.some((base) => under(pathname, base))) ?? null;
+}
+
+export function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((base) => under(pathname, base));
 }
 
 export function isSharedPath(pathname: string): boolean {

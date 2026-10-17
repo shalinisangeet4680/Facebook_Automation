@@ -21,10 +21,11 @@ import {
   Target,
   ThumbsUp,
 } from "lucide-react";
-import { Instrument_Serif } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { landingSerif } from "./font";
+import { SiteFooter, SiteHeader } from "./site-chrome";
 import {
   ApproveArt,
   BusinessScene,
@@ -34,18 +35,10 @@ import {
   GuardArt,
   HeroStage,
   LockArt,
-  Mark,
   MetaScene,
   PlayScene,
   ReleasesScene,
 } from "./scenes";
-
-const serif = Instrument_Serif({
-  weight: "400",
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-  variable: "--font-instrument",
-});
 
 interface Feature {
   icon: LucideIcon;
@@ -116,34 +109,8 @@ function Product({
 
 export function LandingPage() {
   return (
-    <div className={`tv-page ${serif.variable}`}>
-      <header className={"tv-nav"}>
-        <div className={`tv-wrap tv-navIn`}>
-          <Link href="/" className={"tv-brand"} aria-label="TreeVook AI home">
-            <span className={"tv-mark"}>
-              <Mark />
-            </span>
-            <span>
-              TreeVook <span>AI</span>
-            </span>
-          </Link>
-          <nav className={"tv-links"} aria-label="Products">
-            <a href="#google-business">Google Business</a>
-            <a href="#instagram">Instagram</a>
-            <a href="#facebook">Facebook</a>
-            <a href="#play-reviews">Play Reviews</a>
-            <a href="#meta-ads">Meta Ads</a>
-          </nav>
-          <div className={"tv-navCta"}>
-            <Link href="/login" className={"tv-btnGhost"}>
-              Sign in
-            </Link>
-            <Link href="/login" className={"tv-btn"}>
-              Get started
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className={`tv-page ${landingSerif.variable}`}>
+      <SiteHeader />
 
       <main>
         <section className={`tv-hero tv-wrap`}>
@@ -467,22 +434,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className={`tv-wrap tv-footer`}>
-        <span className={"tv-brand"} style={{ fontSize: 14 }}>
-          <span className={"tv-mark"} style={{ width: 24, height: 24, borderRadius: 7 }}>
-            <Mark size={14} />
-          </span>
-          © 2026 TreeVook LLP · Made in India
-        </span>
-        <nav aria-label="Footer">
-          <a href="#google-business">Google Business</a>
-          <a href="#instagram">Instagram</a>
-          <a href="#facebook">Facebook</a>
-          <a href="#play-reviews">Play Reviews</a>
-          <a href="#meta-ads">Meta Ads</a>
-          <a href="mailto:treevookllp@gmail.com">Contact</a>
-        </nav>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

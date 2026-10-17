@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isSharedPath, productForHost, productForPath } from "@/lib/products";
+import { isPublicPath, isSharedPath, productForHost, productForPath } from "@/lib/products";
 
 const SESSION_HINT = "has_session";
 
@@ -33,7 +33,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  if (pathname === "/" && !product) return NextResponse.next();
+  if ((pathname === "/" && !product) || isPublicPath(pathname)) return NextResponse.next();
 
   if (pathname === "/login") {
     if (signedIn && !searchParams.has("expired")) {

@@ -1950,3 +1950,154 @@
     animation: none;
   }
 }
+
+.tv-legal {
+  padding-top: 56px;
+  padding-bottom: 40px;
+  max-width: 1040px;
+}
+
+.tv-legalHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tv-legalSummary {
+  margin-top: 28px;
+  padding: 20px 22px;
+  background: var(--green-soft);
+  border-color: transparent;
+}
+
+.tv-legalSummary strong {
+  font-size: 14px;
+  color: var(--green);
+}
+
+.tv-legalSummary ul {
+  list-style: disc;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.tv-legalGrid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 48px;
+  margin-top: 40px;
+  align-items: start;
+}
+
+.tv-legalToc {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tv-legalToc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+}
+
+.tv-legalToc a {
+  display: block;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.tv-legalToc a:hover {
+  color: var(--ink);
+  background: var(--soft);
+}
+
+.tv-legalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  max-width: 68ch;
+}
+
+.tv-legalBody section {
+  scroll-margin-top: 84px;
+}
+
+.tv-legalBody h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.tv-legalBody h2 .tv-mono {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tv-legalBody h3 {
+  margin: 18px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tv-legalBody p,
+.tv-legalBody li {
+  color: #33322f;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.tv-legalBody p {
+  margin: 0 0 10px;
+}
+
+.tv-legalBody ul {
+  list-style: disc;
+  margin: 0 0 10px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tv-legalBody a {
+  color: var(--green);
+}
+
+.tv-legalBody blockquote {
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--green);
+  background: #fff;
+  border-radius: 0 10px 10px 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .tv-legalGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .tv-legalToc {
+    position: static;
+  }
+}

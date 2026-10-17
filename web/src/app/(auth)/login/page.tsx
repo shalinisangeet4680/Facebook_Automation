@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { BrandPanel } from "@/features/auth/brand-panel";
@@ -17,7 +18,15 @@ export default function LoginPage() {
           </Suspense>
         </div>
         <p className="text-caption text-subtle px-6 pb-8 text-center">
-          By continuing you agree to the Terms of Service and Privacy Policy.
+          By continuing you agree to the{" "}
+          <Link href="/terms" className="text-foreground underline underline-offset-2">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-foreground underline underline-offset-2">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </main>
