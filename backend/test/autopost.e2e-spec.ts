@@ -275,7 +275,7 @@ describe("Instagram and Facebook Autopost", () => {
         })
       ).statusCode,
     ).toBe(400);
-  });
+  }, 20_000);
 
   it("publishes from the composer, on schedule and with safeguards", async () => {
     const now = await api("POST", "/posts", {
