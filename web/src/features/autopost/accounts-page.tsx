@@ -527,6 +527,12 @@ export function AccountsPage({ platform }: { platform: SocialPlatform }) {
           Continue with Instagram
         </button>
       ) : null}
+      {status.data?.facebookLogin === false &&
+      (platform === "facebook" || status.data?.instagramLogin === false) ? (
+        <span style={{ fontSize: 12, color: MUTED, flexBasis: "100%" }}>
+          Meta sign-in isn’t set up on this server yet.
+        </span>
+      ) : null}
     </span>
   );
 
