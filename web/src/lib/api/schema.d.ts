@@ -1396,6 +1396,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play-releases/apps/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayReleasesController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/rollout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayReleasesController_rollout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayReleasesController_promote_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PlayReleasesController_saveNotes_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/notes/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayReleasesController_draftNotes_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/guardian": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayReleasesController_guardianSettings_v1"];
+        put: operations["PlayReleasesController_updateGuardian_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/guardian/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayReleasesController_checkGuardian_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayReleasesController_health_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayReleasesController_issues_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/issues/{issueId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlayReleasesController_issue_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play-releases/apps/{id}/issues/{issueId}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlayReleasesController_explain_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/business/status": {
         parameters: {
             query?: never;
@@ -3262,6 +3438,215 @@ export interface components {
         };
         ReplaceRulesDto: {
             rules: components["schemas"]["RuleDto"][];
+        };
+        ReleasesAppDto: {
+            id: string;
+            title: string;
+            packageName: string;
+            iconUrl: string | null;
+        };
+        ReleaseNoteViewDto: {
+            language: string;
+            text: string;
+        };
+        ReleaseViewDto: {
+            /** @enum {string} */
+            status: "draft" | "inProgress" | "halted" | "completed";
+            name: string | null;
+            versionCodes: string[];
+            userFraction: number | null;
+            rolloutPercent: number | null;
+            notes: components["schemas"]["ReleaseNoteViewDto"][];
+        };
+        TrackViewDto: {
+            /** @enum {string} */
+            kind: "production" | "testing" | "custom";
+            track: string;
+            label: string;
+            releases: components["schemas"]["ReleaseViewDto"][];
+        };
+        GuardianDefaultsDto: {
+            maxCrashRate: number;
+            maxAnrRate: number;
+            minUsers: number;
+        };
+        GuardianViewDto: {
+            /** @enum {string|null} */
+            lastStatus: "ok" | "waiting" | "halted" | "idle" | "error" | null;
+            enabled: boolean;
+            maxCrashRate: number;
+            maxAnrRate: number;
+            minUsers: number;
+            defaults: components["schemas"]["GuardianDefaultsDto"];
+            ignoredVersion: string | null;
+            lastCheckedAt: string | null;
+            lastMessage: string | null;
+        };
+        ReleaseEventDto: {
+            /** @enum {string} */
+            actor: "user" | "claude" | "guardian";
+            id: string;
+            kind: string;
+            track: string;
+            versionCodes: string[];
+            message: string;
+            createdAt: string;
+        };
+        ReleasesOverviewDto: {
+            app: components["schemas"]["ReleasesAppDto"];
+            tracks: components["schemas"]["TrackViewDto"][];
+            languages: string[];
+            noteMax: number;
+            guardian: components["schemas"]["GuardianViewDto"];
+            events: components["schemas"]["ReleaseEventDto"][];
+        };
+        RolloutDto: {
+            track: string;
+            /** @enum {string} */
+            action: "increase" | "halt" | "resume" | "complete";
+            fraction?: number;
+        };
+        TrackChangeDto: {
+            summary: string;
+            track: components["schemas"]["TrackViewDto"];
+        };
+        PromoteDto: {
+            fromTrack: string;
+            toTrack: string;
+            versionCodes?: string[];
+            /** @enum {string} */
+            mode: "completed" | "staged" | "draft";
+            fraction?: number;
+        };
+        ReleaseNoteDto: {
+            language: string;
+            text: string;
+        };
+        SaveNotesDto: {
+            track: string;
+            versionCode: string;
+            notes: components["schemas"]["ReleaseNoteDto"][];
+        };
+        DraftNotesDto: {
+            changelog: string;
+            versionName?: string;
+            languages?: string[];
+        };
+        DraftedNoteDto: {
+            language: string;
+            text: string;
+            length: number;
+        };
+        DraftedNotesDto: {
+            languages: string[];
+            noteMax: number;
+            notes: components["schemas"]["DraftedNoteDto"][];
+        };
+        GuardianDto: {
+            enabled?: boolean;
+            maxCrashRate?: number;
+            maxAnrRate?: number;
+            minUsers?: number;
+        };
+        GuardianCheckDto: {
+            /** @enum {string|null} */
+            lastStatus: "ok" | "waiting" | "halted" | "idle" | "error" | null;
+            enabled: boolean;
+            maxCrashRate: number;
+            maxAnrRate: number;
+            minUsers: number;
+            defaults: components["schemas"]["GuardianDefaultsDto"];
+            ignoredVersion: string | null;
+            lastCheckedAt: string | null;
+            lastMessage: string | null;
+            halted: string[];
+        };
+        HealthAppDto: {
+            id: string;
+            title: string;
+            packageName: string;
+        };
+        ThresholdsDto: {
+            crash: number;
+            anr: number;
+            googleCrash: number;
+            googleAnr: number;
+        };
+        RatePointDto: {
+            day: string;
+            users: number;
+            rate: number | null;
+        };
+        VersionHealthDto: {
+            versionCode: string;
+            name: string | null;
+            crashRate: number | null;
+            anrRate: number | null;
+            users: number;
+            overCrash: boolean;
+            overAnr: boolean;
+        };
+        ActiveRolloutDto: {
+            /** @enum {string} */
+            status: "draft" | "inProgress" | "halted" | "completed";
+            track: string;
+            label: string;
+            versionCodes: string[];
+            name: string | null;
+            rolloutPercent: number | null;
+        };
+        AppHealthDto: {
+            app: components["schemas"]["HealthAppDto"];
+            days: number;
+            thresholds: components["schemas"]["ThresholdsDto"];
+            crash: components["schemas"]["RatePointDto"][];
+            anr: components["schemas"]["RatePointDto"][];
+            versions: components["schemas"]["VersionHealthDto"][];
+            rollouts: components["schemas"]["ActiveRolloutDto"][];
+            guardian: components["schemas"]["GuardianViewDto"];
+        };
+        ErrorIssueDto: {
+            /** @enum {string} */
+            type: "CRASH" | "ANR";
+            id: string;
+            cause: string;
+            location: string;
+            reports: number;
+            users: number;
+            firstVersionCode: string | null;
+            lastVersionCode: string | null;
+            issueUri: string | null;
+        };
+        ErrorIssueListDto: {
+            data: components["schemas"]["ErrorIssueDto"][];
+        };
+        ErrorReportDto: {
+            /** @enum {string} */
+            type: "CRASH" | "ANR";
+            id: string;
+            reportText: string;
+            eventTime: string;
+            device: string | null;
+            androidVersion: number | null;
+            versionCode: string | null;
+        };
+        CountDto: {
+            value: string;
+            count: number;
+        };
+        ErrorIssueDetailDto: {
+            issue: components["schemas"]["ErrorIssueDto"];
+            reports: components["schemas"]["ErrorReportDto"][];
+            devices: components["schemas"]["CountDto"][];
+            androidVersions: components["schemas"]["CountDto"][];
+            files: string[];
+        };
+        CrashExplanationDto: {
+            issueId: string;
+            summary: string;
+            cause: string;
+            fix: string;
+            files: string[];
         };
         BusinessStatusDto: {
             configured: boolean;
@@ -6949,6 +7334,380 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayRuleListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_overview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleasesOverviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_rollout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolloutDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_promote_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_saveNotes_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveNotesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_draftNotes_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftNotesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftedNotesDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_guardianSettings_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianViewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_updateGuardian_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianViewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_checkGuardian_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianCheckDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_health_v1: {
+        parameters: {
+            query?: {
+                days?: 7 | 14 | 28;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppHealthDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_issues_v1: {
+        parameters: {
+            query?: {
+                type?: "CRASH" | "ANR";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorIssueListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_issue_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorIssueDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlayReleasesController_explain_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrashExplanationDto"];
                 };
             };
             default: {
