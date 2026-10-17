@@ -2,6 +2,9 @@ import {
   ArrowRight,
   BarChart3,
   Bot,
+  CalendarDays,
+  GalleryHorizontalEnd,
+  MessageCircleReply,
   CalendarClock,
   Clock3,
   Gauge,
@@ -26,6 +29,8 @@ import {
   ApproveArt,
   BusinessScene,
   ClaudeScene,
+  FacebookScene,
+  InstagramScene,
   GuardArt,
   HeroStage,
   LockArt,
@@ -59,6 +64,7 @@ function Product({
   scene,
   flip,
   href,
+  soon,
 }: {
   id: string;
   color: string;
@@ -70,6 +76,7 @@ function Product({
   scene: ReactNode;
   flip?: boolean;
   href: string;
+  soon?: boolean;
 }) {
   return (
     <section id={id} className={"tv-section"} aria-labelledby={`${id}-title`}>
@@ -78,6 +85,7 @@ function Product({
           <span className={"tv-eyebrow"}>
             <span className={"tv-eyebrowDot"} style={{ background: color }} />
             {name}
+            {soon ? <span className="tv-soon">Coming soon</span> : null}
           </span>
           <h2 id={`${id}-title`} className={"tv-h2"}>
             {title}
@@ -97,7 +105,7 @@ function Product({
             ))}
           </ul>
           <Link href={href} className={"tv-more"}>
-            Try {name} <ArrowRight size={14} />
+            {soon ? "Join early access" : `Try ${name}`} <ArrowRight size={14} />
           </Link>
         </div>
         {scene}
@@ -121,9 +129,10 @@ export function LandingPage() {
           </Link>
           <nav className={"tv-links"} aria-label="Products">
             <a href="#google-business">Google Business</a>
+            <a href="#instagram">Instagram</a>
+            <a href="#facebook">Facebook</a>
             <a href="#play-reviews">Play Reviews</a>
             <a href="#meta-ads">Meta Ads</a>
-            <a href="#claude">Claude</a>
           </nav>
           <div className={"tv-navCta"}>
             <Link href="/login" className={"tv-btnGhost"}>
@@ -195,6 +204,75 @@ export function LandingPage() {
             },
           ]}
           scene={<BusinessScene />}
+        />
+
+        <Product
+          id="instagram"
+          flip
+          soon
+          color="#C2185B"
+          soft="#FBEFF6"
+          name="Instagram Autopost"
+          href="/login"
+          title={
+            <>
+              A week of Instagram posts, <em>ready on Monday.</em>
+            </>
+          }
+          sub="AI plans, writes and designs your posts. You approve, or let it post."
+          features={[
+            {
+              icon: CalendarDays,
+              title: "AI content calendar",
+              text: "Offers, tips and festivals planned",
+            },
+            {
+              icon: GalleryHorizontalEnd,
+              title: "Posts, carousels, Reels, Stories",
+              text: "Captions, hashtags and visuals",
+            },
+            {
+              icon: SlidersHorizontal,
+              title: "Auto or approval",
+              text: "The same rules you trust for reviews",
+            },
+            {
+              icon: Clock3,
+              title: "Best time & insights",
+              text: "Reach, saves and follower growth",
+            },
+          ]}
+          scene={<InstagramScene />}
+        />
+
+        <Product
+          id="facebook"
+          soon
+          color="#2D5BD7"
+          soft="#EEF2FD"
+          name="Facebook Autopost"
+          href="/login"
+          title={
+            <>
+              Your Page posts and replies, <em>on autopilot.</em>
+            </>
+          }
+          sub="Regular posts in your voice, and quick answers to every comment."
+          features={[
+            {
+              icon: Megaphone,
+              title: "Posts on schedule",
+              text: "Offers, events and updates, written for you",
+            },
+            {
+              icon: MessageCircleReply,
+              title: "Comment replies",
+              text: "AI answers questions; complaints wait for you",
+            },
+            { icon: Clock3, title: "Best time to post", text: "Learned from your own audience" },
+            { icon: BarChart3, title: "Page insights", text: "Reach, reactions and shares" },
+          ]}
+          scene={<FacebookScene />}
         />
 
         <Product
@@ -398,6 +476,8 @@ export function LandingPage() {
         </span>
         <nav aria-label="Footer">
           <a href="#google-business">Google Business</a>
+          <a href="#instagram">Instagram</a>
+          <a href="#facebook">Facebook</a>
           <a href="#play-reviews">Play Reviews</a>
           <a href="#meta-ads">Meta Ads</a>
           <a href="mailto:treevookllp@gmail.com">Contact</a>

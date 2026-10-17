@@ -1,4 +1,19 @@
-import { ArrowDown, Check, Lock, MoonStar, PauseCircle, Sparkles, TrendingUp } from "lucide-react";
+import {
+  ArrowDown,
+  Bookmark,
+  Check,
+  Clapperboard,
+  GalleryHorizontalEnd,
+  Heart,
+  Lock,
+  MessageCircle,
+  MoonStar,
+  PauseCircle,
+  Send,
+  Sparkles,
+  ThumbsUp,
+  TrendingUp,
+} from "lucide-react";
 
 export function Mark({ size = 18 }: { size?: number }) {
   return (
@@ -438,5 +453,185 @@ export function LockArt() {
     >
       <Lock size={24} />
     </span>
+  );
+}
+
+const WEEK = [
+  { d: "Mon", bg: "linear-gradient(135deg,#F9D4E4,#E9C8F5)", kind: "post", ok: true },
+  { d: "Tue", bg: "linear-gradient(135deg,#FFE3C2,#FBC7A8)", kind: "reel", ok: true },
+  { d: "Wed", bg: "linear-gradient(135deg,#D6E8FF,#C9D7FB)", kind: "carousel", ok: false },
+  { d: "Thu", bg: "linear-gradient(135deg,#FDE7A6,#F7C873)", kind: "post", ok: true },
+  { d: "Fri", bg: "linear-gradient(135deg,#D7F0E2,#B9E2CC)", kind: "story", ok: true },
+  { d: "Sat", bg: "linear-gradient(135deg,#F5D0D0,#EFB8C8)", kind: "reel", ok: false },
+  { d: "Sun", bg: "linear-gradient(135deg,#E6E1F7,#D3CBF2)", kind: "post", ok: true },
+] as const;
+
+function KindIcon({ kind }: { kind: (typeof WEEK)[number]["kind"] }) {
+  if (kind === "reel") return <Clapperboard size={12} />;
+  if (kind === "carousel") return <GalleryHorizontalEnd size={12} />;
+  if (kind === "story")
+    return (
+      <span
+        style={{ width: 11, height: 11, borderRadius: "50%", border: "1.6px dashed currentColor" }}
+      />
+    );
+  return null;
+}
+
+export function InstagramScene() {
+  return (
+    <div className="tv-scene" style={{ background: "#FBEFF6" }} aria-hidden>
+      <div className="tv-sceneGrid" style={{ maxWidth: 500 }}>
+        <div
+          className="tv-card tv-shadow tv-pos"
+          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}
+        >
+          <span className="tv-step">1</span>
+          <span className="tv-row">
+            <span className="tv-name">This week · planned by AI</span>
+            <span className="tv-tag" style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
+              <Sparkles size={12} /> 7 posts
+            </span>
+          </span>
+          <div className="tv-week">
+            {WEEK.map((w) => (
+              <span key={w.d} className="tv-day">
+                <span className="tv-tiny">{w.d}</span>
+                <span className="tv-thumb" style={{ background: w.bg }}>
+                  <KindIcon kind={w.kind} />
+                </span>
+                <span className="tv-dot" style={{ background: w.ok ? "#0F6B4A" : "#C9A227" }} />
+              </span>
+            ))}
+          </div>
+          <span className="tv-tiny">
+            <span style={{ color: "#0F6B4A" }}>●</span> auto-post ·{" "}
+            <span style={{ color: "#C9A227" }}>●</span> waits for your OK
+          </span>
+        </div>
+        <div className="tv-split">
+          <div className="tv-card tv-shadow tv-pos tv-ig">
+            <span className="tv-step">2</span>
+            <span className="tv-who" style={{ padding: "10px 12px" }}>
+              <span className="tv-ring">
+                <span className="tv-avatar" style={{ width: 24, height: 24, fontSize: 10 }}>
+                  S
+                </span>
+              </span>
+              <span className="tv-name" style={{ fontSize: 12 }}>
+                sharmadental
+              </span>
+            </span>
+            <div className="tv-igImg">
+              <span className="tv-igText">
+                Diwali
+                <br />
+                smile offer
+              </span>
+              <span className="tv-igBadge">20% off</span>
+            </div>
+            <div className="tv-igActions">
+              <Heart size={16} />
+              <MessageCircle size={16} />
+              <Send size={16} />
+              <Bookmark size={16} style={{ marginLeft: "auto" }} />
+            </div>
+            <span className="tv-quote" style={{ padding: "0 12px 12px", fontSize: 12 }}>
+              Light up your smile this Diwali ✨{" "}
+              <span style={{ color: "#1C64B8" }}>#PatnaDentist</span>
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div
+              className="tv-card tv-shadow"
+              style={{ padding: 12, display: "flex", flexDirection: "column", gap: 4 }}
+            >
+              <span className="tv-tiny">Scheduled</span>
+              <span className="tv-name">Thu, 7:00 PM</span>
+              <span
+                className="tv-tag"
+                style={{ background: "#F1EDFC", color: "#6D4AD8", alignSelf: "flex-start" }}
+              >
+                Best time
+              </span>
+            </div>
+            <div
+              className="tv-card tv-shadow"
+              style={{ padding: 12, display: "flex", flexDirection: "column", gap: 4 }}
+            >
+              <span className="tv-row">
+                <span className="tv-tiny">Reach</span>
+                <TrendingUp size={14} color="#0F6B4A" />
+              </span>
+              <span className="tv-big">4.2k</span>
+              <span className="tv-tiny" style={{ color: "#0F6B4A" }}>
+                +38% this week
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FacebookScene() {
+  return (
+    <div className="tv-scene" style={{ background: "#EEF2FD" }} aria-hidden>
+      <div className="tv-sceneGrid">
+        <div className="tv-card tv-shadow tv-pos" style={{ overflow: "visible" }}>
+          <span className="tv-step">1</span>
+          <div className="tv-who" style={{ padding: "12px 14px 8px" }}>
+            <span className="tv-avatar" style={{ background: "#2D5BD7", color: "#fff" }}>
+              S
+            </span>
+            <span style={{ display: "flex", flexDirection: "column" }}>
+              <span className="tv-name">Sharma Dental Clinic</span>
+              <span className="tv-tiny">Posted by AI · Sun 9:00 AM</span>
+            </span>
+          </div>
+          <span className="tv-quote" style={{ padding: "0 14px 10px", display: "block" }}>
+            Free dental check-up camp this Sunday 🦷 Bring the family!
+          </span>
+          <div className="tv-fbImg">
+            <span>Free check-up camp</span>
+          </div>
+          <div className="tv-row" style={{ padding: "8px 14px", fontSize: 12, color: "#6C6962" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ThumbsUp size={13} color="#2D5BD7" /> 128
+            </span>
+            <span>14 comments · 9 shares</span>
+          </div>
+        </div>
+        <div className="tv-flowArrow">
+          <ArrowDown size={16} />
+        </div>
+        <div
+          className="tv-card tv-shadow tv-pos"
+          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}
+        >
+          <span className="tv-step">2</span>
+          <div className="tv-who" style={{ alignItems: "flex-start" }}>
+            <span className="tv-avatar">R</span>
+            <span className="tv-comment">
+              <span className="tv-name">Rohit</span>
+              What time does it start?
+            </span>
+          </div>
+          <div className="tv-draft">
+            <div className="tv-draftLabel">
+              <Sparkles size={12} /> AI reply
+            </div>
+            Hi Rohit! 9 AM to 1 PM at Fraser Road. See you there 😊
+          </div>
+          <div className="tv-row">
+            <span className="tv-tiny">Questions auto-reply · complaints wait</span>
+            <span className="tv-chipBtn">
+              <Check size={13} /> Approve
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
