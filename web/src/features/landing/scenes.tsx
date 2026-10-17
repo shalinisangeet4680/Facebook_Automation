@@ -59,15 +59,15 @@ function Review({
   );
 }
 
-const HUB = { x: 490, y: 320 };
+const HUB = { x: 490, y: 335 };
 
 const NODES = [
   { id: "g", side: "l", top: 0, color: "#0F6B4A" },
-  { id: "ig", side: "l", top: 276, color: "#C2185B" },
-  { id: "m", side: "l", top: 476, color: "#1C64B8" },
+  { id: "ig", side: "l", top: 290, color: "#C2185B" },
+  { id: "m", side: "l", top: 506, color: "#1C64B8" },
   { id: "p", side: "r", top: 0, color: "#E8590C" },
-  { id: "fb", side: "r", top: 318, color: "#2D5BD7" },
-  { id: "gp", side: "r", top: 524, color: "#0F6B4A" },
+  { id: "fb", side: "r", top: 364, color: "#2D5BD7" },
+  { id: "gp", side: "r", top: 566, color: "#0F6B4A" },
 ] as const;
 
 const anchor = (n: (typeof NODES)[number]) => ({
@@ -112,7 +112,7 @@ export function HeroStage() {
   const [g, ig, m, p, fb, gp] = NODES;
   return (
     <div className="tv-stage" aria-hidden>
-      <svg className="tv-wires" viewBox="0 0 980 640">
+      <svg className="tv-wires" viewBox="0 0 980 670">
         {NODES.map((n) => (
           <path key={n.id} id={`wire-${n.id}`} className="tv-wire" d={wire(n)} />
         ))}
@@ -180,27 +180,43 @@ export function HeroStage() {
       </Node>
       <Node node={p} label="Play Reviews">
         <span className="tv-nodeTitle">Auto-reply to app reviews</span>
-        <div className="tv-seq tv-seqReview">
-          <Review initial="R" name="Rahul V." stars={1} text="App crashes after login 😞" />
-        </div>
-        <div className="tv-seqSlot">
-          <span className="tv-seq tv-seqTyping">
-            <Sparkles size={12} /> AI is writing
-            <span className="tv-dots">
-              <i />
-              <i />
-              <i />
+        <div className="tv-play tv-seq tv-seqReview">
+          <div className="tv-playWho">
+            <span className="tv-playAvatar">R</span>
+            <span>Rahul Verma</span>
+          </div>
+          <div className="tv-playMeta">
+            <span className="tv-playStars">
+              ★<span>★★★★</span>
             </span>
-          </span>
-          <div className="tv-seq tv-seqReply tv-draft">
-            <div className="tv-draftLabel">
-              <Sparkles size={12} /> AI reply
+            24 July 2026
+          </div>
+          <p className="tv-playText">Can’t log in with Google, it keeps buffering</p>
+          <div className="tv-playHelpful">
+            Did you find this helpful?
+            <span>Yes</span>
+            <span>No</span>
+          </div>
+          <div className="tv-seqSlot">
+            <span className="tv-seq tv-seqTyping">
+              <Sparkles size={12} /> TreeVook AI is replying
+              <span className="tv-dots">
+                <i />
+                <i />
+                <i />
+              </span>
+            </span>
+            <div className="tv-seq tv-seqReply tv-playReply">
+              <div className="tv-playDev">
+                <span>Notes Pro</span>
+                <span>Just now</span>
+              </div>
+              Sorry Rahul! Google login is fixed in v3.4, please update.
             </div>
-            Sorry Rahul! It’s fixed in v3.4, please update.
           </div>
         </div>
         <span className="tv-seq tv-seqDone">
-          <Check size={13} /> Posted on Google Play · 2 min
+          <Check size={13} /> Live on Google Play
         </span>
       </Node>
       <Node node={fb} label="Facebook comment">
