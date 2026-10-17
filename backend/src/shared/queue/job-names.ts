@@ -6,6 +6,7 @@ export const JOBS = {
   RUN_RULES_ALL: "run-rules-all",
   PLAY_TICK: "play-tick",
   BUSINESS_TICK: "business-tick",
+  AUTOPOST_TICK: "autopost-tick",
 } as const;
 
 export interface WorkspaceJobData {

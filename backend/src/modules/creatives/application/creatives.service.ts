@@ -27,7 +27,7 @@ import { socialPosts } from "../../social/infrastructure/social.tables";
 import { CreativeRow, creatives } from "../infrastructure/creatives.tables";
 
 export interface CreativeActor {
-  userId: string;
+  userId: string | null;
   workspaceId: string;
   via: string;
 }

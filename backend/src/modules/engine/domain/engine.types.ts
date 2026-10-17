@@ -83,13 +83,14 @@ export type DelayKey = keyof typeof DELAYS;
 export const TONES = ["friendly", "professional", "concise"] as const;
 export type Tone = (typeof TONES)[number];
 
-export const CHANNELS = ["google_play", "google_business"] as const;
+export const CHANNELS = ["google_play", "google_business", "social"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 export const REPLY_LIMITS: Record<Channel, { max: number; platform: string }> =
   {
     google_play: { max: 350, platform: "Google Play" },
     google_business: { max: 4096, platform: "Google" },
+    social: { max: 2200, platform: "Instagram and Facebook" },
   };
 
 export const APP_TOPICS = [
@@ -127,7 +128,7 @@ export type Topic =
   (typeof APP_TOPICS)[number] | (typeof BUSINESS_TOPICS)[number];
 
 export function topicsFor(channel: Channel): readonly Topic[] {
-  return channel === "google_business" ? BUSINESS_TOPICS : APP_TOPICS;
+  return channel === "google_play" ? APP_TOPICS : BUSINESS_TOPICS;
 }
 
 export interface ReplySettings {
