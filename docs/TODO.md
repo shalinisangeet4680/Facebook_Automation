@@ -5,12 +5,8 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 ## 1. Before real users can sign up
 
 - [x] Sign in with Google replaces phone codes (phone sign-in stays in the API for tests, hidden in the app).
-- [ ] **You:** create the Google OAuth client (Web application) in the TreeVook Cloud project:
-  - consent screen with the app name, logo and links to /privacy and /terms;
-  - scopes `openid`, `email` and `profile`, which need no Google verification;
-  - redirect URI `https://<host>/api/v1/auth/google/callback` for treevook.com and each product subdomain.
-
-  Then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `AUTH_GOOGLE_MOCK=false`.
+- [x] Google OAuth client "TreeVook web" (project TreeVook): sign-in works in production on treevook.com and every product subdomain.
+- [ ] **You:** upload the logo on the consent screen (`~/Desktop/TreeVook-logo/treevook-logo-120-google.png`); Google's brand check takes a few days and needs the domain verified in Search Console.
 - [x] Privacy Policy page (`/privacy`): Google Limited Use sentence, Meta data use, AI processing, deletion.
 - [x] Terms of Service page (`/terms`).
 - [x] Data deletion page or URL (needed for Meta App Review).
@@ -20,13 +16,14 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 - [x] Check the landing pages at phone width.
 - [ ] **You:** email on the domain (e.g. hello@treevook.com) and verify treevook.com in Google Search Console.
 - [x] Deploy kit: Dockerfiles, `deploy/docker-compose.yml`, Caddy with HTTPS for every host, `.env.production.example`, image build workflow (`deploy/README.md`).
-- [ ] **You:** deploy to treevook.com with the kit in `deploy/`:
-  - a server with Docker; web, API, worker, Postgres and Redis;
-  - point treevook.com and the product subdomains (googlebusiness, playreview, instagram, facebook, ads) at the web app;
-  - environment: `ROOT_URL`, `APP_URL`, `COOKIE_DOMAIN=.treevook.com`, `WEB_ORIGINS`, `ANTHROPIC_API_KEY`, production secrets;
-  - run migrations;
-  - back up `TOKEN_ENCRYPTION_KEY` (losing it locks every saved sign-in) and never set any `*_MOCK=true` on a public server.
-- [ ] **You:** push `main` to the remote (nothing is pushed yet).
+- [x] Deployed on Oracle Cloud Always Free (Mumbai, 4 OCPU / 24 GB): web, API, worker, Postgres, Redis and Caddy on treevook.com, www, api and the five product subdomains, all with HTTPS.
+- [x] Code on GitHub (private); `ci.yml` tests what changed and auto-deploys `main` with sha-tagged images, health checks and rollback.
+- [x] Daily database backups at 03:00 on the server; log rotation; ₹0 budget alert.
+- [ ] **You:** back up `TOKEN_ENCRYPTION_KEY` from `/opt/treevook/deploy/.env` to your password manager (losing it locks every saved sign-in).
+- [ ] **You:** create an Anthropic API key with billing and send it to set `ANTHROPIC_API_KEY` on the server; AI drafting is off until then.
+- [ ] Copy backups off the server (Oracle Object Storage, free 20 GB).
+- [ ] Uptime alerts and error tracking (`SENTRY_DSN`).
+- [ ] Reserve the server's public IP (free) so it never changes; delete the three spare `treevook-vcn` networks.
 
 ## 2. Google Business: approval track (time-bound, start now)
 
