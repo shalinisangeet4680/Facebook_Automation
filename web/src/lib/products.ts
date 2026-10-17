@@ -1,11 +1,13 @@
-export type ProductId = "meta" | "play-reviews" | "business";
+export type ProductId = "meta" | "play-reviews" | "business" | "instagram" | "facebook";
 
 export interface Product {
   id: ProductId;
   name: string;
   subdomains: string[];
   home: string;
+  landing: string;
   paths: string[];
+  soon?: boolean;
 }
 
 export const PRODUCTS: Product[] = [
@@ -14,6 +16,7 @@ export const PRODUCTS: Product[] = [
     name: "Meta Ads",
     subdomains: ["ads", "metaads"],
     home: "/setup",
+    landing: "/meta-ads",
     paths: ["/setup", "/inbox", "/campaigns", "/creatives", "/profile", "/reports"],
   },
   {
@@ -21,6 +24,7 @@ export const PRODUCTS: Product[] = [
     name: "Play Reviews",
     subdomains: ["playreview", "playreviews"],
     home: "/reviews",
+    landing: "/play-reviews",
     paths: ["/reviews", "/store"],
   },
   {
@@ -28,11 +32,35 @@ export const PRODUCTS: Product[] = [
     name: "Google Business",
     subdomains: ["googlebusiness", "business"],
     home: "/business",
+    landing: "/google-business",
     paths: ["/business"],
+  },
+  {
+    id: "instagram",
+    name: "Instagram Autopost",
+    subdomains: ["instagram", "insta"],
+    home: "/instagram-autopost",
+    landing: "/instagram-autopost",
+    paths: [],
+    soon: true,
+  },
+  {
+    id: "facebook",
+    name: "Facebook Autopost",
+    subdomains: ["facebook", "fb"],
+    home: "/facebook-autopost",
+    landing: "/facebook-autopost",
+    paths: [],
+    soon: true,
   },
 ];
 
-export const PUBLIC_PATHS = ["/privacy", "/terms", "/data-deletion"];
+export const PUBLIC_PATHS = [
+  "/privacy",
+  "/terms",
+  "/data-deletion",
+  ...PRODUCTS.map((p) => p.landing),
+];
 
 export const SHARED_PATHS = ["/login", "/oauth", "/claude", "/settings", "/kit", ...PUBLIC_PATHS];
 

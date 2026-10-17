@@ -25,7 +25,14 @@ export function proxy(request: NextRequest) {
   const home = product?.home ?? "/setup";
 
   if (product) {
-    if (pathname === "/") return NextResponse.redirect(new URL(home, request.url));
+    if (pathname === "/" || pathname === "/privacy" || pathname === "/terms") {
+      const target = new URL(
+        pathname === "/" ? product.landing : `${product.landing}${pathname}`,
+        request.url,
+      );
+      target.search = search;
+      return NextResponse.rewrite(target);
+    }
     const owner = productForPath(pathname);
     const root = rootUrl();
     if (owner && owner.id !== product.id && root && !isSharedPath(pathname)) {

@@ -22,14 +22,18 @@ export function LegalPage({
   title,
   summary,
   sections,
+  header = <SiteHeader />,
+  footer = <SiteFooter />,
 }: {
   title: string;
   summary: string[];
   sections: LegalSection[];
+  header?: ReactNode;
+  footer?: ReactNode;
 }) {
   return (
     <div className={`tv-page ${landingSerif.variable}`}>
-      <SiteHeader />
+      {header}
       <main className="tv-wrap tv-legal">
         <header className="tv-legalHead">
           <span className="tv-eyebrow">Last updated {LEGAL.updated}</span>
@@ -67,7 +71,7 @@ export function LegalPage({
           </article>
         </div>
       </main>
-      <SiteFooter />
+      {footer}
     </div>
   );
 }

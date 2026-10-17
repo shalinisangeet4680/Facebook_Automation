@@ -98,7 +98,7 @@ function Product({
             ))}
           </ul>
           <Link href={href} className={"tv-more"}>
-            {soon ? "Join early access" : `Try ${name}`} <ArrowRight size={14} />
+            Explore {name} <ArrowRight size={14} />
           </Link>
         </div>
         {scene}
@@ -145,7 +145,7 @@ export function LandingPage() {
           color="#0F6B4A"
           soft="#EAF3EE"
           name="Google Business"
-          href="/business"
+          href="/google-business"
           title={
             <>
               Every Google review answered. <em>Your profile always fresh.</em>
@@ -180,7 +180,7 @@ export function LandingPage() {
           color="#C2185B"
           soft="#FBEFF6"
           name="Instagram Autopost"
-          href="/login"
+          href="/instagram-autopost"
           title={
             <>
               A week of Instagram posts, <em>ready on Monday.</em>
@@ -218,7 +218,7 @@ export function LandingPage() {
           color="#2D5BD7"
           soft="#EEF2FD"
           name="Facebook Autopost"
-          href="/login"
+          href="/facebook-autopost"
           title={
             <>
               Your Page posts and replies, <em>on autopilot.</em>
@@ -248,7 +248,7 @@ export function LandingPage() {
           color="#E8590C"
           soft="#FDF1E9"
           name="Play Reviews"
-          href="/reviews"
+          href="/play-reviews"
           title={
             <>
               Reply to app reviews <em>in every language.</em>
@@ -273,7 +273,7 @@ export function LandingPage() {
           color="#1C64B8"
           soft="#ECF2FB"
           name="Meta Ads"
-          href="/setup"
+          href="/meta-ads"
           title={
             <>
               Facebook & Instagram ads, <em>planned with reasons.</em>

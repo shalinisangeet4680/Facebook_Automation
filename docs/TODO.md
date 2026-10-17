@@ -10,11 +10,12 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 - [x] Data deletion page or URL (needed for Meta App Review).
 - [x] Link Privacy, Terms and Contact from the landing page footer and the sign-in page.
 - [ ] **You:** fill in the registered office address, Grievance Officer name and court city in `web/src/features/legal/legal-page.tsx` (`LEGAL`), and have a lawyer review the three pages.
-- [ ] Check the landing page at phone width (the stacked layout below 1100px is untested).
+- [x] Separate landing page, Privacy Policy and Terms for each product (`/google-business`, `/play-reviews`, `/instagram-autopost`, `/facebook-autopost`, `/meta-ads`); on a product subdomain `/`, `/privacy` and `/terms` show that product.
+- [ ] Check the landing pages at phone width (the stacked layout below 1100px is untested).
 - [ ] **You:** email on the domain (e.g. hello@treevook.com) and verify treevook.com in Google Search Console.
 - [ ] Deploy to treevook.com:
   - web, API, worker, Postgres and Redis;
-  - point treevook.com and the product subdomains at the web app;
+  - point treevook.com and the product subdomains (googlebusiness, playreview, instagram, facebook, ads) at the web app;
   - environment: `ROOT_URL`, `APP_URL`, `COOKIE_DOMAIN=.treevook.com`, `WEB_ORIGINS`, `ANTHROPIC_API_KEY`, production secrets;
   - run migrations.
 - [ ] **You:** push `main` to the remote (nothing is pushed yet).
