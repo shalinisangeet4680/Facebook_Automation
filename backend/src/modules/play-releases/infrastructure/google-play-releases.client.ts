@@ -232,7 +232,29 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
     );
   }
 
-  private async withEdit<T>(
+  private readonly editQueues = new Map<string, Promise<unknown>>();
+
+  private withEdit<T>(
+    key: ServiceAccountKey,
+    packageName: string,
+    fn: (editId: string) => Promise<T>,
+    commit: boolean,
+  ): Promise<T> {
+    const previous = this.editQueues.get(packageName) ?? Promise.resolve();
+    const run = previous
+      .catch(() => undefined)
+      .then(() => this.openEdit(key, packageName, fn, commit));
+    this.editQueues.set(packageName, run);
+    void run
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.editQueues.get(packageName) === run)
+          this.editQueues.delete(packageName);
+      });
+    return run;
+  }
+
+  private async openEdit<T>(
     key: ServiceAccountKey,
     packageName: string,
     fn: (editId: string) => Promise<T>,

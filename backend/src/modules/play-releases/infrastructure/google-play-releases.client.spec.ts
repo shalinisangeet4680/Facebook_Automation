@@ -48,6 +48,36 @@ function fake(
 }
 
 describe("GooglePlayReleasesClient", () => {
+  it("never opens two edits for the same app at once", async () => {
+    let open = 0;
+    let next = 0;
+    const { calls, client } = fake((method, url) => {
+      if (method === "POST" && url.endsWith("/edits")) {
+        if (open)
+          return json(
+            { error: { message: "This Edit has been deleted." } },
+            400,
+          );
+        open++;
+        return json({ id: `e${++next}` });
+      }
+      if (method === "DELETE") {
+        open--;
+        return json({});
+      }
+      if (url.endsWith("/tracks"))
+        return json({ tracks: [{ track: "production", releases: [] }] });
+      return json({ listings: [{ language: "en-US" }, { language: "hi-IN" }] });
+    });
+    const [tracks, languages] = await Promise.all([
+      client.listTracks(key, "com.acme.shop"),
+      client.listingLanguages(key, "com.acme.shop"),
+    ]);
+    expect(tracks).toEqual([{ track: "production", releases: [] }]);
+    expect(languages).toEqual(["en-US", "hi-IN"]);
+    expect(calls.filter((c) => c.method === "POST")).toHaveLength(2);
+  });
+
   it("writes a track through edits.insert, tracks.update and edits.commit", async () => {
     const { calls, client } = fake((method, url, body) => {
       if (method === "POST" && url.endsWith("/edits"))
