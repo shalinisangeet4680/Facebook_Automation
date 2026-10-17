@@ -33,6 +33,8 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  if (pathname === "/" && !product) return NextResponse.next();
+
   if (pathname === "/login") {
     if (signedIn && !searchParams.has("expired")) {
       return NextResponse.redirect(
