@@ -1,0 +1,32 @@
+{
+	email {$ACME_EMAIL}
+}
+
+(app) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	@backend path /api/* /mcp /mcp/* /media/* /.well-known/* /oauth/token /oauth/register /oauth/revoke
+	handle @backend {
+		reverse_proxy api:4000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		encode zstd gzip
+		reverse_proxy web:3000 {
+			flush_interval -1
+		}
+	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN}, googlebusiness.{$DOMAIN}, playreview.{$DOMAIN}, instagram.{$DOMAIN}, facebook.{$DOMAIN}, ads.{$DOMAIN} {
+	import app
+}
