@@ -134,6 +134,13 @@
       "when": 1792223517161,
       "tag": "0018_google_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792225482028,
+      "tag": "0019_play_releases",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,7 @@ import {
 import { PlayInboxService } from "@modules/play/application/play-inbox.service";
 import { PlayWorkspaceService } from "@modules/play/application/play-workspace.service";
 import { PlayAgentService } from "@modules/play/application/play-agent.service";
+import { PlayReleasesService } from "@modules/play-releases/application/play-releases.service";
 import { StoreService } from "@modules/store/application/store.service";
 import { BusinessReviewsService } from "@modules/business/application/business-reviews.service";
 import { BusinessService } from "@modules/business/application/business.service";
@@ -45,6 +46,11 @@ import {
   registerBusinessReadTools,
   registerBusinessWriteTools,
 } from "./business-tools";
+import {
+  RELEASES_INSTRUCTIONS,
+  registerPlayReleasesReadTools,
+  registerPlayReleasesWriteTools,
+} from "./play-releases-tools";
 
 const INSTRUCTIONS = `TreeVook AI is one platform for the user's business automations: Meta (Facebook and Instagram) ads, Google Play store listings and review replies, and Google Business Profile.
 
@@ -61,6 +67,7 @@ How to work:
 - To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in TreeVook or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from TreeVook's Profile page into the Instagram app.
 - Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in TreeVook. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
 - Google Play review replies: list_play_apps, then list_play_reviews (state "claude" holds reviews the owner's rules sent to you; "unreplied" and "waiting" are the rest). Read get_review_templates for the owner's tone, sign-off and support details (values), and write each reply in the reviewer's language, at most 350 characters, plain text, specific to what they said, never promising refunds or fixes you can't confirm. Save drafts with save_review_drafts so the owner approves them in TreeVook, and share the returned url. send_review_reply posts publicly and is two-step like activate: show the reply, wait for an explicit yes, call again with confirm_token. Use get_review_insights to explain rating trends and common complaints. To change how an app replies, read get_review_settings first, then use update_review_settings (per-rating mode and template, behavior, safeguards, placeholders), set_review_rules (advanced keyword rules) or update_review_workspace (AI drafting mode, Slack channel); each is two-step: show the summary, wait for an explicit yes, call again with confirm_token. sync_play_apps fetches new reviews and newly shared apps; import_review_history pulls older months.
+${RELEASES_INSTRUCTIONS}
 ${BUSINESS_INSTRUCTIONS}
 - Ads must follow Meta advertising policies. Never make health claims that promise cures or outcomes.`;
 
@@ -99,6 +106,7 @@ export class McpServerFactory {
     private readonly business: BusinessService,
     private readonly businessReviews: BusinessReviewsService,
     private readonly workspaceAi: WorkspaceAiService,
+    private readonly playReleases: PlayReleasesService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -443,6 +451,7 @@ export class McpServerFactory {
     );
 
     registerBusinessReadTools(server, ws, run, this.businessDeps());
+    registerPlayReleasesReadTools(server, ws, run, this.playReleases);
 
     if (!auth.scopes.includes(SCOPES.WRITE)) return server;
 
@@ -1473,6 +1482,13 @@ export class McpServerFactory {
       run,
       confirmed,
       this.businessDeps(),
+    );
+    registerPlayReleasesWriteTools(
+      server,
+      actor,
+      run,
+      confirmed,
+      this.playReleases,
     );
 
     return server;

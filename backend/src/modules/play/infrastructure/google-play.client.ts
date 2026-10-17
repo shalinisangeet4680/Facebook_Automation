@@ -98,7 +98,7 @@ export class GooglePlayClient implements PlayApi {
 
   constructor(private readonly http: Fetch = fetch) {}
 
-  private async token(key: ServiceAccountKey, scope = SCOPE): Promise<string> {
+  async token(key: ServiceAccountKey, scope = SCOPE): Promise<string> {
     const cacheKey = `${key.clientEmail} ${scope}`;
     const cached = this.tokens.get(cacheKey);
     if (cached && cached.expires > Date.now() + 60_000) return cached.token;

@@ -9,6 +9,13 @@ export interface Escalation {
   url: string;
 }
 
+export interface Alert {
+  title: string;
+  text: string;
+  url: string;
+}
+
 export interface EscalationNotifier {
   send(webhookUrl: string, escalation: Escalation): Promise<void>;
+  alert(webhookUrl: string, alert: Alert): Promise<void>;
 }

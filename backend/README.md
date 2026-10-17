@@ -34,3 +34,4 @@ API: `http://localhost:4000/api/v1` · OpenAPI docs (development only): `http://
 | [Play Store creatives](docs/15-store-creatives.md) | Store listing projects, plugin uploads, style choice, MCP tools |
 | [Google Play review replies](docs/16-play-review-replies.md) | Play Reviews: connections, per-rating automation, AI drafts, inbox, analytics, safeguards, history import, MCP tokens and tools |
 | [Google Business Profile](docs/17-google-business.md) | Google sign-in, locations, review replies, posts, insights, business info, API access steps, MCP tools |
+| [Play Releases and App Health](docs/19-play-releases.md) | Tracks, staged rollouts, promotion, AI release notes, vitals, crash clusters and explanations, rollout guardian, permissions, MCP tools |
