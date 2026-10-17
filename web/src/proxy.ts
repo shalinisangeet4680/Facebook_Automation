@@ -22,7 +22,7 @@ export function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
   const signedIn = request.cookies.get(SESSION_HINT)?.value === "1";
   const product = productForHost(request.headers.get("host"));
-  const home = product?.home ?? "/setup";
+  const home = product?.home ?? "/home";
 
   if (product) {
     if (pathname === "/" || pathname === "/privacy" || pathname === "/terms") {

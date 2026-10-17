@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense, type ComponentType, type ReactNode } from "react";
 
-import { useMe, usePlayApps, usePlayConnections, usePlayInbox } from "@/lib/api/queries";
+import { errorMessage } from "@/lib/api/errors";
+import {
+  useMe,
+  usePlayApps,
+  usePlayConnections,
+  usePlayInbox,
+  useSignOut,
+} from "@/lib/api/queries";
 
 import { APP_COLORS } from "./tokens";
-import { ToastProvider, cx } from "./ui";
+import { ToastProvider, cx, useToast } from "./ui";
 
 const NAV = [
   ["dashboard", "Dashboard", "/reviews"],
@@ -15,10 +22,12 @@ const NAV = [
   ["templates", "Templates", "/reviews/templates"],
   ["releases", "Releases", "/reviews/releases"],
   ["health", "Health", "/reviews/health"],
+  ["store", "Store listing", "/store"],
   ["mcp", "MCP", "/reviews/mcp"],
 ] as const;
 
 function activeOf(pathname: string) {
+  if (pathname === "/store" || pathname.startsWith("/store/")) return "store";
   const part = pathname.split("/")[2];
   if (!part) return "dashboard";
   if (["templates", "releases", "health", "mcp"].includes(part)) return part;
@@ -88,7 +97,7 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
   return (
     <>
       {NAV.map(([id, label, href]) => {
-        const off = !loading && !connected && !["mcp", "apps", "dashboard"].includes(id);
+        const off = !loading && !connected && !["mcp", "apps", "dashboard", "store"].includes(id);
         const target =
           (id === "apps" || id === "dashboard") && !loading && !connected
             ? "/reviews/connect"
@@ -135,7 +144,7 @@ function Footer() {
   const n = apps.data?.data.length ?? 0;
   return (
     <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-      <Link href="/setup" className="rp-nav rp-nav-small">
+      <Link href="/home" className="rp-nav rp-nav-small">
         ← All TreeVook products
       </Link>
       <div
@@ -155,6 +164,38 @@ function Footer() {
           {connected ? `${n} app${n === 1 ? "" : "s"} · Play connected` : "Not connected"}
         </span>
       </div>
+    </div>
+  );
+}
+
+function AccountLinks() {
+  const router = useRouter();
+  const signOut = useSignOut();
+  const toast = useToast();
+  const pathname = usePathname();
+  return (
+    <div style={{ display: "flex", gap: 2, marginTop: -22 }}>
+      <Link
+        href="/settings"
+        aria-current={pathname === "/settings" ? "page" : undefined}
+        className={cx("rp-nav rp-nav-small", pathname === "/settings" && "rp-nav-on")}
+        style={{ flex: 1 }}
+      >
+        Settings
+      </Link>
+      <button
+        type="button"
+        className="rp-nav rp-nav-small"
+        disabled={signOut.isPending}
+        onClick={() =>
+          signOut.mutate(undefined, {
+            onSuccess: () => router.replace("/login"),
+            onError: (err) => toast(errorMessage(err)),
+          })
+        }
+      >
+        Sign out
+      </button>
     </div>
   );
 }
@@ -184,6 +225,9 @@ export function ProductShell({
           </nav>
           <Suspense>
             <Footer />
+          </Suspense>
+          <Suspense>
+            <AccountLinks />
           </Suspense>
         </aside>
         <nav className="rp-mobile-bar" aria-label={product}>

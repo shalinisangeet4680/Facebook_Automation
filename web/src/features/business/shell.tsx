@@ -105,7 +105,7 @@ function Footer() {
       <Link href="/reviews" className="rp-nav rp-nav-small">
         Play Reviews
       </Link>
-      <Link href="/setup" className="rp-nav rp-nav-small">
+      <Link href="/home" className="rp-nav rp-nav-small">
         ← All TreeVook products
       </Link>
       <div

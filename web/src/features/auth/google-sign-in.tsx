@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 function safeNext(value: string | null): string {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/setup";
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/home";
 }
 
 function GoogleMark() {

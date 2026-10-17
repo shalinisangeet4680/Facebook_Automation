@@ -178,7 +178,7 @@ export class AuthController {
         requestMeta(request),
       );
       setAuthCookies(reply, result.tokens, this.cookies);
-      await reply.redirect(`${origin}${next === "/" ? "/setup" : next}`, 302);
+      await reply.redirect(`${origin}${next === "/" ? "/home" : next}`, 302);
     } catch (err) {
       if (err instanceof GoogleSignInError) return fail(err.message);
       throw err;

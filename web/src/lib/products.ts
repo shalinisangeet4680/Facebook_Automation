@@ -60,7 +60,7 @@ export const PUBLIC_PATHS = [
   ...PRODUCTS.map((p) => p.landing),
 ];
 
-export const SHARED_PATHS = ["/login", "/oauth", "/claude", "/settings", "/kit", ...PUBLIC_PATHS];
+export const SHARED_PATHS = ["/login", "/oauth", "/home", "/claude", "/settings", "/kit", ...PUBLIC_PATHS];
 
 const under = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);

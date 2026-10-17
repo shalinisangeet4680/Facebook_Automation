@@ -106,7 +106,7 @@ function makeFooter(platform: SocialPlatform) {
         <Link href={other.base} className="rp-nav rp-nav-small">
           {other.product}
         </Link>
-        <Link href="/setup" className="rp-nav rp-nav-small">
+        <Link href="/home" className="rp-nav rp-nav-small">
           ← All TreeVook products
         </Link>
         <div
