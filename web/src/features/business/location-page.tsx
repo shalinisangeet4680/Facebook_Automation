@@ -169,9 +169,24 @@ export function LocationPage() {
             </Banner>
           ) : null}
           {!l.verified ? (
-            <Banner tone="warn" title="Not verified on Google">
-              Google only shows replies and posts for verified profiles. Finish verification in
-              Business Profile.
+            <Banner
+              tone="warn"
+              title={
+                l.verificationState === "pending"
+                  ? "Unverified — enter your code from Google"
+                  : "Unverified — finish verification"
+              }
+              action={
+                <Link
+                  href={`/business/${l.id}/verify`}
+                  className="rp-btn"
+                  style={{ padding: "7px 12px" }}
+                >
+                  {l.verificationState === "pending" ? "Enter code" : "Finish verification"}
+                </Link>
+              }
+            >
+              Google hides this profile, its replies and posts until it’s verified.
             </Banner>
           ) : null}
           {tab === "reviews" ? (
