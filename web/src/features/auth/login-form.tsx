@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
@@ -74,7 +73,6 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-[400px]">
-      <LogoMark className="mb-8 size-10 lg:hidden" />
       {expired && step === "phone" ? (
         <div
           role="status"

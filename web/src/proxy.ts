@@ -42,6 +42,17 @@ export function proxy(request: NextRequest) {
 
   if ((pathname === "/" && !product) || isPublicPath(pathname)) return NextResponse.next();
 
+  if (
+    pathname === "/login" &&
+    product &&
+    !searchParams.has("next") &&
+    !searchParams.has("product")
+  ) {
+    const url = new URL(request.url);
+    url.searchParams.set(product.soon ? "product" : "next", product.soon ? product.id : home);
+    return NextResponse.redirect(url);
+  }
+
   if (pathname === "/login") {
     if (signedIn && !searchParams.has("expired")) {
       return NextResponse.redirect(

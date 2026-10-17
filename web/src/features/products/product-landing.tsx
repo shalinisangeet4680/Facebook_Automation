@@ -10,7 +10,9 @@ import type { ProductPage } from "./catalog";
 const rootHref = () => process.env.ROOT_URL ?? "/";
 
 export function ProductHeader({ product }: { product: ProductPage }) {
-  const start = product.soon ? "/login" : `/login?next=${encodeURIComponent(product.appHref)}`;
+  const start = product.soon
+    ? `/login?product=${product.id}`
+    : `/login?next=${encodeURIComponent(product.appHref)}`;
   return (
     <header className="tv-nav">
       <div className="tv-wrap tv-navIn">
@@ -67,7 +69,9 @@ export function ProductFooter({ product }: { product: ProductPage }) {
 }
 
 export function ProductLanding({ product }: { product: ProductPage }) {
-  const start = product.soon ? "/login" : `/login?next=${encodeURIComponent(product.appHref)}`;
+  const start = product.soon
+    ? `/login?product=${product.id}`
+    : `/login?next=${encodeURIComponent(product.appHref)}`;
   const cta = product.soon ? "Join early access" : "Get started free";
   return (
     <div className={`tv-page ${landingSerif.variable}`}>
