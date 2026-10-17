@@ -233,9 +233,13 @@ test("filters the dashboard by app and period, and shows MCP access", async ({ p
   await page.goto("/reviews/mcp");
   await page.getByRole("button", { name: "Reveal" }).click();
   await expect(page.getByText(/rk_live_[0-9a-f]{36}/).first()).toBeVisible();
+  await expect(page.getByText("Agents can only draft")).toBeVisible();
+  await page.getByRole("link", { name: "Change in Settings" }).click();
+  await expect(page).toHaveURL(/\/settings#ai$/);
   await page.getByRole("switch", { name: "Allow agents to post replies" }).click();
-  await toast(page, "Agents can post replies");
-  await page.reload();
+  await expect(page.getByText("Agents can post replies").first()).toBeVisible();
+  await page.goto("/reviews/mcp");
+  await expect(page.getByText("Agents can post replies")).toBeVisible();
   await expect(page.getByText("Access token").last()).toBeVisible();
   await expect(page.getByRole("button", { name: "Revoke" })).toBeVisible();
   await audit(page);

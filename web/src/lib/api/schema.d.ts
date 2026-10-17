@@ -1396,6 +1396,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/automation/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutomationController_get_v1"];
+        put: operations["AutomationController_update_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/business/status": {
         parameters: {
             query?: never;
@@ -3262,6 +3278,27 @@ export interface components {
         };
         ReplaceRulesDto: {
             rules: components["schemas"]["RuleDto"][];
+        };
+        AutomationSettingsDto: {
+            /** @enum {string} */
+            aiMode: "platform" | "own" | "off";
+            platformAi: boolean;
+            aiKeyHint: string | null;
+            aiReady: boolean;
+            model: string;
+            dailyDrafts: number;
+            draftsToday: number;
+            slackConnected: boolean;
+            slackChannel: string | null;
+            agentsCanPost: boolean;
+        };
+        UpdateAutomationSettingsDto: {
+            /** @enum {string} */
+            aiMode?: "platform" | "own" | "off";
+            aiKey?: string | null;
+            slackWebhook?: string | null;
+            slackChannel?: string | null;
+            agentsCanPost?: boolean;
         };
         BusinessStatusDto: {
             configured: boolean;
@@ -6949,6 +6986,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayRuleListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutomationController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationSettingsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AutomationController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAutomationSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationSettingsDto"];
                 };
             };
             default: {

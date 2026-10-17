@@ -155,9 +155,10 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
           </SettingRow>
         </div>
         <span style={{ fontSize: 12.5, color: MUTED }}>
-          AI drafting and the Slack channel are shared across TreeVook. Change them on the{" "}
-          <Link href="/reviews/mcp" style={{ color: "#0F6B4A" }}>
-            workspace AI page
+          AI drafting, the daily AI draft limit and the Slack channel are shared across TreeVook.
+          Change them in{" "}
+          <Link href="/settings#ai" style={{ color: "#0F6B4A" }}>
+            Settings → AI & automation
           </Link>
           .
         </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,14 +12,13 @@ import {
   useRemovePlayApp,
   useSaveRules,
   useUpdatePlayApp,
-  useUpdatePlayWorkspace,
   useVariableSuggestions,
 } from "@/lib/api/queries";
 import type { PlayAppDetail, PlayRuleInput, PlaySettings } from "@/lib/api/types";
 
 import { rowBorder, sortTemplates } from "./tokens";
 import { Select } from "./select";
-import { Banner, Section, SettingRow, Spinner, Toggle, useToast } from "./ui";
+import { Section, SettingRow, Spinner, Toggle, useToast } from "./ui";
 
 const csv = (list?: string[]) => (list ?? []).join(", ");
 const words = (s: string) =>
@@ -767,143 +767,25 @@ function Safeguards({
 }
 
 function AiAndIntegrations() {
-  const toast = useToast();
   const ws = usePlayWorkspace();
-  const update = useUpdatePlayWorkspace();
-  const [key, setKey] = useState("");
-  const [hook, setHook] = useState("");
-  const [channel, setChannel] = useState("");
   const w = ws.data;
-  const [source, setSource] = useState<string | null | undefined>(undefined);
-  if (w && source !== w.slackChannel) {
-    setSource(w.slackChannel);
-    setChannel(w.slackChannel ?? "");
-  }
-  if (!w) return null;
-  const run = (body: Parameters<typeof update.mutate>[0], message: string, after?: () => void) =>
-    update.mutate(body, {
-      onSuccess: () => {
-        toast(message);
-        after?.();
-      },
-      onError: (err) => toast(errorMessage(err)),
-    });
   return (
-    <Section title="AI & integrations" desc="Shared by every app in this workspace.">
+    <Section title="AI & integrations" desc="Shared by every app and product in this workspace.">
       <div className="rp-card" style={{ borderRadius: 12 }}>
         <SettingRow
           first
-          label="AI drafting"
+          label="AI drafting, Slack and agents"
           desc={
-            w.aiMode === "off"
-              ? "Off: drafts use your templates as written, and AI-written ratings wait for Claude through the connector."
-              : w.aiMode === "own"
-                ? `Uses your Anthropic key${w.aiKeyHint ? ` (${w.aiKeyHint})` : ""} with ${w.model}.`
-                : w.platformAi
-                  ? `Included: ${w.draftsToday} of ${w.dailyDrafts} drafts used today, with ${w.model}.`
-                  : "TreeVook’s key isn’t set up on this server. Use your own key, or draft through the connector."
+            w
+              ? `${w.aiMode === "off" ? "AI drafting is off" : w.aiMode === "own" ? "Drafting with your Anthropic key" : `${w.draftsToday} of ${w.dailyDrafts} AI drafts used today`} · Slack ${w.slackConnected ? (w.slackChannel ?? "connected") : "not connected"} · agents ${w.agentsCanPost ? "can post" : "draft only"}.`
+              : "Change AI drafting, the Slack channel and agent permissions in Settings."
           }
         >
-          <Select
-            label="AI drafting"
-            minWidth={170}
-            value={w.aiMode}
-            onChange={(v) =>
-              run({ aiMode: v as "platform" | "own" | "off" }, "AI drafting updated")
-            }
-            options={[
-              { value: "platform", label: "TreeVook AI" },
-              { value: "own", label: "My Anthropic key" },
-              { value: "off", label: "Off" },
-            ]}
-          />
-        </SettingRow>
-        {w.aiMode === "own" ? (
-          <SettingRow
-            label="Anthropic API key"
-            desc="Stored encrypted. Drafts are billed to your Anthropic account."
-          >
-            <form
-              style={{ display: "flex", gap: 8, flex: "1 1 280px" }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                run({ aiKey: key.trim() }, "API key saved", () => setKey(""));
-              }}
-            >
-              <input
-                className="rp-input rp-mono"
-                type="password"
-                autoComplete="off"
-                aria-label="Anthropic API key"
-                placeholder={w.aiKeyHint ?? "sk-ant-…"}
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                style={{ flex: 1, minWidth: 0 }}
-              />
-              <button type="submit" className="rp-btn" disabled={!key.trim()}>
-                Save
-              </button>
-            </form>
-          </SettingRow>
-        ) : null}
-        <SettingRow
-          label="Slack escalation"
-          desc={
-            w.slackConnected
-              ? `1★ reviews post to ${w.slackChannel ?? "your Slack channel"} when Escalate is on.`
-              : "Add an incoming webhook so 1★ reviews reach your team."
-          }
-        >
-          <form
-            style={{ display: "flex", gap: 8, flex: "1 1 360px", flexWrap: "wrap" }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(
-                {
-                  ...(hook.trim() ? { slackWebhook: hook.trim() } : {}),
-                  slackChannel: channel.trim() || null,
-                },
-                "Slack saved",
-                () => setHook(""),
-              );
-            }}
-          >
-            <input
-              className="rp-input rp-mono"
-              aria-label="Slack webhook URL"
-              placeholder={
-                w.slackConnected
-                  ? "Webhook saved · paste to replace"
-                  : "https://hooks.slack.com/services/…"
-              }
-              value={hook}
-              onChange={(e) => setHook(e.target.value)}
-              style={{ flex: "1 1 220px", minWidth: 0 }}
-            />
-            <input
-              className="rp-input rp-mono"
-              aria-label="Slack channel"
-              placeholder="#support"
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              style={{ width: 120 }}
-            />
-            <button type="submit" className="rp-btn">
-              Save
-            </button>
-            {w.slackConnected ? (
-              <button
-                type="button"
-                className="rp-btn-light rp-btn-danger"
-                onClick={() => run({ slackWebhook: null }, "Slack disconnected")}
-              >
-                Disconnect
-              </button>
-            ) : null}
-          </form>
+          <Link href="/settings#ai" className="rp-btn-light" style={{ textDecoration: "none" }}>
+            Open settings
+          </Link>
         </SettingRow>
       </div>
-      {update.error ? <Banner tone="error">{errorMessage(update.error)}</Banner> : null}
     </Section>
   );
 }

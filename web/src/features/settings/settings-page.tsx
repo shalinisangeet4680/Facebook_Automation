@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Bot,
   Building2,
   LogOut,
   PlugZap,
@@ -21,18 +22,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
+import { RadioCard, RadioCardGroup } from "@/components/ui/radio-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/state";
 import { errorMessage } from "@/lib/api/errors";
 import {
+  useAutomationSettings,
   useConnectedApps,
   useMetaConnection,
   useSettings,
   useSignOutEverywhere,
+  useUpdateAutomationSettings,
   useUpdateProfile,
   useUpdateWorkspace,
 } from "@/lib/api/queries";
-import type { Settings } from "@/lib/api/types";
+import type { AutomationSettings, AutomationSettingsUpdate, Settings } from "@/lib/api/types";
 
 function money(amount: number, currency: string) {
   try {
@@ -59,7 +63,7 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="Your workspace, spending guardrails, profile and connections."
+        description="Your workspace, spending guardrails, AI, profile and connections."
       />
       {settings.isPending ? (
         <div className="grid gap-6">
@@ -78,6 +82,7 @@ export function SettingsPage() {
               key={JSON.stringify([settings.data.workspace, settings.data.budget])}
               settings={settings.data}
             />
+            <AutomationSection />
             <ProfileForm key={JSON.stringify(settings.data.profile)} settings={settings.data} />
           </div>
           <div className="flex min-w-0 flex-col gap-6">
@@ -256,6 +261,223 @@ function WorkspaceForm({ settings }: { settings: Settings }) {
         </div>
       </SectionCard>
     </form>
+  );
+}
+
+const AI_MODES: [AutomationSettings["aiMode"], string, string][] = [
+  ["platform", "TreeVook AI", "Included, with a daily limit"],
+  ["own", "My Anthropic key", "Billed to your Anthropic account"],
+  ["off", "Off", "Templates as written"],
+];
+
+function aiSummary(a: AutomationSettings) {
+  if (a.aiMode === "off")
+    return "Drafts use your templates as written. AI-written ratings wait for Claude through the connector.";
+  if (a.aiMode === "own")
+    return a.aiKeyHint
+      ? `Drafts use your Anthropic key (${a.aiKeyHint}) with ${a.model}.`
+      : "Add your Anthropic key below to start drafting with AI.";
+  if (!a.platformAi)
+    return "TreeVook AI isn’t set up on this server. Use your own key, or draft through the connector.";
+  return `${a.draftsToday} of ${a.dailyDrafts} AI drafts used in the last 24 hours, across Play Reviews and Google Business, with ${a.model}.`;
+}
+
+function AutomationSection() {
+  const automation = useAutomationSettings();
+  if (automation.isPending) return <Skeleton className="h-72 w-full" />;
+  if (automation.isError)
+    return (
+      <ErrorState
+        message={errorMessage(automation.error)}
+        onRetry={() => void automation.refetch()}
+      />
+    );
+  return <AutomationForm key={automation.data.slackChannel ?? ""} settings={automation.data} />;
+}
+
+function AutomationForm({ settings }: { settings: AutomationSettings }) {
+  const update = useUpdateAutomationSettings();
+  const [key, setKey] = useState("");
+  const [hook, setHook] = useState("");
+  const [channel, setChannel] = useState(settings.slackChannel ?? "");
+
+  const save = (body: AutomationSettingsUpdate, message: string, after?: () => void) =>
+    update.mutate(body, {
+      onSuccess: () => {
+        toast.success(message);
+        after?.();
+      },
+      onError: (err) => toast.error(errorMessage(err)),
+    });
+
+  return (
+    <section id="ai" className="scroll-mt-24">
+      <SectionCard
+        icon={<Bot className="size-5" />}
+        title="AI & automation"
+        description="Shared by Play Reviews, Google Business and every agent connected to this workspace."
+      >
+        <div className="grid gap-3">
+          <p className="text-small text-foreground font-medium" id="ai-mode">
+            AI drafting
+          </p>
+          <RadioCardGroup
+            aria-labelledby="ai-mode"
+            value={settings.aiMode}
+            disabled={update.isPending}
+            onValueChange={(v) =>
+              save({ aiMode: v as AutomationSettings["aiMode"] }, "AI drafting updated")
+            }
+            className="sm:grid-cols-3"
+          >
+            {AI_MODES.map(([mode, title, description]) => (
+              <RadioCard key={mode} value={mode} title={title} description={description} />
+            ))}
+          </RadioCardGroup>
+          <p className="text-small text-muted">{aiSummary(settings)}</p>
+        </div>
+        {settings.aiMode === "own" ? (
+          <form
+            noValidate
+            className="flex flex-col gap-3 sm:flex-row sm:items-start"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (key.trim()) save({ aiKey: key.trim() }, "API key saved", () => setKey(""));
+            }}
+          >
+            <Field
+              label="Anthropic API key"
+              hint="Stored encrypted. Only the last four characters are shown."
+              className="min-w-0 flex-1"
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  type="password"
+                  autoComplete="off"
+                  placeholder={settings.aiKeyHint ?? "sk-ant-…"}
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                />
+              )}
+            </Field>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={!key.trim()}
+              className="sm:mt-[1.6rem] sm:h-11"
+            >
+              Save key
+            </Button>
+          </form>
+        ) : null}
+        <form
+          noValidate
+          className="border-border grid gap-4 border-t pt-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save(
+              {
+                ...(hook.trim() ? { slackWebhook: hook.trim() } : {}),
+                slackChannel: channel.trim() || null,
+              },
+              "Slack saved",
+              () => setHook(""),
+            );
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-small text-foreground font-medium">Slack escalation</p>
+              <p className="text-small text-muted mt-0.5">
+                {settings.slackConnected
+                  ? `Low ratings post to ${settings.slackChannel ?? "your Slack channel"} when escalation is on for an app or business.`
+                  : "Add an incoming webhook so low ratings reach your team."}
+              </p>
+            </div>
+            <Badge tone={settings.slackConnected ? "success" : "neutral"}>
+              {settings.slackConnected ? "Connected" : "Off"}
+            </Badge>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+            <Field label="Incoming webhook URL">
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  placeholder={
+                    settings.slackConnected
+                      ? "Saved · paste a new one to replace"
+                      : "https://hooks.slack.com/services/…"
+                  }
+                  value={hook}
+                  onChange={(e) => setHook(e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label="Channel">
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  placeholder="#support"
+                  value={channel}
+                  onChange={(e) => setChannel(e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            {settings.slackConnected ? (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={update.isPending}
+                onClick={() => save({ slackWebhook: null }, "Slack disconnected")}
+              >
+                Disconnect
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={!hook.trim() && channel.trim() === (settings.slackChannel ?? "")}
+            >
+              Save Slack
+            </Button>
+          </div>
+        </form>
+        <div className="border-border flex items-start justify-between gap-4 border-t pt-5">
+          <div className="min-w-0">
+            <p className="text-small text-foreground font-medium" id="agents-can-post">
+              Allow agents to post replies
+            </p>
+            <p className="text-small text-muted mt-0.5">
+              Off: Claude and other MCP agents can only create drafts that wait in your inbox.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.agentsCanPost}
+            aria-labelledby="agents-can-post"
+            disabled={update.isPending}
+            onClick={() =>
+              save(
+                { agentsCanPost: !settings.agentsCanPost },
+                settings.agentsCanPost ? "Agents can only draft" : "Agents can post replies",
+              )
+            }
+            className="border-border bg-surface-muted aria-checked:border-accent aria-checked:bg-accent relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)] disabled:opacity-60"
+          >
+            <span
+              aria-hidden
+              className={`bg-surface size-[18px] rounded-full shadow-[var(--shadow-raised)] transition-transform ${settings.agentsCanPost ? "translate-x-[22px]" : "translate-x-[2px]"}`}
+            />
+          </button>
+        </div>
+      </SectionCard>
+    </section>
   );
 }
 

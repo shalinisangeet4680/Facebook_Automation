@@ -4,6 +4,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerModule } from "@nestjs/throttler";
 
 import { AuditModule } from "@modules/audit/audit.module";
+import { AutomationModule } from "@modules/automation/automation.module";
 import { AuthModule } from "@modules/auth/auth.module";
 import { HealthModule } from "@modules/health/health.module";
 import { IamModule } from "@modules/iam/iam.module";
@@ -70,6 +71,7 @@ import { SecurityModule } from "@shared/security/security.module";
     StoreModule,
     PlayModule,
     BusinessModule,
+    AutomationModule,
     McpModule,
   ],
   providers: [

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, setSigningOut, unwrap } from "./client";
 import type {
   AssetSelection,
+  AutomationSettingsUpdate,
   AuthorizationQuery,
   CampaignPlan,
   CreatePost,
@@ -36,6 +37,7 @@ export const keys = {
   connector: ["connector"] as const,
   connectedApps: ["connected-apps"] as const,
   settings: ["settings"] as const,
+  automation: ["automation", "settings"] as const,
   creatives: ["creatives"] as const,
   inbox: ["inbox"] as const,
   profile: ["profile"] as const,
@@ -310,6 +312,25 @@ export function useUpdateProfile() {
     onSuccess: (settings: Settings) => {
       client.setQueryData(keys.settings, settings);
       void client.invalidateQueries({ queryKey: keys.me });
+    },
+  });
+}
+
+export function useAutomationSettings() {
+  return useQuery({
+    queryKey: keys.automation,
+    queryFn: () => unwrap(api.GET("/api/v1/automation/settings")),
+  });
+}
+
+export function useUpdateAutomationSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AutomationSettingsUpdate) =>
+      unwrap(api.PUT("/api/v1/automation/settings", { body })),
+    onSuccess: (data) => {
+      client.setQueryData(keys.automation, data);
+      void client.invalidateQueries({ queryKey: keys.playWorkspace });
     },
   });
 }
@@ -842,7 +863,10 @@ export function useUpdatePlayWorkspace() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: PlayWorkspaceUpdate) => unwrap(api.PUT("/api/v1/play/workspace", { body })),
-    onSuccess: (data) => client.setQueryData(keys.playWorkspace, data),
+    onSuccess: (data) => {
+      client.setQueryData(keys.playWorkspace, data);
+      void client.invalidateQueries({ queryKey: keys.automation });
+    },
   });
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
@@ -9,11 +10,10 @@ import {
   useRevealPlayToken,
   useRevokePlayClient,
   useRotatePlayToken,
-  useUpdatePlayWorkspace,
 } from "@/lib/api/queries";
 
 import { ago, rowBorder } from "./tokens";
-import { Banner, copyText, Seg, Skel, Toggle, useToast } from "./ui";
+import { Banner, copyText, Seg, Skel, useToast } from "./ui";
 
 const TOOLS: [string, string][] = [
   ["list_play_apps", "Connected apps with rating and backlog"],
@@ -21,7 +21,7 @@ const TOOLS: [string, string][] = [
   ["get_review_templates", "Your templates, voice and placeholder values"],
   ["draft_review_reply", "Draft using your templates and voice"],
   ["save_review_drafts", "Put drafts in your Inbox for approval"],
-  ["send_review_reply", "Post a reply (requires permission above)"],
+  ["send_review_reply", "Post a reply (needs posting allowed in Settings)"],
   ["get_review_analytics", "Ratings, reply rate, topics over time"],
   ["get_review_insights", "Per-app versions, languages and common words"],
   ["upsert_review_template", "Create or edit templates, in any language, with checks"],
@@ -60,7 +60,6 @@ export function McpPage() {
   const reveal = useRevealPlayToken();
   const rotate = useRotatePlayToken();
   const revoke = useRevokePlayClient();
-  const update = useUpdatePlayWorkspace();
   const [client, setClient] = useState<Client>("claude");
   const [token, setToken] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
@@ -193,27 +192,22 @@ export function McpPage() {
             borderTop: "1px solid #EFEDE8",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontWeight: 500, fontSize: 13.5 }}>Allow agents to post replies</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <span style={{ fontWeight: 500, fontSize: 13.5 }}>
+              {w?.agentsCanPost ? "Agents can post replies" : "Agents can only draft"}
+            </span>
             <span style={{ fontSize: 12.5, color: "#6C6962" }}>
-              Off: agents can only create drafts that land in your Inbox.
+              Posting permission, AI drafting and Slack are workspace settings shared by every
+              product.
             </span>
           </div>
-          <Toggle
-            label="Allow agents to post replies"
-            on={w?.agentsCanPost ?? false}
-            disabled={!w || update.isPending}
-            onChange={() =>
-              update.mutate(
-                { agentsCanPost: !w!.agentsCanPost },
-                {
-                  onSuccess: (n) =>
-                    toast(n.agentsCanPost ? "Agents can post replies" : "Agents can only draft"),
-                  onError: fail,
-                },
-              )
-            }
-          />
+          <Link
+            href="/settings#ai"
+            className="rp-btn-light"
+            style={{ padding: "6px 12px", fontSize: 12.5, textDecoration: "none", flexShrink: 0 }}
+          >
+            Change in Settings
+          </Link>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

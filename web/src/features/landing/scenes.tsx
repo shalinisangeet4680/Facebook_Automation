@@ -14,7 +14,9 @@ import {
   ThumbsUp,
   TrendingUp,
 } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
+
+import { HeroLayout } from "./hero-layout";
 
 export function Mark({ size = 18 }: { size?: number }) {
   return (
@@ -255,183 +257,120 @@ function GoogleUpdate() {
   );
 }
 
-const W = 1060;
-const CARD = 250;
-const GAP = 120;
-const H = { g: 316, p: 334, ig: 313, fb: 300, m: 254, gp: 249 };
-const TOP_ROW = Math.max(H.g, H.p);
-const HUB = { x: W / 2, y: TOP_ROW + GAP };
-const BOTTOM = HUB.y + GAP;
-const STAGE_H = BOTTOM + Math.max(H.m, H.gp);
-const INNER = { l: W / 2 - 140 - CARD / 2, r: W / 2 + 140 - CARD / 2 };
-const ORBIT = { rx: W / 2 - CARD, ry: GAP / Math.sqrt(1 - (140 / (W / 2 - CARD)) ** 2) };
-
-type Side = "top" | "bottom" | "left" | "right";
-
-const NODES = [
-  { id: "g", color: "#0F6B4A", left: INNER.l, top: TOP_ROW - H.g, plug: "bottom" as Side },
-  { id: "p", color: "#E8590C", left: INNER.r, top: TOP_ROW - H.p, plug: "bottom" as Side },
-  { id: "ig", color: "#C2185B", left: 0, top: HUB.y - H.ig / 2, plug: "right" as Side },
-  { id: "fb", color: "#2D5BD7", left: W - CARD, top: HUB.y - H.fb / 2, plug: "left" as Side },
-  { id: "m", color: "#1C64B8", left: INNER.l, top: BOTTOM, plug: "top" as Side },
-  { id: "gp", color: "#0F6B4A", left: INNER.r, top: BOTTOM, plug: "top" as Side },
-];
-
-type HeroNode = (typeof NODES)[number];
-
-const anchor = (n: HeroNode) =>
-  n.plug === "bottom"
-    ? { x: n.left + CARD / 2, y: TOP_ROW }
-    : n.plug === "top"
-      ? { x: n.left + CARD / 2, y: BOTTOM }
-      : n.plug === "right"
-        ? { x: CARD, y: HUB.y }
-        : { x: W - CARD, y: HUB.y };
-
-const wire = (n: HeroNode) => {
-  const a = anchor(n);
-  return `M ${HUB.x} ${HUB.y} L ${a.x} ${a.y}`;
-};
-
-const PLUG: Record<Side, CSSProperties> = {
-  bottom: { bottom: -5, left: CARD / 2 - 5 },
-  top: { top: -5, left: CARD / 2 - 5 },
-  right: { right: -5, top: "50%", marginTop: -5 },
-  left: { left: -5, top: "50%", marginTop: -5 },
-};
-
-function Node({
-  node,
-  label,
-  title,
-  delay = 0,
-  children,
-}: {
-  node: HeroNode;
-  label: string;
-  title: string;
-  delay?: number;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className={`tv-node tv-card tv-shadow tv-mini tv-d${delay}`}
-      data-node={node.id}
-      style={{ top: node.top, left: node.left }}
-    >
-      <span className="tv-plug" style={{ background: node.color, ...PLUG[node.plug] }} />
-      <div className="tv-miniHead">
-        <span className="tv-eyebrowDot" style={{ background: node.color }} />
-        {label}
-      </div>
-      <span className="tv-nodeTitle">{title}</span>
-      {children}
-    </div>
-  );
-}
-
 export function HeroStage() {
-  const [g, p, ig, fb, m, gp] = NODES as [
-    HeroNode,
-    HeroNode,
-    HeroNode,
-    HeroNode,
-    HeroNode,
-    HeroNode,
-  ];
   return (
-    <div className="tv-stage" style={{ width: W, height: STAGE_H }} aria-hidden>
-      <svg
-        className="tv-wires"
-        viewBox={`0 0 ${W} ${STAGE_H}`}
-        style={{ width: W, height: STAGE_H }}
-      >
-        <ellipse className="tv-orbit" cx={HUB.x} cy={HUB.y} rx={ORBIT.rx} ry={ORBIT.ry} />
-        {NODES.map((n) => (
-          <path key={n.id} id={`wire-${n.id}`} className="tv-wire" d={wire(n)} />
-        ))}
-        {NODES.map((n, i) => (
-          <circle key={n.id} className="tv-pulse" r="4" fill={n.color}>
-            <animateMotion
-              dur="2.8s"
-              begin={`${i * 0.45}s`}
-              repeatCount="indefinite"
-              keyPoints="1;0"
-              keyTimes="0;1"
-              calcMode="linear"
-              path={wire(n)}
-            />
-          </circle>
-        ))}
-      </svg>
-      <div className="tv-hub" style={{ left: HUB.x - 52, top: HUB.y - 52 }}>
-        <Mark size={52} />
-      </div>
-      <Node node={g} label="Google Business" title="Auto-reply to Google reviews" delay={1}>
-        <MapsReview
-          initial="P"
-          color="#0B8043"
-          name="Priya Singh"
-          meta="Local Guide · 23 reviews"
-          stars={5}
-          when="a week ago"
-          text="Lovely staff and a very clean clinic."
-          reply="Thank you Priya! We’re so glad you felt at home."
-        />
-        <Done>Live on Google Maps</Done>
-      </Node>
-      <Node node={ig} label="Instagram Autopost" title="AI designs and posts for you" delay={3}>
-        <IgPost compact />
-        <Done>Scheduled · Thu 7 PM, best time</Done>
-      </Node>
-      <Node node={m} label="Meta Ads" title="Daily ad check-up" delay={5}>
-        <AdsTable />
-      </Node>
-      <Node node={p} label="Play Reviews" title="Auto-reply to app reviews">
-        <div className="tv-play tv-seq tv-seqReview">
-          <div className="tv-playWho">
-            <span className="tv-playAvatar">R</span>
-            <span>Rahul Verma</span>
-          </div>
-          <div className="tv-playMeta">
-            <span className="tv-playStars">
-              ★<span>★★★★</span>
-            </span>
-            24 July 2026
-          </div>
-          <p className="tv-playText">Can’t log in with Google, it keeps buffering</p>
-          <div className="tv-playHelpful">
-            Did you find this helpful?
-            <span>Yes</span>
-            <span>No</span>
-          </div>
-          <div className="tv-seqSlot">
-            <Typing label="TreeVook AI is replying" />
-            <div className="tv-seq tv-seqReply tv-playReply">
-              <div className="tv-playDev">
-                <span>Notes Pro</span>
-                <span>Just now</span>
+    <HeroLayout
+      hub={<Mark size={52} />}
+      cards={[
+        {
+          id: "g",
+          label: "Google Business",
+          title: "Auto-reply to Google reviews",
+          delay: 1,
+          children: (
+            <>
+              <MapsReview
+                initial="P"
+                color="#0B8043"
+                name="Priya Singh"
+                meta="Local Guide · 23 reviews"
+                stars={5}
+                when="a week ago"
+                text="Lovely staff and a very clean clinic."
+                reply="Thank you Priya! We’re so glad you felt at home."
+              />
+              <Done>Live on Google Maps</Done>
+            </>
+          ),
+        },
+        {
+          id: "ig",
+          label: "Instagram Autopost",
+          title: "AI designs and posts for you",
+          delay: 3,
+          children: (
+            <>
+              <IgPost compact />
+              <Done>Scheduled · Thu 7 PM, best time</Done>
+            </>
+          ),
+        },
+        {
+          id: "m",
+          label: "Meta Ads",
+          title: "Daily ad check-up",
+          delay: 5,
+          children: <AdsTable />,
+        },
+        {
+          id: "p",
+          label: "Play Reviews",
+          title: "Auto-reply to app reviews",
+          children: (
+            <>
+              <div className="tv-play tv-seq tv-seqReview">
+                <div className="tv-playWho">
+                  <span className="tv-playAvatar">R</span>
+                  <span>Rahul Verma</span>
+                </div>
+                <div className="tv-playMeta">
+                  <span className="tv-playStars">
+                    ★<span>★★★★</span>
+                  </span>
+                  24 July 2026
+                </div>
+                <p className="tv-playText">Can’t log in with Google, it keeps buffering</p>
+                <div className="tv-playHelpful">
+                  Did you find this helpful?
+                  <span>Yes</span>
+                  <span>No</span>
+                </div>
+                <div className="tv-seqSlot">
+                  <Typing label="TreeVook AI is replying" />
+                  <div className="tv-seq tv-seqReply tv-playReply">
+                    <div className="tv-playDev">
+                      <span>Notes Pro</span>
+                      <span>Just now</span>
+                    </div>
+                    Sorry Rahul! Google login is fixed in v3.4, please update.
+                  </div>
+                </div>
               </div>
-              Sorry Rahul! Google login is fixed in v3.4, please update.
-            </div>
-          </div>
-        </div>
-        <Done>Live on Google Play</Done>
-      </Node>
-      <Node node={fb} label="Facebook Autopost" title="Auto-reply to comments" delay={2}>
-        <FbThread
-          name="Rohit Kumar"
-          comment="What time does the camp start?"
-          page="Sharma Dental"
-          reply="9 AM to 1 PM at Fraser Road. See you!"
-        />
-        <Done>Replied on Facebook</Done>
-      </Node>
-      <Node node={gp} label="Google Business" title="Post offers on Google" delay={4}>
-        <GoogleUpdate />
-        <Done>Live on Google</Done>
-      </Node>
-    </div>
+              <Done>Live on Google Play</Done>
+            </>
+          ),
+        },
+        {
+          id: "fb",
+          label: "Facebook Autopost",
+          title: "Auto-reply to comments",
+          delay: 2,
+          children: (
+            <>
+              <FbThread
+                name="Rohit Kumar"
+                comment="What time does the camp start?"
+                page="Sharma Dental"
+                reply="9 AM to 1 PM at Fraser Road. See you!"
+              />
+              <Done>Replied on Facebook</Done>
+            </>
+          ),
+        },
+        {
+          id: "gp",
+          label: "Google Business",
+          title: "Post offers on Google",
+          delay: 4,
+          children: (
+            <>
+              <GoogleUpdate />
+              <Done>Live on Google</Done>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }
 
