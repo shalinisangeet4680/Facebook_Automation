@@ -30,7 +30,7 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 - [ ] **You:** finish verification of the TreeVook AI Business Profile (treevookllp@gmail.com). The 60-day clock starts at verification.
 - [ ] **You:** add a logo, cover and a few product screenshots to the profile; confirm the phone number Google filled in.
 - [ ] **You:** create a Google Cloud project for TreeVook (not `clinic-management-e1892`) and note its project number.
-- [ ] **You:** when the profile is 60+ days old, submit the Business Profile API access form ("Application for Basic API Access").
+- [x] Business Profile API access requested for Cloud project TreeVook (193356084875) via the verified profile S S ELECTRO HOMEOPATHIC HOSPITAL (managed by treevookllp@gmail.com). Case 7-1478000041737, submitted 18 Oct 2026, review takes 7–10 business days. Don't open a second case.
 - [ ] After approval:
   - enable the four Business Profile APIs;
   - set up the OAuth consent screen with `business.manage`;
