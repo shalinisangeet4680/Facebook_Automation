@@ -31,43 +31,239 @@ export function Mark({ size = 18 }: { size?: number }) {
   );
 }
 
-function Review({
-  initial,
-  name,
-  stars,
-  text,
-}: {
-  initial: string;
-  name: string;
-  stars: number;
-  text: string;
-}) {
+function Typing({ label }: { label: string }) {
   return (
-    <>
-      <div className={"tv-who"}>
-        <span className={"tv-avatar"}>{initial}</span>
-        <span style={{ display: "flex", flexDirection: "column" }}>
-          <span className={"tv-name"}>{name}</span>
-          <span className={"tv-stars"}>
-            {"★★★★★".slice(0, stars)}
-            <span style={{ color: "#D9D5CC" }}>{"★★★★★".slice(stars)}</span>
-          </span>
-        </span>
-      </div>
-      <span className={"tv-quote"}>{text}</span>
-    </>
+    <span className="tv-seq tv-seqTyping">
+      <Sparkles size={12} /> {label}
+      <span className="tv-dots">
+        <i />
+        <i />
+        <i />
+      </span>
+    </span>
   );
 }
 
-const HUB = { x: 490, y: 335 };
+function Done({ children }: { children: ReactNode }) {
+  return (
+    <span className="tv-seq tv-seqDone">
+      <Check size={13} /> {children}
+    </span>
+  );
+}
+
+function MapsReview({
+  initial,
+  color,
+  name,
+  meta,
+  stars,
+  when,
+  text,
+  reply,
+}: {
+  initial: string;
+  color: string;
+  name: string;
+  meta: string;
+  stars: number;
+  when: string;
+  text: string;
+  reply: string;
+}) {
+  return (
+    <div className="tv-gm tv-seq tv-seqReview">
+      <div className="tv-gmWho">
+        <span className="tv-playAvatar" style={{ background: color }}>
+          {initial}
+        </span>
+        <span style={{ display: "flex", flexDirection: "column" }}>
+          <span className="tv-gmName">{name}</span>
+          <span className="tv-gmSub">{meta}</span>
+        </span>
+      </div>
+      <div className="tv-gmMeta">
+        <span className="tv-gmStars">
+          {"★★★★★".slice(0, stars)}
+          <span>{"★★★★★".slice(stars)}</span>
+        </span>
+        {when}
+      </div>
+      <p className="tv-gmText">{text}</p>
+      <div className="tv-seqSlot">
+        <Typing label="TreeVook AI is replying" />
+        <div className="tv-seq tv-seqReply tv-gmReply">
+          <div className="tv-gmOwner">
+            Response from the owner <span>Just now</span>
+          </div>
+          {reply}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FbThread({
+  name,
+  comment,
+  page,
+  reply,
+}: {
+  name: string;
+  comment: string;
+  page: string;
+  reply: string;
+}) {
+  return (
+    <div className="tv-fb">
+      <div className="tv-fbRow tv-seq tv-seqReview">
+        <span className="tv-playAvatar" style={{ background: "#8E24AA" }}>
+          {name[0]}
+        </span>
+        <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span className="tv-fbBubble">
+            <b>{name}</b>
+            {comment}
+          </span>
+          <span className="tv-fbActs">
+            2m <b>Like</b> <b>Reply</b>
+          </span>
+        </span>
+      </div>
+      <div className="tv-seqSlot" style={{ marginLeft: 34 }}>
+        <Typing label="AI is replying" />
+        <div className="tv-fbRow tv-seq tv-seqReply">
+          <span
+            className="tv-playAvatar"
+            style={{ background: "#2D5BD7", width: 20, height: 20, fontSize: 10 }}
+          >
+            {page[0]}
+          </span>
+          <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span className="tv-fbBubble">
+              <b>
+                {page} <i>Author</i>
+              </b>
+              {reply}
+            </span>
+            <span className="tv-fbActs">
+              Just now <b>Like</b> <b>Reply</b>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdsTable() {
+  return (
+    <div className="tv-ads">
+      <div className="tv-adsHead">
+        <span>Ad</span>
+        <span>Results</span>
+        <span>Spent</span>
+      </div>
+      <div className="tv-adsRow">
+        <span className="tv-switch tv-seq tv-seqSwitch">
+          <i className="tv-seq tv-seqKnob" />
+        </span>
+        <span className="tv-adsName">
+          Ad D<em className="tv-seq tv-seqReply">Paused by AI</em>
+        </span>
+        <span className="tv-mono">0</span>
+        <span className="tv-mono">₹800</span>
+      </div>
+      <div className="tv-adsRow">
+        <span className="tv-switch tv-on">
+          <i />
+        </span>
+        <span className="tv-adsName">Ad B</span>
+        <span className="tv-mono">24</span>
+        <span className="tv-mono">₹790</span>
+      </div>
+      <div className="tv-seqSlot">
+        <Typing label="Checking yesterday’s results" />
+        <div className="tv-seq tv-seqDoneSlot tv-adsTip">
+          <span>
+            <b>Scale Ad B +25%?</b> Cost per lead −32%
+          </span>
+          <span className="tv-chipBtn">Approve</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IgPost({ compact }: { compact?: boolean }) {
+  return (
+    <div className={compact ? "tv-igMini" : "tv-ig"}>
+      <span className="tv-igHead">
+        <span className="tv-ring">
+          <span className="tv-avatar" style={{ width: 22, height: 22, fontSize: 10 }}>
+            S
+          </span>
+        </span>
+        <b>sharmadental</b>
+      </span>
+      <div className="tv-seqSlot tv-igMedia">
+        <span className="tv-seq tv-seqTyping tv-igDesign">
+          <Sparkles size={13} /> Designing
+          <span className="tv-dots">
+            <i />
+            <i />
+            <i />
+          </span>
+        </span>
+        <div className="tv-seq tv-seqReply tv-igImg">
+          <span className="tv-igText">
+            Diwali
+            <br />
+            smile offer
+          </span>
+          <span className="tv-igBadge">20% off</span>
+        </div>
+      </div>
+      {compact ? null : (
+        <div className="tv-igActions">
+          <Heart size={16} />
+          <MessageCircle size={16} />
+          <Send size={16} />
+          <Bookmark size={16} style={{ marginLeft: "auto" }} />
+        </div>
+      )}
+      <span className="tv-igCaption tv-seq tv-seqReply">
+        <b>sharmadental</b> Light up your smile this Diwali ✨{" "}
+        <span style={{ color: "#00376B" }}>#PatnaDentist</span>
+      </span>
+    </div>
+  );
+}
+
+function GoogleUpdate() {
+  return (
+    <div className="tv-seqSlot">
+      <Typing label="Writing your offer" />
+      <div className="tv-gu tv-seq tv-seqReply">
+        <span className="tv-gmSub">Sharma Dental Clinic · Offer</span>
+        <b>Diwali smile offer</b>
+        <span className="tv-gmSub">20 Oct – 31 Oct</span>
+        <span className="tv-gmText">20% off teeth whitening this Diwali.</span>
+        <span className="tv-guLink">Redeem online</span>
+      </div>
+    </div>
+  );
+}
+
+const HUB = { x: 490, y: 465 };
 
 const NODES = [
   { id: "g", side: "l", top: 0, color: "#0F6B4A" },
-  { id: "ig", side: "l", top: 290, color: "#C2185B" },
-  { id: "m", side: "l", top: 506, color: "#1C64B8" },
+  { id: "ig", side: "l", top: 320, color: "#C2185B" },
+  { id: "m", side: "l", top: 650, color: "#1C64B8" },
   { id: "p", side: "r", top: 0, color: "#E8590C" },
-  { id: "fb", side: "r", top: 364, color: "#2D5BD7" },
-  { id: "gp", side: "r", top: 566, color: "#0F6B4A" },
+  { id: "fb", side: "r", top: 354, color: "#2D5BD7" },
+  { id: "gp", side: "r", top: 657, color: "#0F6B4A" },
 ] as const;
 
 const anchor = (n: (typeof NODES)[number]) => ({
@@ -84,15 +280,19 @@ const wire = (n: (typeof NODES)[number]) => {
 function Node({
   node,
   label,
+  title,
+  delay = 0,
   children,
 }: {
   node: (typeof NODES)[number];
   label: string;
+  title: string;
+  delay?: number;
   children: ReactNode;
 }) {
   return (
     <div
-      className="tv-node tv-card tv-shadow tv-mini"
+      className={`tv-node tv-card tv-shadow tv-mini tv-d${delay}`}
       style={{ top: node.top, ...(node.side === "l" ? { left: 0 } : { right: 0 }) }}
     >
       <span
@@ -103,6 +303,7 @@ function Node({
         <span className="tv-eyebrowDot" style={{ background: node.color }} />
         {label}
       </div>
+      <span className="tv-nodeTitle">{title}</span>
       {children}
     </div>
   );
@@ -112,7 +313,7 @@ export function HeroStage() {
   const [g, ig, m, p, fb, gp] = NODES;
   return (
     <div className="tv-stage" aria-hidden>
-      <svg className="tv-wires" viewBox="0 0 980 670">
+      <svg className="tv-wires" viewBox="0 0 980 930">
         {NODES.map((n) => (
           <path key={n.id} id={`wire-${n.id}`} className="tv-wire" d={wire(n)} />
         ))}
@@ -133,53 +334,27 @@ export function HeroStage() {
       <div className="tv-hub">
         <Mark size={52} />
       </div>
-      <Node node={g} label="Google review">
-        <Review initial="P" name="Priya S." stars={5} text="Lovely staff, very clean clinic." />
-        <div className="tv-draft">
-          <div className="tv-draftLabel">
-            <Sparkles size={12} /> AI draft
-          </div>
-          Thank you Priya! We’re so glad you felt at home.
-        </div>
-        <div className="tv-row">
-          <span className="tv-chipQuiet">Edit</span>
-          <span className="tv-chipBtn">
-            <Check size={13} /> Approve
-          </span>
-        </div>
+      <Node node={g} label="Google Business" title="Auto-reply to Google reviews" delay={1}>
+        <MapsReview
+          initial="P"
+          color="#0B8043"
+          name="Priya Singh"
+          meta="Local Guide · 23 reviews"
+          stars={5}
+          when="a week ago"
+          text="Lovely staff and a very clean clinic."
+          reply="Thank you Priya! We’re so glad you felt at home."
+        />
+        <Done>Live on Google Maps</Done>
       </Node>
-      <Node node={ig} label="Instagram · planned by AI">
-        <div className="tv-row" style={{ justifyContent: "flex-start", gap: 10 }}>
-          <span className="tv-igThumb">
-            <GalleryHorizontalEnd size={12} />
-          </span>
-          <span style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <span className="tv-name">Diwali offer carousel</span>
-            <span className="tv-tiny">Thu, 7:00 PM · best time</span>
-          </span>
-          <span className="tv-tag" style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
-            Auto
-          </span>
-        </div>
+      <Node node={ig} label="Instagram Autopost" title="AI designs and posts for you" delay={3}>
+        <IgPost compact />
+        <Done>Scheduled · Thu 7 PM, best time</Done>
       </Node>
-      <Node node={m} label="Meta ads · daily check">
-        <div className="tv-row">
-          <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className="tv-name">Ad D paused</span>
-            <span className="tv-tiny">₹800 spent · 0 leads</span>
-          </span>
-          <PauseCircle size={22} color="#B42318" />
-        </div>
-        <div className="tv-row">
-          <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className="tv-name">Scale Ad B +25%?</span>
-            <span className="tv-tiny">Cost per lead −32%</span>
-          </span>
-          <span className="tv-chipBtn">Approve</span>
-        </div>
+      <Node node={m} label="Meta Ads" title="Daily ad check-up" delay={5}>
+        <AdsTable />
       </Node>
-      <Node node={p} label="Play Reviews">
-        <span className="tv-nodeTitle">Auto-reply to app reviews</span>
+      <Node node={p} label="Play Reviews" title="Auto-reply to app reviews">
         <div className="tv-play tv-seq tv-seqReview">
           <div className="tv-playWho">
             <span className="tv-playAvatar">R</span>
@@ -198,14 +373,7 @@ export function HeroStage() {
             <span>No</span>
           </div>
           <div className="tv-seqSlot">
-            <span className="tv-seq tv-seqTyping">
-              <Sparkles size={12} /> TreeVook AI is replying
-              <span className="tv-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-            </span>
+            <Typing label="TreeVook AI is replying" />
             <div className="tv-seq tv-seqReply tv-playReply">
               <div className="tv-playDev">
                 <span>Notes Pro</span>
@@ -215,35 +383,20 @@ export function HeroStage() {
             </div>
           </div>
         </div>
-        <span className="tv-seq tv-seqDone">
-          <Check size={13} /> Live on Google Play
-        </span>
+        <Done>Live on Google Play</Done>
       </Node>
-      <Node node={fb} label="Facebook comment">
-        <span className="tv-comment" style={{ fontSize: 12.5 }}>
-          <span className="tv-name">Rohit</span>
-          What time does the camp start?
-        </span>
-        <div className="tv-draft" style={{ fontSize: 12 }}>
-          <div className="tv-draftLabel">
-            <Sparkles size={12} /> AI reply · sent
-          </div>
-          9 AM to 1 PM at Fraser Road. See you!
-        </div>
+      <Node node={fb} label="Facebook Autopost" title="Auto-reply to comments" delay={2}>
+        <FbThread
+          name="Rohit Kumar"
+          comment="What time does the camp start?"
+          page="Sharma Dental"
+          reply="9 AM to 1 PM at Fraser Road. See you!"
+        />
+        <Done>Replied on Facebook</Done>
       </Node>
-      <Node node={gp} label="Google post · scheduled">
-        <div className="tv-row">
-          <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className="tv-name">Diwali smile offer</span>
-            <span className="tv-tiny">Goes live Fri, 10:00 AM</span>
-          </span>
-          <span
-            className="tv-tag tv-mono"
-            style={{ border: "1px dashed #0F6B4A", color: "#0F6B4A" }}
-          >
-            SMILE20
-          </span>
-        </div>
+      <Node node={gp} label="Google Business" title="Post offers on Google" delay={4}>
+        <GoogleUpdate />
+        <Done>Live on Google</Done>
       </Node>
     </div>
   );
@@ -253,39 +406,19 @@ export function BusinessScene() {
   return (
     <div className={"tv-scene"} style={{ background: "#EAF3EE" }} aria-hidden>
       <div className={"tv-sceneGrid"}>
-        <div
-          className={`tv-card tv-shadow tv-pos`}
-          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}
-        >
-          <span className={"tv-step"}>1</span>
-          <Review
+        <div className="tv-card tv-shadow tv-pos tv-sceneCard">
+          <span className="tv-nodeTitle">Auto-reply to Google reviews</span>
+          <MapsReview
             initial="A"
-            name="Ankit K. on Google"
+            color="#E37400"
+            name="Ankit Kumar"
+            meta="4 reviews · 2 photos"
             stars={4}
+            when="2 days ago"
             text="Good treatment, but I waited 40 minutes."
+            reply="Thanks Ankit, and sorry about the wait. We’ve added evening slots so it won’t happen again."
           />
-        </div>
-        <div className={"tv-flowArrow"}>
-          <ArrowDown size={16} />
-        </div>
-        <div
-          className={`tv-card tv-shadow tv-pos`}
-          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}
-        >
-          <span className={"tv-step"}>2</span>
-          <div className={"tv-draft"}>
-            <div className={"tv-draftLabel"}>
-              <Sparkles size={12} /> AI draft · in your voice
-            </div>
-            Thanks Ankit, and sorry about the wait. We’ve added evening slots so it won’t happen
-            again.
-          </div>
-          <div className={"tv-row"}>
-            <span className={"tv-tiny"}>You approve, it posts</span>
-            <span className={"tv-chipBtn"}>
-              <Check size={13} /> Approve
-            </span>
-          </div>
+          <Done>Live on Google Maps</Done>
         </div>
         <div className={"tv-pair"}>
           <div
@@ -461,30 +594,10 @@ export function MetaScene() {
         <div className={"tv-flowArrow"}>
           <ArrowDown size={16} />
         </div>
-        <div
-          className={`tv-card tv-shadow tv-pos`}
-          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}
-        >
-          <span className={"tv-step"}>2</span>
-          <span className={"tv-tiny"}>Every morning at 7:30</span>
-          {[
-            ["#B42318", "Paused Ad D", "₹800 spent, no leads", "Done"],
-            ["#0F6B4A", "Scale Ad B by 25%", "Cost per lead down 32%", "Approve"],
-          ].map(([color, title, sub, action]) => (
-            <div key={title} className={"tv-row"}>
-              <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span
-                  className={"tv-adThumb"}
-                  style={{ background: `linear-gradient(135deg, ${color}22, ${color}55)` }}
-                />
-                <span style={{ display: "flex", flexDirection: "column" }}>
-                  <span className={"tv-name"}>{title}</span>
-                  <span className={"tv-tiny"}>{sub}</span>
-                </span>
-              </span>
-              <span className={action === "Done" ? "tv-chipQuiet" : "tv-chipBtn"}>{action}</span>
-            </div>
-          ))}
+        <div className="tv-card tv-shadow tv-pos tv-sceneCard">
+          <span className="tv-step">2</span>
+          <span className="tv-nodeTitle">Every morning at 7:30</span>
+          <AdsTable />
         </div>
       </div>
     </div>
@@ -646,36 +759,10 @@ export function InstagramScene() {
           </span>
         </div>
         <div className="tv-split">
-          <div className="tv-card tv-shadow tv-pos tv-ig">
+          <div className="tv-pos" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span className="tv-step">2</span>
-            <span className="tv-who" style={{ padding: "10px 12px" }}>
-              <span className="tv-ring">
-                <span className="tv-avatar" style={{ width: 24, height: 24, fontSize: 10 }}>
-                  S
-                </span>
-              </span>
-              <span className="tv-name" style={{ fontSize: 12 }}>
-                sharmadental
-              </span>
-            </span>
-            <div className="tv-igImg">
-              <span className="tv-igText">
-                Diwali
-                <br />
-                smile offer
-              </span>
-              <span className="tv-igBadge">20% off</span>
-            </div>
-            <div className="tv-igActions">
-              <Heart size={16} />
-              <MessageCircle size={16} />
-              <Send size={16} />
-              <Bookmark size={16} style={{ marginLeft: "auto" }} />
-            </div>
-            <span className="tv-quote" style={{ padding: "0 12px 12px", fontSize: 12 }}>
-              Light up your smile this Diwali ✨{" "}
-              <span style={{ color: "#1C64B8" }}>#PatnaDentist</span>
-            </span>
+            <IgPost />
+            <Done>Scheduled · Thu 7 PM</Done>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div
@@ -742,30 +829,16 @@ export function FacebookScene() {
         <div className="tv-flowArrow">
           <ArrowDown size={16} />
         </div>
-        <div
-          className="tv-card tv-shadow tv-pos"
-          style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}
-        >
+        <div className="tv-card tv-shadow tv-pos tv-sceneCard">
           <span className="tv-step">2</span>
-          <div className="tv-who" style={{ alignItems: "flex-start" }}>
-            <span className="tv-avatar">R</span>
-            <span className="tv-comment">
-              <span className="tv-name">Rohit</span>
-              What time does it start?
-            </span>
-          </div>
-          <div className="tv-draft">
-            <div className="tv-draftLabel">
-              <Sparkles size={12} /> AI reply
-            </div>
-            Hi Rohit! 9 AM to 1 PM at Fraser Road. See you there 😊
-          </div>
-          <div className="tv-row">
-            <span className="tv-tiny">Questions auto-reply · complaints wait</span>
-            <span className="tv-chipBtn">
-              <Check size={13} /> Approve
-            </span>
-          </div>
+          <span className="tv-nodeTitle">Auto-reply to comments</span>
+          <FbThread
+            name="Rohit Kumar"
+            comment="What time does it start?"
+            page="Sharma Dental Clinic"
+            reply="Hi Rohit! 9 AM to 1 PM at Fraser Road. See you there 😊"
+          />
+          <Done>Replied on Facebook</Done>
         </div>
       </div>
     </div>
