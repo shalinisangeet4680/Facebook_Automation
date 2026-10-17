@@ -14,6 +14,7 @@ import {
   ThumbsUp,
   TrendingUp,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 export function Mark({ size = 18 }: { size?: number }) {
   return (
@@ -58,90 +59,162 @@ function Review({
   );
 }
 
-export function HeroStage() {
+const HUB = { x: 490, y: 300 };
+
+const NODES = [
+  { id: "g", side: "l", top: 0, color: "#0F6B4A" },
+  { id: "ig", side: "l", top: 262, color: "#C2185B" },
+  { id: "m", side: "l", top: 420, color: "#1C64B8" },
+  { id: "p", side: "r", top: 16, color: "#E8590C" },
+  { id: "fb", side: "r", top: 196, color: "#2D5BD7" },
+  { id: "gp", side: "r", top: 440, color: "#0F6B4A" },
+] as const;
+
+const anchor = (n: (typeof NODES)[number]) => ({
+  x: n.side === "l" ? 270 : 710,
+  y: n.top + 42,
+});
+
+const wire = (n: (typeof NODES)[number]) => {
+  const a = anchor(n);
+  const bend = n.side === "l" ? -90 : 90;
+  return `M ${HUB.x} ${HUB.y} C ${HUB.x + bend} ${HUB.y}, ${a.x - bend} ${a.y}, ${a.x} ${a.y}`;
+};
+
+function Node({
+  node,
+  label,
+  children,
+}: {
+  node: (typeof NODES)[number];
+  label: string;
+  children: ReactNode;
+}) {
   return (
-    <div className={"tv-stage"} aria-hidden>
-      <svg className={"tv-wires"} viewBox="0 0 980 440" preserveAspectRatio="none">
-        <path className={"tv-wire"} d="M490 220 C 380 220, 330 110, 250 100" />
-        <path className={"tv-wire"} d="M490 220 C 600 220, 650 110, 740 96" />
-        <path className={"tv-wire"} d="M490 220 C 380 230, 330 330, 250 345" />
-        <path className={"tv-wire"} d="M490 220 C 600 230, 650 330, 740 350" />
+    <div
+      className="tv-node tv-card tv-shadow tv-mini"
+      style={{ top: node.top, ...(node.side === "l" ? { left: 0 } : { right: 0 }) }}
+    >
+      <span
+        className="tv-plug"
+        style={{ background: node.color, ...(node.side === "l" ? { right: -5 } : { left: -5 }) }}
+      />
+      <div className="tv-miniHead">
+        <span className="tv-eyebrowDot" style={{ background: node.color }} />
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function HeroStage() {
+  const [g, ig, m, p, fb, gp] = NODES;
+  return (
+    <div className="tv-stage" aria-hidden>
+      <svg className="tv-wires" viewBox="0 0 980 600">
+        {NODES.map((n) => (
+          <path key={n.id} id={`wire-${n.id}`} className="tv-wire" d={wire(n)} />
+        ))}
+        {NODES.map((n, i) => (
+          <circle key={n.id} className="tv-pulse" r="4" fill={n.color}>
+            <animateMotion
+              dur="2.8s"
+              begin={`${i * 0.45}s`}
+              repeatCount="indefinite"
+              keyPoints="1;0"
+              keyTimes="0;1"
+              calcMode="linear"
+              path={wire(n)}
+            />
+          </circle>
+        ))}
       </svg>
-      <div className={"tv-hub"}>
+      <div className="tv-hub">
         <Mark size={52} />
       </div>
-      <div className={`tv-float tv-card tv-shadow tv-mini`} style={{ left: 0, top: 10 }}>
-        <div className={"tv-miniHead"}>
-          <span className={"tv-eyebrowDot"} style={{ background: "#0F6B4A" }} />
-          Google review
-        </div>
+      <Node node={g} label="Google review">
         <Review initial="P" name="Priya S." stars={5} text="Lovely staff, very clean clinic." />
-        <div className={"tv-draft"}>
-          <div className={"tv-draftLabel"}>
+        <div className="tv-draft">
+          <div className="tv-draftLabel">
             <Sparkles size={12} /> AI draft
           </div>
           Thank you Priya! We’re so glad you felt at home.
         </div>
-        <div className={"tv-row"}>
-          <span className={"tv-chipQuiet"}>Edit</span>
-          <span className={"tv-chipBtn"}>
+        <div className="tv-row">
+          <span className="tv-chipQuiet">Edit</span>
+          <span className="tv-chipBtn">
             <Check size={13} /> Approve
           </span>
         </div>
-      </div>
-      <div className={`tv-float tv-card tv-shadow tv-mini`} style={{ right: 0, top: 0 }}>
-        <div className={"tv-miniHead"}>
-          <span className={"tv-eyebrowDot"} style={{ background: "#E8590C" }} />
-          Play Store review
-        </div>
-        <Review initial="R" name="Rahul V." stars={1} text="App crashes after login 😞" />
-        <div className={"tv-row"}>
-          <span className={"tv-tag"} style={{ background: "#FDF0EE", color: "#B42318" }}>
-            Login issue
+      </Node>
+      <Node node={ig} label="Instagram · planned by AI">
+        <div className="tv-row" style={{ justifyContent: "flex-start", gap: 10 }}>
+          <span className="tv-igThumb">
+            <GalleryHorizontalEnd size={12} />
           </span>
-          <span className={"tv-tag"} style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
-            <Check size={12} /> Replied in Hindi
+          <span style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <span className="tv-name">Diwali offer carousel</span>
+            <span className="tv-tiny">Thu, 7:00 PM · best time</span>
+          </span>
+          <span className="tv-tag" style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
+            Auto
           </span>
         </div>
-      </div>
-      <div className={`tv-float tv-card tv-shadow tv-mini`} style={{ left: 30, bottom: 0 }}>
-        <div className={"tv-miniHead"}>
-          <span className={"tv-eyebrowDot"} style={{ background: "#1C64B8" }} />
-          Meta ads · daily check
-        </div>
-        <div className={"tv-row"}>
+      </Node>
+      <Node node={m} label="Meta ads · daily check">
+        <div className="tv-row">
           <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className={"tv-name"}>Ad D paused</span>
-            <span className={"tv-tiny"}>₹800 spent · 0 leads</span>
+            <span className="tv-name">Ad D paused</span>
+            <span className="tv-tiny">₹800 spent · 0 leads</span>
           </span>
           <PauseCircle size={22} color="#B42318" />
         </div>
-        <div className={"tv-row"}>
+        <div className="tv-row">
           <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className={"tv-name"}>Scale Ad B +25%?</span>
-            <span className={"tv-tiny"}>Cost per lead −32%</span>
+            <span className="tv-name">Scale Ad B +25%?</span>
+            <span className="tv-tiny">Cost per lead −32%</span>
           </span>
-          <span className={"tv-chipBtn"}>Approve</span>
+          <span className="tv-chipBtn">Approve</span>
         </div>
-      </div>
-      <div className={`tv-float tv-card tv-shadow tv-mini`} style={{ right: 20, bottom: 10 }}>
-        <div className={"tv-miniHead"}>
-          <span className={"tv-eyebrowDot"} style={{ background: "#0F6B4A" }} />
-          Google post · scheduled
+      </Node>
+      <Node node={p} label="Play Store review">
+        <Review initial="R" name="Rahul V." stars={1} text="App crashes after login 😞" />
+        <div className="tv-row">
+          <span className="tv-tag" style={{ background: "#FDF0EE", color: "#B42318" }}>
+            Login issue
+          </span>
+          <span className="tv-tag" style={{ background: "#EAF3EE", color: "#0F6B4A" }}>
+            <Check size={12} /> Replied in Hindi
+          </span>
         </div>
-        <div className={"tv-row"}>
+      </Node>
+      <Node node={fb} label="Facebook comment">
+        <span className="tv-comment" style={{ fontSize: 12.5 }}>
+          <span className="tv-name">Rohit</span>
+          What time does the camp start?
+        </span>
+        <div className="tv-draft" style={{ fontSize: 12 }}>
+          <div className="tv-draftLabel">
+            <Sparkles size={12} /> AI reply · sent
+          </div>
+          9 AM to 1 PM at Fraser Road. See you!
+        </div>
+      </Node>
+      <Node node={gp} label="Google post · scheduled">
+        <div className="tv-row">
           <span style={{ display: "flex", flexDirection: "column" }}>
-            <span className={"tv-name"}>Diwali smile offer</span>
-            <span className={"tv-tiny"}>Goes live Fri, 10:00 AM</span>
+            <span className="tv-name">Diwali smile offer</span>
+            <span className="tv-tiny">Goes live Fri, 10:00 AM</span>
           </span>
           <span
-            className={`tv-tag tv-mono`}
+            className="tv-tag tv-mono"
             style={{ border: "1px dashed #0F6B4A", color: "#0F6B4A" }}
           >
             SMILE20
           </span>
         </div>
-      </div>
+      </Node>
     </div>
   );
 }

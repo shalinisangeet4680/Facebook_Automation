@@ -240,16 +240,15 @@
 
 .tv-stage {
   position: relative;
+  width: 980px;
+  height: 600px;
   margin: 56px auto 0;
-  max-width: 980px;
-  height: 440px;
 }
 
 .tv-hub {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  left: 438px;
+  top: 248px;
   width: 104px;
   height: 104px;
   border-radius: 28px;
@@ -262,21 +261,39 @@
     0 0 0 22px rgba(25, 25, 23, 0.03),
     0 20px 40px rgba(25, 25, 23, 0.18);
   z-index: 2;
+  animation: hubPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes hubPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 10px rgba(25, 25, 23, 0.04),
+      0 0 0 22px rgba(25, 25, 23, 0.03),
+      0 20px 40px rgba(25, 25, 23, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 14px rgba(15, 107, 74, 0.08),
+      0 0 0 30px rgba(15, 107, 74, 0.04),
+      0 20px 40px rgba(25, 25, 23, 0.18);
+  }
 }
 
 .tv-wires {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 980px;
+  height: 600px;
+  overflow: visible;
 }
 
 .tv-wire {
   fill: none;
-  stroke: #d9d5cc;
+  stroke: #d2cec4;
   stroke-width: 1.5;
   stroke-dasharray: 4 6;
-  animation: flow 1.6s linear infinite;
+  animation: flow 1.6s linear infinite reverse;
 }
 
 @keyframes flow {
@@ -285,32 +302,32 @@
   }
 }
 
-.tv-float {
+.tv-node {
   position: absolute;
   z-index: 3;
-  animation: bob 6s ease-in-out infinite;
 }
 
-.tv-float:nth-of-type(2) {
-  animation-delay: -1.5s;
+.tv-plug {
+  position: absolute;
+  top: 37px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
-.tv-float:nth-of-type(3) {
-  animation-delay: -3s;
-}
-
-.tv-float:nth-of-type(4) {
-  animation-delay: -4.5s;
-}
-
-@keyframes bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+.tv-igThumb {
+  width: 40px;
+  height: 50px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: linear-gradient(140deg, #3b1d6e, #c2185b 60%, #ff8a3d);
+  color: #fff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 4px;
 }
 
 .tv-card {
@@ -995,6 +1012,30 @@
   color: var(--ink);
 }
 
+@media (max-width: 1040px) {
+  .tv-stage {
+    width: auto;
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 14px;
+  }
+
+  .tv-hub,
+  .tv-wires {
+    display: none;
+  }
+
+  .tv-node {
+    position: static;
+  }
+
+  .tv-plug {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .tv-links {
     display: none;
@@ -1012,23 +1053,6 @@
   .tv-trio,
   .tv-steps {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tv-stage {
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-    gap: 14px;
-  }
-
-  .tv-hub,
-  .tv-wires {
-    display: none;
-  }
-
-  .tv-float {
-    position: static;
   }
 
   .tv-dark {
@@ -1069,9 +1093,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tv-float,
-  .tv-wire {
+  .tv-wire,
+  .tv-hub {
     animation: none;
+  }
+
+  .tv-pulse {
+    display: none;
   }
 }
 
