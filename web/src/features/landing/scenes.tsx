@@ -327,21 +327,54 @@ export function PlayScene() {
     <div className={"tv-scene"} style={{ background: "#FDF1E9" }} aria-hidden>
       <div className={"tv-playLayout"}>
         <div className={"tv-phone"}>
-          <div className={"tv-phoneIn"}>
-            <div className={"tv-appRow"}>
-              <span className={"tv-appIcon"}>N</span>
+          <div className="tv-phoneIn tv-phonePlay">
+            <div className="tv-appRow">
+              <span className="tv-appIcon">N</span>
               <span style={{ display: "flex", flexDirection: "column" }}>
-                <span className={"tv-name"}>Notes Pro</span>
-                <span className={"tv-tiny"}>Ratings and reviews</span>
+                <span className="tv-name">Notes Pro</span>
+                <span className="tv-tiny">Ratings and reviews</span>
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <Review initial="म" name="Meena" stars={2} text="लॉगिन के बाद ऐप बंद हो जाता है" />
+            <div className="tv-seq tv-seqReview tv-phoneReview">
+              <div className="tv-playWho">
+                <span className="tv-playAvatar" style={{ background: "#7B1FA2" }}>
+                  म
+                </span>
+                <span>मीना शर्मा</span>
+              </div>
+              <div className="tv-playMeta">
+                <span className="tv-playStars">
+                  ★★<span>★★★</span>
+                </span>
+                16 Oct 2026
+              </div>
+              <p className="tv-playText">लॉगिन के बाद ऐप बंद हो जाता है</p>
+              <div className="tv-playHelpful">
+                Did you find this helpful?
+                <span>Yes</span>
+                <span>No</span>
+              </div>
+              <div className="tv-seqSlot">
+                <span className="tv-seq tv-seqTyping">
+                  <Sparkles size={12} /> Replying in Hindi
+                  <span className="tv-dots">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </span>
+                <div className="tv-seq tv-seqReply tv-playReply">
+                  <div className="tv-playDev">
+                    <span>Notes Pro</span>
+                    <span>Just now</span>
+                  </div>
+                  माफ़ कीजिए मीना! v3.4 में यह ठीक हो गया है, कृपया अपडेट करें।
+                </div>
+              </div>
             </div>
-            <div className={"tv-draft"} style={{ fontSize: 12 }}>
-              <div className={"tv-draftLabel"}>Developer reply</div>
-              माफ़ कीजिए मीना! v3.4 में यह ठीक हो गया है, कृपया अपडेट करें।
-            </div>
+            <span className="tv-seq tv-seqDone">
+              <Check size={13} /> Live on Google Play
+            </span>
           </div>
         </div>
         <div className={"tv-playSide"}>

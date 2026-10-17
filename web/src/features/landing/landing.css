@@ -419,6 +419,27 @@
   color: #5f6368;
 }
 
+.tv-phonePlay {
+  font-family: Roboto, "Google Sans", Arial, sans-serif;
+  min-height: 330px;
+}
+
+.tv-phoneReview {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #202124;
+}
+
+.tv-phoneReview .tv-playHelpful {
+  white-space: nowrap;
+  font-size: 9.5px;
+}
+
+.tv-phoneReview .tv-playReply {
+  margin-left: 4px;
+}
+
 .tv-seqSlot {
   display: grid;
 }
@@ -949,7 +970,7 @@
 }
 
 .tv-phone {
-  width: 210px;
+  width: 226px;
   border-radius: 28px;
   background: var(--ink);
   padding: 8px;
@@ -987,7 +1008,7 @@
 
 .tv-playLayout {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   width: 100%;
   max-width: 500px;
@@ -999,6 +1020,21 @@
   gap: 12px;
   flex: 1;
   min-width: 0;
+}
+
+.tv-playSide .tv-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.tv-playSide .tv-stars {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.tv-playSide .tv-row {
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .tv-spark {
