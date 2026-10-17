@@ -1,11 +1,18 @@
 name: treevook
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
 x-backend: &backend
   build:
     context: ../backend
   image: treevook-backend:${IMAGE_TAG:-latest}
   restart: unless-stopped
   init: true
+  logging: *logging
   env_file: .env
   environment:
     NODE_ENV: production
@@ -24,6 +31,8 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    logging: *logging
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-treevook}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -67,6 +76,7 @@ services:
         ROOT_URL: ${ROOT_URL:-}
     image: treevook-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     init: true
     environment:
       ROOT_URL: ${ROOT_URL:-}
@@ -77,6 +87,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"

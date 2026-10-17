@@ -40,13 +40,27 @@ sudo iptables -I INPUT 5 -m state --state NEW -p tcp --dport 443 -j ACCEPT
 sudo netfilter-persistent save
 ```
 
-Updates: the server at `/opt/treevook` is a git checkout of `main` with a read-only deploy key. To release, push to `main`, then on the server run:
+### Releases (automatic)
 
-```bash
-/opt/treevook/deploy/update.sh
-```
+Push to `main` and `.github/workflows/ci.yml` does the rest:
 
-It pulls, rebuilds the images, runs migrations and restarts only what changed. Take a backup first when the release has new migrations.
+1. It runs only the checks for what changed: backend, web plus end-to-end tests, the plugin, and the deploy config.
+2. When the push touched `backend/`, `web/` or `deploy/` and every check passed, the `deploy` job connects to the server over SSH and sends the commit hash.
+   - The key is restricted in `~/.ssh/authorized_keys` to `deploy/remote-deploy.sh`, which accepts only a commit hash.
+   - The workflow uses the secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `DEPLOY_HOST`.
+3. `deploy/update.sh` on the server then:
+   - checks out exactly that commit and builds images tagged with it;
+   - backs up the database when `backend/drizzle` changed;
+   - runs migrations and restarts;
+   - waits for the `api` and `web` health checks, and rolls back to the previous images if they fail;
+   - keeps the last 3 builds.
+4. The workflow smoke-tests the public URLs.
+
+To deploy manually, run Actions → ci → Run workflow with "Deploy" ticked, or on the server run `/opt/treevook/deploy/update.sh` for the latest `main`.
+
+Backups: `deploy/backup.sh` runs daily from cron at 03:00 and keeps 7 daily and 5 pre-deploy dumps in `/opt/treevook-backups`. Copy them off the server regularly.
+
+Container logs rotate at 10 MB × 5 files per service.
 
 To run everything on one server instead, set `CADDYFILE=Caddyfile` and `COMPOSE_PROFILES=web`. The full `Caddyfile` also serves `api.<domain>`, so the API keeps working when you switch.
 
