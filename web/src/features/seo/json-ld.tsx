@@ -57,3 +57,15 @@ export function productLd(product: ProductPage) {
     publisher: { "@id": `${SITE_URL}/#organization` },
   };
 }
+
+export function faqLd(product: ProductPage) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: product.faqs.map(([question, answer]) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  };
+}

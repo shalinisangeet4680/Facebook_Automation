@@ -18,7 +18,11 @@ export function ProductHeader({ product }: { product: ProductPage }) {
   return (
     <header className="tv-nav">
       <div className="tv-wrap tv-navIn">
-        <Link href={`/${product.slug}`} className="tv-brand" aria-label={`${product.name} home`}>
+        <Link
+          href={`/${product.slug}`}
+          className="tv-brand"
+          aria-label={`${product.name} by TreeVook AI`}
+        >
           <span className="tv-mark" style={{ background: product.color }}>
             <Mark />
           </span>

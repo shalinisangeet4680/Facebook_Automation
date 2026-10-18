@@ -238,6 +238,9 @@ jobs:
       cancel-in-progress: false
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: web/scripts
       - name: Deploy to the Oracle server
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -255,3 +258,7 @@ jobs:
             echo "$url $code"
             [ "$code" -lt 400 ]
           done
+      - name: Tell search engines about changes (IndexNow)
+        if: needs.changes.outputs.web == 'true'
+        continue-on-error: true
+        run: node web/scripts/indexnow.mjs
