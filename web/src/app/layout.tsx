@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import { ThemeScript } from "@/components/theme-script";
-import { BRAND } from "@/lib/config";
+import { BRAND, SITE_URL } from "@/lib/config";
 
 import "./globals.css";
 
@@ -11,8 +11,16 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: BRAND.name, template: `%s · ${BRAND.name}` },
   description: BRAND.description,
+  applicationName: BRAND.name,
+  openGraph: {
+    type: "website",
+    siteName: BRAND.name,
+    locale: "en_IN",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

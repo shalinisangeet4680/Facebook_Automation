@@ -6,6 +6,7 @@ import { TERMS_SECTIONS, TERMS_SUMMARY } from "@/features/legal/terms";
 import "@/features/landing/landing.css";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/terms" },
   title: { absolute: "Terms of Service · TreeVook AI" },
   description: "Terms of Service for TreeVook AI by TreeVook LLP.",
 };

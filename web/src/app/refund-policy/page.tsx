@@ -6,6 +6,7 @@ import { REFUND_SECTIONS, REFUND_SUMMARY } from "@/features/legal/refunds";
 import "@/features/landing/landing.css";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/refund-policy" },
   title: { absolute: "Cancellation & Refund Policy · TreeVook AI" },
   description: "Cancellation and refund policy for TreeVook AI by TreeVook LLP.",
 };

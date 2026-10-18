@@ -10,6 +10,7 @@ import "@/features/landing/landing.css";
 const product = bySlug("facebook-autopost");
 
 export const metadata: Metadata = {
+  alternates: { canonical: `/${product.slug}/refund-policy` },
   title: { absolute: `Cancellation & Refund Policy · ${product.name}` },
   description: `Cancellation and refund policy for ${product.name} by TreeVook LLP.`,
 };

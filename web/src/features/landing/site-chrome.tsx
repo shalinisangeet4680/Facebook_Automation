@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { SOCIAL } from "@/lib/config";
+
 import { Mark } from "./scenes";
 
 const PRODUCTS = [
@@ -59,6 +61,11 @@ export function SiteFooter() {
         <Link href="/refund-policy">Refunds</Link>
         <Link href="/data-deletion">Data deletion</Link>
         <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
+        {SOCIAL.map((s) => (
+          <a key={s.name} href={s.url} target="_blank" rel="me noopener noreferrer">
+            {s.name}
+          </a>
+        ))}
       </nav>
     </footer>
   );

@@ -11,6 +11,7 @@ import "@/features/landing/landing.css";
 const product = bySlug("play-reviews");
 
 export const metadata: Metadata = {
+  alternates: { canonical: `/${product.slug}/terms` },
   title: { absolute: `Terms of Service · ${product.name}` },
   description: `Terms of Service for ${product.name} by TreeVook LLP.`,
 };

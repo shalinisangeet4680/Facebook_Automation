@@ -6,6 +6,7 @@ import { PRIVACY_SECTIONS, PRIVACY_SUMMARY } from "@/features/legal/privacy";
 import "@/features/landing/landing.css";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: { absolute: "Privacy Policy · TreeVook AI" },
   description: "Privacy Policy for TreeVook AI by TreeVook LLP.",
 };
