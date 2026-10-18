@@ -12,6 +12,7 @@ export const SOCIAL_API = Symbol("SOCIAL_API");
 export const FACEBOOK_LOGIN_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "pages_read_user_content",
   "pages_manage_posts",
   "pages_manage_engagement",
   "read_insights",
