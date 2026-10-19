@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { AuditService } from "@modules/audit/application/audit.service";
@@ -85,6 +85,8 @@ export interface AssetSelection {
 
 @Injectable()
 export class MetaConnectionService {
+  private readonly logger = new Logger(MetaConnectionService.name);
+
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     @Inject(META_GRAPH) private readonly graph: MetaGraph,
@@ -130,6 +132,9 @@ export class MetaConnectionService {
     ];
 
     if (missing.required.length) {
+      this.logger.warn(
+        `Meta token missing permissions (${viaLogin ? "facebook_login" : "system_user_token"}): granted=[${granted.join(",")}] missing=[${missing.required.join(",")}]`,
+      );
       throw new CodedError(
         ErrorCode.META_PERMISSIONS_MISSING,
         422,
