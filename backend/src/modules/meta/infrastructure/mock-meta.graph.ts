@@ -44,6 +44,22 @@ export class MockMetaGraph implements MetaGraph {
 
   adAccounts(token: string): Promise<GraphAdAccount[]> {
     if (token.includes("noads")) return Promise.resolve([]);
+    if (token.includes("otheraccount")) {
+      return Promise.resolve([
+        {
+          id: "act_1201000000000099",
+          accountId: "1201000000000099",
+          name: "Another Business Ads",
+          currency: "INR",
+          timezone: "Asia/Kolkata",
+          status: 1,
+          amountSpent: "0",
+          spendCap: null,
+          businessId: "1101000000000099",
+          businessName: "Another Business",
+        },
+      ]);
+    }
     return Promise.resolve([
       {
         id: "act_1201000000000001",

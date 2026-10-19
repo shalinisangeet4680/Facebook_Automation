@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { PlansList } from "@/features/plans/plans-list";
+import { CampaignsPage } from "@/features/campaigns/campaigns-page";
 
 export const metadata: Metadata = { title: "Campaigns" };
 
-export default function CampaignsPage() {
-  return <PlansList />;
+export default function Page() {
+  return (
+    <Suspense>
+      <CampaignsPage />
+    </Suspense>
+  );
 }

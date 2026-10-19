@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import { usePlans } from "@/lib/api/queries";
-import { Banner, PageHead, Section, Skel, copyText, useToast } from "@/features/replyly/ui";
+import { Banner, Section, Skel, copyText, useToast } from "@/features/replyly/ui";
 
 import { GOAL_LABELS, sourceLabel } from "./labels";
 import { MUTED, StatusPill } from "./plan-sections";
@@ -172,20 +172,14 @@ function Plans() {
   );
 }
 
-export function PlansList() {
+export function PlansTab() {
   return (
-    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      <PageHead
-        title="Campaigns"
-        sub="Answer a few questions and AI drafts every setting with its reasons. You review, adjust and launch here."
-        actions={
-          <Link href="/campaigns/new" className="rp-btn">
-            <Plus size={14} /> New campaign
-          </Link>
-        }
-      />
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <PromptCard />
-      <Section title="Plans">
+      <Section
+        title="Plans"
+        desc="Answer a few questions and AI drafts every setting with its reasons. You review, adjust and launch here."
+      >
         <Plans />
       </Section>
     </div>

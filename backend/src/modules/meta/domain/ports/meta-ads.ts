@@ -58,20 +58,31 @@ export interface AdSetSummary {
   promotedObject: Record<string, unknown> | null;
 }
 
+export type AdCreativeKind = "link" | "post" | "other";
+
+export interface AdCreativeSummary {
+  id: string;
+  kind: AdCreativeKind;
+  title: string | null;
+  body: string | null;
+  description: string | null;
+  linkUrl: string | null;
+  imageUrl: string | null;
+  imageHash: string | null;
+  thumbnailUrl: string | null;
+  callToAction: string | null;
+  pageId: string | null;
+  instagramId: string | null;
+  postId: string | null;
+}
+
 export interface AdSummary {
   id: string;
   name: string;
   adSetId: string;
   status: string;
   effectiveStatus: string;
-  creative: {
-    id: string;
-    title: string | null;
-    body: string | null;
-    linkUrl: string | null;
-    imageUrl: string | null;
-    callToAction: string | null;
-  } | null;
+  creative: AdCreativeSummary | null;
 }
 
 export interface CampaignDetail {
@@ -89,6 +100,7 @@ export interface AdObject {
   accountId: string;
   campaignId: string | null;
   dailyBudget: number | null;
+  lifetimeBudget: number | null;
 }
 
 export interface PixelEventCount {
@@ -126,18 +138,27 @@ export interface CampaignDraftInput {
     promotedObject: Record<string, unknown> | null;
     targeting: Record<string, unknown>;
   };
-  creative: {
-    pageId: string;
-    instagramId: string | null;
-    message: string;
-    headline: string;
-    description: string | null;
-    link: string;
-    imageUrl: string | null;
-    imageHash: string | null;
-    callToAction: string;
-    existingPost: { platform: "facebook" | "instagram"; id: string } | null;
-  };
+  creative: CreativeInput;
+}
+
+export interface CreativeInput {
+  pageId: string;
+  instagramId: string | null;
+  message: string;
+  headline: string;
+  description: string | null;
+  link: string;
+  imageUrl: string | null;
+  imageHash: string | null;
+  callToAction: string;
+  existingPost: { platform: "facebook" | "instagram"; id: string } | null;
+}
+
+export interface CreativeReplaceInput {
+  adAccountId: string;
+  adId: string;
+  name: string;
+  creative: CreativeInput;
 }
 
 export interface CampaignDraftResult {
@@ -155,6 +176,8 @@ export interface MetaAds {
   ): Promise<InsightRow[]>;
   campaigns(token: string, adAccountId: string): Promise<CampaignSummary[]>;
   campaign(token: string, campaignId: string): Promise<CampaignDetail>;
+  adSets(token: string, adAccountId: string): Promise<AdSetSummary[]>;
+  ad(token: string, adId: string): Promise<AdSummary>;
   object(token: string, id: string): Promise<AdObject>;
   pixelEvents(
     token: string,
@@ -174,4 +197,8 @@ export interface MetaAds {
   ): Promise<CampaignDraftResult>;
   setStatus(token: string, id: string, status: AdStatus): Promise<void>;
   setDailyBudget(token: string, id: string, dailyBudget: number): Promise<void>;
+  replaceCreative(
+    token: string,
+    input: CreativeReplaceInput,
+  ): Promise<{ creativeId: string }>;
 }

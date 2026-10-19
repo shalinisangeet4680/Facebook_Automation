@@ -204,7 +204,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <Link
-        href="/campaigns"
+        href="/campaigns?tab=plans"
         className="rp-btn-quiet"
         style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
       >

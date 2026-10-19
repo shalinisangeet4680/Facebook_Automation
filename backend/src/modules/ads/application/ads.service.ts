@@ -6,11 +6,13 @@ import { MetaConnectionService } from "@modules/meta/application/meta-connection
 import { AssetView } from "@modules/meta/domain/meta.types";
 import {
   AdObject,
+  AdObjectType,
   AdStatus,
   META_ADS,
   MetaAds,
   TargetingSearchType,
 } from "@modules/meta/domain/ports/meta-ads";
+import { todayIn } from "@modules/reports/domain/periods";
 import { CacheService } from "@shared/cache/cache.service";
 import { CodedError } from "@shared/errors/domain-error";
 import { ErrorCode } from "@shared/errors/error-codes";
@@ -23,6 +25,11 @@ import {
   PerformanceInput,
   TargetingInput,
 } from "../domain/ads.types";
+import {
+  checkDailyBudget,
+  DailyBudgetCheck,
+} from "../domain/budget-guardrails";
+import { CreativeEdit, editCreative } from "../domain/creative-edit";
 import {
   CALLS_TO_ACTION,
   CONVERSION_EVENTS,
@@ -56,6 +63,23 @@ const text = (v: unknown, fallback: string): string =>
 
 const rejected = (code: ErrorCode, message: string) =>
   new CodedError(code, 422, message);
+
+const TYPE_LABELS: Record<AdObjectType, string> = {
+  campaign: "campaign",
+  adset: "ad set",
+  ad: "ad",
+};
+
+export interface BudgetChange {
+  id: string;
+  type: AdObjectType;
+  name: string;
+  from: number | null;
+  to: number;
+  currency: string;
+  warnings: string[];
+  projectedMonthSpend: number | null;
+}
 
 export interface Workspace {
   token: string;
@@ -396,7 +420,114 @@ export class AdsService {
       type: object.type,
       name: object.name,
     });
+    await this.invalidate(actor.workspaceId);
     return { status: "paused", id, type: object.type, name: object.name };
+  }
+
+  async changeStatus(
+    actor: AdsActor,
+    id: string,
+    status: AdStatus,
+    expected?: AdObjectType,
+  ) {
+    const ws = await this.workspace(actor.workspaceId);
+    const object = await this.owned(ws, id, expected);
+    const view = { id, type: object.type, name: object.name };
+    if (object.status === status) {
+      return {
+        ...view,
+        status,
+        effectiveStatus: object.effectiveStatus,
+        changed: false,
+      };
+    }
+    await this.ads.setStatus(ws.token, id, status);
+    await this.record(
+      actor,
+      status === "PAUSED" ? "ads.paused" : "ads.activated",
+      id,
+      { type: object.type, name: object.name, from: object.status, to: status },
+    );
+    await this.invalidate(actor.workspaceId);
+    const after = await this.ads.object(ws.token, id);
+    return {
+      ...view,
+      status,
+      effectiveStatus: after.effectiveStatus,
+      changed: true,
+    };
+  }
+
+  async changeDailyBudget(
+    actor: AdsActor,
+    id: string,
+    dailyBudget: number,
+    expected?: AdObjectType,
+  ): Promise<BudgetChange> {
+    const ws = await this.workspace(actor.workspaceId);
+    const object = await this.owned(ws, id, expected);
+    this.assertBudgetLevel(object);
+    const from = toMajor(object.dailyBudget, ws.currency);
+    const verdict = await this.guardBudget(
+      ws,
+      actor.workspaceId,
+      object,
+      dailyBudget,
+    );
+    if (from !== dailyBudget) {
+      await this.ads.setDailyBudget(
+        ws.token,
+        id,
+        toMinor(dailyBudget, ws.currency),
+      );
+      await this.record(actor, "ads.budget_changed", id, {
+        type: object.type,
+        name: object.name,
+        from,
+        to: dailyBudget,
+        currency: ws.currency,
+      });
+      await this.invalidate(actor.workspaceId);
+    }
+    return {
+      id,
+      type: object.type,
+      name: object.name,
+      from,
+      to: dailyBudget,
+      currency: ws.currency,
+      warnings: verdict.warnings,
+      projectedMonthSpend: verdict.projectedMonthSpend,
+    };
+  }
+
+  async updateAdCreative(actor: AdsActor, adId: string, edit: CreativeEdit) {
+    const ws = await this.workspace(actor.workspaceId);
+    await this.owned(ws, adId, "ad");
+    const ad = await this.ads.ad(ws.token, adId);
+    const result = editCreative(ad.creative, edit, {
+      pageId: ws.page?.externalId ?? null,
+      instagramId: ws.instagram?.externalId ?? null,
+    });
+    if (!result.ok) {
+      throw new CodedError(ErrorCode.VALIDATION, 400, result.message);
+    }
+    const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+    const { creativeId } = await this.ads.replaceCreative(ws.token, {
+      adAccountId: ws.adAccount.externalId,
+      adId,
+      name: `${ad.name} – edited ${stamp}`,
+      creative: result.creative,
+    });
+    await this.record(actor, "ads.creative_updated", adId, {
+      type: "ad",
+      name: ad.name,
+      previousCreativeId: ad.creative?.id ?? null,
+      creativeId,
+      changed: result.changed,
+    });
+    await this.invalidate(actor.workspaceId);
+    return { id: adId, name: ad.name, creativeId, changed: result.changed };
   }
 
   async launchNow(actor: AdsActor, campaignId: string) {
@@ -417,33 +548,13 @@ export class AdsService {
       name: object.name,
       targets: targets.map((t) => t.id),
     });
+    await this.invalidate(actor.workspaceId);
     return { activated: targets };
   }
 
   async setDailyBudgetNow(actor: AdsActor, id: string, dailyBudget: number) {
-    const ws = await this.workspace(actor.workspaceId);
-    const object = await this.owned(ws, id);
-    if (object.type === "ad" || object.dailyBudget === null) {
-      throw rejected(
-        ErrorCode.VALIDATION,
-        "This item doesn't use a daily budget.",
-      );
-    }
-    await this.assertBudget(dailyBudget, ws.currency, actor.workspaceId);
-    const from = toMajor(object.dailyBudget, ws.currency);
-    await this.ads.setDailyBudget(
-      ws.token,
-      id,
-      toMinor(dailyBudget, ws.currency),
-    );
-    await this.record(actor, "ads.budget_changed", id, {
-      type: object.type,
-      name: object.name,
-      from,
-      to: dailyBudget,
-      currency: ws.currency,
-    });
-    return { id, from, to: dailyBudget };
+    const change = await this.changeDailyBudget(actor, id, dailyBudget);
+    return { id, from: change.from, to: change.to };
   }
 
   async planningContext(workspaceId: string) {
@@ -532,6 +643,7 @@ export class AdsService {
       name: object.name,
       targets: args.targets,
     });
+    await this.invalidate(actor.workspaceId);
     return {
       status: "active",
       id,
@@ -557,7 +669,7 @@ export class AdsService {
           : `This ${object.type} doesn't use a daily budget. Change the budget where it is set (campaign or ad set).`,
       );
     }
-    await this.assertBudget(dailyBudget, ws.currency, actor.workspaceId);
+    await this.guardBudget(ws, actor.workspaceId, object, dailyBudget);
     const current = toMajor(object.dailyBudget, ws.currency)!;
     const args = { id, dailyBudget };
     if (!confirmToken) {
@@ -589,6 +701,7 @@ export class AdsService {
       to: dailyBudget,
       currency: ws.currency,
     });
+    await this.invalidate(actor.workspaceId);
     return {
       status: "updated",
       id,
@@ -627,8 +740,21 @@ export class AdsService {
     };
   }
 
-  private async owned(ws: Workspace, id: string): Promise<AdObject> {
-    const object = await this.ads.object(ws.token, id);
+  async owned(
+    ws: Workspace,
+    id: string,
+    expected?: AdObjectType,
+  ): Promise<AdObject> {
+    const object = await this.ads.object(ws.token, id).catch((err: unknown) => {
+      if ((err as { code?: string }).code === ErrorCode.META_REJECTED) {
+        throw new CodedError(
+          ErrorCode.NOT_FOUND,
+          404,
+          "That campaign, ad set or ad doesn't exist in your selected ad account.",
+        );
+      }
+      throw err;
+    });
     if (object.accountId !== ws.adAccount.externalId) {
       throw new CodedError(
         ErrorCode.NOT_FOUND,
@@ -636,7 +762,128 @@ export class AdsService {
         "That campaign, ad set or ad isn't in your selected ad account.",
       );
     }
+    if (expected && object.type !== expected) {
+      throw new CodedError(
+        ErrorCode.NOT_FOUND,
+        404,
+        `That id is ${object.type === "adset" ? "an" : "a"} ${TYPE_LABELS[object.type]}, not ${expected === "adset" ? "an" : "a"} ${TYPE_LABELS[expected]}.`,
+      );
+    }
     return object;
+  }
+
+  private assertBudgetLevel(object: AdObject) {
+    if (object.type === "ad") {
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "Ads don't have budgets. Change the budget of the ad set or campaign.",
+      );
+    }
+    if (object.dailyBudget !== null) return;
+    if (object.lifetimeBudget !== null) {
+      throw new CodedError(
+        ErrorCode.VALIDATION,
+        400,
+        `This ${TYPE_LABELS[object.type]} uses a lifetime budget. Change it in Meta Ads Manager.`,
+      );
+    }
+    throw new CodedError(
+      ErrorCode.VALIDATION,
+      400,
+      object.type === "campaign"
+        ? "This campaign's budget is set on each ad set. Change the ad set budgets instead."
+        : "This ad set shares its campaign's budget (Advantage+ campaign budget). Change the campaign budget instead.",
+    );
+  }
+
+  private async guardBudget(
+    ws: Workspace,
+    workspaceId: string,
+    object: AdObject | null,
+    amount: number,
+  ) {
+    const targets = await this.settings.targets(workspaceId);
+    const verdict = checkDailyBudget({
+      amount,
+      current: object ? toMajor(object.dailyBudget, ws.currency) : null,
+      currency: ws.currency,
+      maxDailyBudget: targets.maxDailyBudget,
+      monthly:
+        object && targets.monthlyBudget
+          ? await this.monthlyPacing(ws, targets.monthlyBudget, object.id)
+          : null,
+    });
+    if (!verdict.ok) {
+      throw verdict.reason === "not_positive"
+        ? new CodedError(ErrorCode.VALIDATION, 400, verdict.message)
+        : new CodedError(ErrorCode.BUDGET_LIMIT, 422, verdict.message, {
+            reason: verdict.reason,
+            maxDailyBudget: targets.maxDailyBudget,
+            monthlyBudget: targets.monthlyBudget,
+            projectedMonthSpend: verdict.projectedMonthSpend,
+          });
+    }
+    return verdict;
+  }
+
+  private async monthlyPacing(
+    ws: Workspace,
+    budget: number,
+    excludeId: string,
+  ): Promise<NonNullable<DailyBudgetCheck["monthly"]>> {
+    const timezone = text(ws.adAccount.details.timezone, "Asia/Kolkata");
+    const today = todayIn(timezone);
+    const [y, m, d] = today.split("-").map(Number) as [number, number, number];
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const monthStart = `${today.slice(0, 8)}01`;
+    const yesterday = new Date(
+      Date.parse(`${today}T00:00:00Z`) - DAY_SECONDS * 1000,
+    )
+      .toISOString()
+      .slice(0, 10);
+    const account = ws.adAccount.externalId;
+    const [spent, campaigns, adSets] = await Promise.all([
+      d > 1
+        ? this.ads.insights(ws.token, account, {
+            level: "account",
+            since: monthStart,
+            until: yesterday,
+            daily: false,
+            limit: 1,
+          })
+        : Promise.resolve([]),
+      this.ads.campaigns(ws.token, account),
+      this.ads.adSets(ws.token, account),
+    ]);
+    const live = new Map(
+      campaigns.filter((c) => c.status === "ACTIVE").map((c) => [c.id, c]),
+    );
+    let other = 0;
+    for (const c of live.values()) {
+      if (c.id !== excludeId && c.dailyBudget !== null) other += c.dailyBudget;
+    }
+    for (const s of adSets) {
+      const parent = live.get(s.campaignId);
+      if (
+        parent &&
+        parent.dailyBudget === null &&
+        s.status === "ACTIVE" &&
+        s.id !== excludeId &&
+        s.dailyBudget !== null
+      ) {
+        other += s.dailyBudget;
+      }
+    }
+    return {
+      budget,
+      spentSoFar: spent[0]?.spend ?? 0,
+      otherDailyBudgets: toMajor(other, ws.currency) ?? 0,
+      daysLeft: daysInMonth - d + 1,
+    };
+  }
+
+  private invalidate(workspaceId: string) {
+    return this.cache.delPattern(`reports:${workspaceId}:*`);
   }
 
   private async pausedChildren(ws: Workspace, object: AdObject) {
@@ -715,12 +962,14 @@ export class AdsService {
     workspaceId: string,
   ) {
     const max = (await this.settings.targets(workspaceId)).maxDailyBudget;
-    if (amount > max) {
-      throw rejected(
-        ErrorCode.BUDGET_LIMIT,
-        `Daily budget ${formatMoney(amount, currency)} is above this workspace's limit of ${formatMoney(max, currency)}.`,
-      );
-    }
+    const verdict = checkDailyBudget({
+      amount,
+      current: null,
+      currency,
+      maxDailyBudget: max,
+      monthly: null,
+    });
+    if (!verdict.ok) throw rejected(ErrorCode.BUDGET_LIMIT, verdict.message);
   }
 
   private targeting(input: TargetingInput): Record<string, unknown> {
@@ -763,7 +1012,7 @@ export class AdsService {
     return out;
   }
 
-  private adsManagerUrl(ws: Workspace, campaignId: string): string {
+  adsManagerUrl(ws: Workspace, campaignId: string): string {
     const act = text(
       ws.adAccount.details.accountId,
       ws.adAccount.externalId.replace(/^act_/, ""),

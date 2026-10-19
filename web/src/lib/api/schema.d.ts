@@ -388,6 +388,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ads/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CampaignsController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/campaigns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CampaignsController_detail_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/campaigns/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CampaignsController_campaignStatus_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/adsets/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CampaignsController_adSetStatus_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/ads/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CampaignsController_adStatus_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/campaigns/{id}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CampaignsController_campaignBudget_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/adsets/{id}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CampaignsController_adSetBudget_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/ads/{id}/creative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CampaignsController_adCreative_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/creatives": {
         parameters: {
             query?: never;
@@ -3033,6 +3161,152 @@ export interface components {
         };
         TargetingResultsDto: {
             results: components["schemas"]["TargetingOptionDto"][];
+        };
+        CampaignPeriodDto: {
+            since: string;
+            until: string;
+        };
+        CampaignBudgetDto: {
+            /** @enum {string|null} */
+            level: "campaign" | "adset" | null;
+            /** @enum {string|null} */
+            type: "daily" | "lifetime" | null;
+            amount: number | null;
+        };
+        AdMetricsDto: {
+            spend: number;
+            results: number;
+            resultType: string | null;
+            costPerResult: number | null;
+            impressions: number;
+            linkClicks: number;
+            ctr: number | null;
+        };
+        CampaignRowDto: {
+            id: string;
+            name: string;
+            objective: string;
+            status: string;
+            effectiveStatus: string;
+            budget: components["schemas"]["CampaignBudgetDto"];
+            budgetEditable: boolean;
+            adSetCount: number;
+            startTime: string | null;
+            stopTime: string | null;
+            createdTime: string;
+            adsManagerUrl: string;
+            metrics: components["schemas"]["AdMetricsDto"];
+        };
+        CampaignListDto: {
+            currency: string;
+            /** @enum {string} */
+            preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            period: components["schemas"]["CampaignPeriodDto"];
+            canManage: boolean;
+            total: number;
+            truncated: boolean;
+            campaigns: components["schemas"]["CampaignRowDto"][];
+        };
+        BudgetGuardrailsDto: {
+            maxDailyBudget: number;
+            monthlyBudget: number | null;
+        };
+        TargetingSummaryDto: {
+            locations: string | null;
+            age: string | null;
+            gender: string | null;
+            audience: string | null;
+        };
+        AdSetRowDto: {
+            id: string;
+            name: string;
+            status: string;
+            effectiveStatus: string;
+            optimizationGoal: string;
+            budget: components["schemas"]["CampaignBudgetDto"];
+            budgetEditable: boolean;
+            targeting: components["schemas"]["TargetingSummaryDto"];
+            metrics: components["schemas"]["AdMetricsDto"];
+        };
+        AdCreativeViewDto: {
+            id: string | null;
+            /** @enum {string} */
+            kind: "link" | "post" | "other";
+            editable: boolean;
+            primaryText: string | null;
+            headline: string | null;
+            description: string | null;
+            callToAction: string | null;
+            link: string | null;
+            imageUrl: string | null;
+            thumbnailUrl: string | null;
+        };
+        AdRowDto: {
+            id: string;
+            name: string;
+            adSetId: string;
+            status: string;
+            effectiveStatus: string;
+            creative: components["schemas"]["AdCreativeViewDto"];
+            metrics: components["schemas"]["AdMetricsDto"];
+        };
+        CampaignDetailDto: {
+            currency: string;
+            /** @enum {string} */
+            preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            period: components["schemas"]["CampaignPeriodDto"];
+            canManage: boolean;
+            guardrails: components["schemas"]["BudgetGuardrailsDto"];
+            campaign: components["schemas"]["CampaignRowDto"];
+            adSets: components["schemas"]["AdSetRowDto"][];
+            ads: components["schemas"]["AdRowDto"][];
+        };
+        SetStatusDto: {
+            /** @enum {string} */
+            status: "ACTIVE" | "PAUSED";
+        };
+        StatusChangeDto: {
+            id: string;
+            /** @enum {string} */
+            type: "campaign" | "adset" | "ad";
+            name: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "PAUSED";
+            effectiveStatus: string;
+            changed: boolean;
+        };
+        SetBudgetDto: {
+            dailyBudget: number;
+        };
+        BudgetChangeDto: {
+            id: string;
+            /** @enum {string} */
+            type: "campaign" | "adset" | "ad";
+            name: string;
+            from: number | null;
+            to: number;
+            currency: string;
+            warnings: string[];
+            projectedMonthSpend: number | null;
+        };
+        UpdateAdCreativeDto: {
+            primaryText?: string;
+            headline?: string;
+            description?: string | null;
+            /** @enum {string} */
+            callToAction?: "LEARN_MORE" | "SIGN_UP" | "BOOK_NOW" | "CONTACT_US" | "GET_QUOTE" | "APPLY_NOW" | "SHOP_NOW" | "SUBSCRIBE" | "DOWNLOAD" | "GET_OFFER" | "WHATSAPP_MESSAGE";
+            /** Format: uri */
+            link?: string;
+            /** Format: uuid */
+            creativeId?: string;
+            /** Format: uri */
+            imageUrl?: string;
+        };
+        CreativeChangeDto: {
+            id: string;
+            name: string;
+            creativeId: string;
+            changed: string[];
         };
         CreativeDto: {
             id: string;
@@ -6518,6 +6792,265 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TargetingResultsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_list_v1: {
+        parameters: {
+            query?: {
+                preset?: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+                status?: "all" | "active" | "paused";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_detail_v1: {
+        parameters: {
+            query?: {
+                preset?: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetailDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_campaignStatus_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_adSetStatus_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_adStatus_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_campaignBudget_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBudgetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_adSetBudget_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBudgetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetChangeDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    CampaignsController_adCreative_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdCreativeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreativeChangeDto"];
                 };
             };
             default: {

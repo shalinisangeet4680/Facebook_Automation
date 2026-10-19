@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import { metaRejected } from "../domain/meta.errors";
 import {
+  AdCreativeSummary,
   AdObject,
   AdSetSummary,
   AdStatus,
@@ -10,6 +11,7 @@ import {
   CampaignDraftInput,
   CampaignDraftResult,
   CampaignSummary,
+  CreativeReplaceInput,
   InsightQuery,
   InsightRow,
   MetaAds,
@@ -19,17 +21,44 @@ import {
 } from "../domain/ports/meta-ads";
 
 const ACCOUNT = "act_1201000000000001";
+const PAGE = "1301000000000001";
 const DAY_MS = 86_400_000;
 
 interface Store {
   campaigns: Map<string, CampaignSummary>;
   adSets: Map<string, AdSetSummary>;
   ads: Map<string, AdSummary>;
+  pausedSince: Map<string, string>;
   sequence: number;
+}
+
+function linkCreative(
+  id: string,
+  fields: Partial<AdCreativeSummary> & { title: string | null; body: string },
+): AdCreativeSummary {
+  const imageUrl = fields.imageUrl ?? "https://arogyasystem.com/og.png";
+  return {
+    id,
+    kind: "link",
+    description: null,
+    linkUrl: "https://arogyasystem.com/",
+    imageHash: null,
+    thumbnailUrl: imageUrl,
+    callToAction: "LEARN_MORE",
+    pageId: PAGE,
+    instagramId: null,
+    postId: null,
+    ...fields,
+    imageUrl,
+  };
 }
 
 function seed(): Store {
   const created = new Date(Date.now() - 40 * DAY_MS).toISOString();
+  const festive = new Date(Date.now() - 30 * DAY_MS).toISOString();
+  const pausedOn = new Date(Date.now() - 10 * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
   const campaigns = new Map<string, CampaignSummary>([
     [
       "120210000000000001",
@@ -59,6 +88,21 @@ function seed(): Store {
         startTime: created,
         stopTime: null,
         createdTime: created,
+      },
+    ],
+    [
+      "120210000000000003",
+      {
+        id: "120210000000000003",
+        name: "Diwali leads – Advantage budget",
+        objective: "OUTCOME_LEADS",
+        status: "PAUSED",
+        effectiveStatus: "PAUSED",
+        dailyBudget: 120_000,
+        lifetimeBudget: null,
+        startTime: festive,
+        stopTime: null,
+        createdTime: festive,
       },
     ],
   ]);
@@ -106,6 +150,59 @@ function seed(): Store {
         promotedObject: null,
       },
     ],
+    [
+      "120220000000000003",
+      {
+        id: "120220000000000003",
+        name: "Clinic owners – Bihar",
+        campaignId: "120210000000000003",
+        status: "ACTIVE",
+        effectiveStatus: "CAMPAIGN_PAUSED",
+        optimizationGoal: "OFFSITE_CONVERSIONS",
+        billingEvent: "IMPRESSIONS",
+        dailyBudget: null,
+        lifetimeBudget: null,
+        targeting: {
+          age_min: 30,
+          age_max: 60,
+          geo_locations: { regions: [{ key: "1730", name: "Bihar" }] },
+          flexible_spec: [
+            { interests: [{ id: "6003107902433", name: "Physician" }] },
+          ],
+        },
+        promotedObject: {
+          pixel_id: "2519233968487265",
+          custom_event_type: "LEAD",
+        },
+      },
+    ],
+    [
+      "120220000000000004",
+      {
+        id: "120220000000000004",
+        name: "Dentists – India",
+        campaignId: "120210000000000003",
+        status: "ACTIVE",
+        effectiveStatus: "CAMPAIGN_PAUSED",
+        optimizationGoal: "OFFSITE_CONVERSIONS",
+        billingEvent: "IMPRESSIONS",
+        dailyBudget: null,
+        lifetimeBudget: null,
+        targeting: {
+          age_min: 25,
+          age_max: 55,
+          genders: [2],
+          geo_locations: { countries: ["IN"] },
+          flexible_spec: [
+            { work_positions: [{ id: "108768179146852", name: "Dentist" }] },
+          ],
+        },
+        promotedObject: {
+          pixel_id: "2519233968487265",
+          custom_event_type: "LEAD",
+        },
+      },
+    ],
   ]);
   const ad = (
     id: string,
@@ -122,14 +219,7 @@ function seed(): Store {
       adSetId,
       status,
       effectiveStatus: status,
-      creative: {
-        id: `${id}9`,
-        title,
-        body,
-        linkUrl: "https://arogyasystem.com/",
-        imageUrl: "https://arogyasystem.com/og.png",
-        callToAction: "LEARN_MORE",
-      },
+      creative: linkCreative(`${id}9`, { title, body }),
     },
   ];
   const ads = new Map<string, AdSummary>([
@@ -155,8 +245,50 @@ function seed(): Store {
       "Patient records, WhatsApp reminders and GST bills. Free for 14 days.",
       "PAUSED",
     ),
+    ad(
+      "120230000000000004",
+      "120220000000000003",
+      "Diwali offer – image",
+      "This Diwali, go paperless",
+      "Free setup for clinics that join before Diwali. Book a 10-minute demo.",
+    ),
+    ad(
+      "120230000000000005",
+      "120220000000000004",
+      "Dentist chairside – image",
+      "Built for dental clinics",
+      "Charts, X-ray notes and reminders for every patient.",
+    ),
   ]);
-  return { campaigns, adSets, ads, sequence: 100 };
+  ads.set("120230000000000006", {
+    id: "120230000000000006",
+    name: "Boosted post – clinic tour",
+    adSetId: "120220000000000003",
+    status: "ACTIVE",
+    effectiveStatus: "CAMPAIGN_PAUSED",
+    creative: {
+      id: "1202300000000000069",
+      kind: "post",
+      title: null,
+      body: "A quick tour of a paperless clinic in Patna. #clinic",
+      description: null,
+      linkUrl: "https://arogyasystem.com/",
+      imageUrl: "https://arogyasystem.com/og.png",
+      imageHash: null,
+      thumbnailUrl: "https://arogyasystem.com/og.png",
+      callToAction: "LEARN_MORE",
+      pageId: PAGE,
+      instagramId: null,
+      postId: `${PAGE}_1029384756`,
+    },
+  });
+  return {
+    campaigns,
+    adSets,
+    ads,
+    pausedSince: new Map([["120210000000000003", pausedOn]]),
+    sequence: 100,
+  };
 }
 
 let store = seed();
@@ -227,29 +359,37 @@ interface Totals {
   actions: Record<string, number>;
 }
 
+function liveOn(entity: { id: string; status: string }, day: string) {
+  if (entity.status === "ACTIVE") return true;
+  const since = store.pausedSince.get(entity.id);
+  return since !== undefined && day < since;
+}
+
 function adDay(
   ad: AdSummary,
   adSet: AdSetSummary,
   campaign: CampaignSummary,
   day: string,
 ): Totals {
-  const live =
-    campaign.status === "ACTIVE" &&
-    adSet.status === "ACTIVE" &&
-    ad.status === "ACTIVE";
+  const live = liveOn(campaign, day) && liveOn(adSet, day) && liveOn(ad, day);
   const created = campaign.createdTime.slice(0, 10);
   if (!live || day < created) {
     return { spend: 0, impressions: 0, reach: 0, linkClicks: 0, actions: {} };
   }
   const siblings = [...store.ads.values()].filter(
-    (a) => a.adSetId === adSet.id && a.status === "ACTIVE",
+    (a) => a.adSetId === adSet.id && liveOn(a, day),
   );
+  const liveSets = [...store.adSets.values()].filter(
+    (s) => s.campaignId === campaign.id && liveOn(s, day),
+  );
+  const budget =
+    campaign.dailyBudget !== null
+      ? campaign.dailyBudget / Math.max(liveSets.length, 1)
+      : (adSet.dailyBudget ?? 0);
   const share = 1 / Math.max(siblings.length, 1);
   const r = hash(`${ad.id}:${day}`);
   const spend =
-    Math.round(
-      ((adSet.dailyBudget ?? 0) / 100) * share * (0.88 + r * 0.12) * 100,
-    ) / 100;
+    Math.round((budget / 100) * share * (0.88 + r * 0.12) * 100) / 100;
   const impressions = Math.round(spend * (38 + r * 10));
   const linkClicks = Math.round(impressions * (0.009 + r * 0.008));
   const actions: Record<string, number> = {
@@ -285,6 +425,7 @@ export class MockMetaAds implements MetaAds {
     adAccountId: string,
     query: InsightQuery,
   ): Promise<InsightRow[]> {
+    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
     const { from, to } = range(query);
     const days: string[] = [];
     for (let t = from.getTime(); t <= to.getTime(); t += DAY_MS)
@@ -402,6 +543,18 @@ export class MockMetaAds implements MetaAds {
     });
   }
 
+  adSets(_token: string, adAccountId: string): Promise<AdSetSummary[]> {
+    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
+    return Promise.resolve([...store.adSets.values()]);
+  }
+
+  ad(_token: string, adId: string): Promise<AdSummary> {
+    const ad = store.ads.get(adId);
+    return ad
+      ? Promise.resolve(ad)
+      : Promise.reject(metaRejected("Ad not found."));
+  }
+
   object(_token: string, id: string): Promise<AdObject> {
     const campaign = store.campaigns.get(id);
     if (campaign) {
@@ -414,6 +567,7 @@ export class MockMetaAds implements MetaAds {
         accountId: ACCOUNT,
         campaignId: id,
         dailyBudget: campaign.dailyBudget,
+        lifetimeBudget: campaign.lifetimeBudget,
       });
     }
     const adSet = store.adSets.get(id);
@@ -427,6 +581,7 @@ export class MockMetaAds implements MetaAds {
         accountId: ACCOUNT,
         campaignId: adSet.campaignId,
         dailyBudget: adSet.dailyBudget,
+        lifetimeBudget: adSet.lifetimeBudget,
       });
     }
     const ad = store.ads.get(id);
@@ -440,6 +595,7 @@ export class MockMetaAds implements MetaAds {
         accountId: ACCOUNT,
         campaignId: store.adSets.get(ad.adSetId)?.campaignId ?? null,
         dailyBudget: null,
+        lifetimeBudget: null,
       });
     }
     if (id === "999999999") {
@@ -452,6 +608,7 @@ export class MockMetaAds implements MetaAds {
         accountId: "act_999",
         campaignId: id,
         dailyBudget: null,
+        lifetimeBudget: null,
       });
     }
     return Promise.reject(metaRejected("Object not found."));
@@ -632,13 +789,22 @@ export class MockMetaAds implements MetaAds {
       effectiveStatus: "CAMPAIGN_PAUSED",
       creative: {
         id: `${adId}9`,
+        kind: input.creative.existingPost ? "post" : "link",
         title: input.creative.existingPost ? null : input.creative.headline,
         body: input.creative.existingPost
           ? `Existing ${input.creative.existingPost.platform} post ${input.creative.existingPost.id}`
           : input.creative.message,
+        description: input.creative.existingPost
+          ? null
+          : input.creative.description,
         linkUrl: input.creative.link,
         imageUrl: input.creative.imageUrl,
+        imageHash: input.creative.imageHash,
+        thumbnailUrl: input.creative.imageUrl,
         callToAction: input.creative.callToAction,
+        pageId: input.creative.pageId,
+        instagramId: input.creative.instagramId,
+        postId: input.creative.existingPost?.id ?? null,
       },
     });
     return Promise.resolve({
@@ -653,8 +819,12 @@ export class MockMetaAds implements MetaAds {
     const target =
       store.campaigns.get(id) ?? store.adSets.get(id) ?? store.ads.get(id);
     if (!target) return Promise.reject(metaRejected("Object not found."));
+    if (status === "PAUSED" && target.status === "ACTIVE") {
+      store.pausedSince.set(id, new Date().toISOString().slice(0, 10));
+    }
+    if (status === "ACTIVE") store.pausedSince.delete(id);
     target.status = status;
-    target.effectiveStatus = status;
+    refreshDelivery();
     return Promise.resolve();
   }
 
@@ -667,5 +837,60 @@ export class MockMetaAds implements MetaAds {
     if (!target) return Promise.reject(metaRejected("Object not found."));
     target.dailyBudget = dailyBudget;
     return Promise.resolve();
+  }
+
+  replaceCreative(
+    _token: string,
+    input: CreativeReplaceInput,
+  ): Promise<{ creativeId: string }> {
+    const ad = store.ads.get(input.adId);
+    if (!ad) return Promise.reject(metaRejected("Ad not found."));
+    const c = input.creative;
+    if (c.link.includes("reject.example")) {
+      return Promise.reject(metaRejected("The link in your ad isn't working."));
+    }
+    const creativeId = `1202400000000${String(++store.sequence).padStart(5, "0")}`;
+    const imageUrl = c.imageUrl ?? ad.creative?.imageUrl ?? null;
+    ad.creative = {
+      id: creativeId,
+      kind: "link",
+      title: c.headline,
+      body: c.message,
+      description: c.description,
+      linkUrl: c.link,
+      imageUrl,
+      imageHash: c.imageHash,
+      thumbnailUrl: imageUrl,
+      callToAction: c.callToAction,
+      pageId: c.pageId,
+      instagramId: c.instagramId,
+      postId: null,
+    };
+    return Promise.resolve({ creativeId });
+  }
+}
+
+function refreshDelivery(): void {
+  for (const campaign of store.campaigns.values()) {
+    campaign.effectiveStatus = campaign.status;
+  }
+  for (const adSet of store.adSets.values()) {
+    const campaign = store.campaigns.get(adSet.campaignId);
+    adSet.effectiveStatus =
+      adSet.status === "ACTIVE" && campaign?.status !== "ACTIVE"
+        ? "CAMPAIGN_PAUSED"
+        : adSet.status;
+  }
+  for (const ad of store.ads.values()) {
+    const adSet = store.adSets.get(ad.adSetId);
+    const campaign = adSet ? store.campaigns.get(adSet.campaignId) : undefined;
+    ad.effectiveStatus =
+      ad.status !== "ACTIVE"
+        ? ad.status
+        : campaign?.status !== "ACTIVE"
+          ? "CAMPAIGN_PAUSED"
+          : adSet?.status !== "ACTIVE"
+            ? "ADSET_PAUSED"
+            : "ACTIVE";
   }
 }

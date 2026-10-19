@@ -4,11 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, setSigningOut, unwrap } from "./client";
 import type {
+  AdCreativeUpdate,
+  AdLevel,
   AssetSelection,
   AutomationSettingsUpdate,
   AuthorizationQuery,
   CampaignBrief,
   CampaignPlan,
+  CampaignStatusFilter,
   Connection,
   Job,
   PlanDetail,
@@ -43,6 +46,8 @@ export const keys = {
   profile: ["profile"] as const,
   library: (platform: string) => ["social", "library", platform] as const,
   report: (preset: string) => ["reports", preset] as const,
+  adCampaigns: (preset: string, status: string) => ["ads", "campaigns", preset, status] as const,
+  adCampaign: (id: string, preset: string) => ["ads", "campaign", id, preset] as const,
   plans: ["plans"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
@@ -359,6 +364,82 @@ export function useReport(preset: ReportPreset) {
     queryFn: () => unwrap(api.GET("/api/v1/reports/overview", { params: { query: { preset } } })),
     placeholderData: (previous) => previous,
   });
+}
+
+export function useAdCampaigns(preset: ReportPreset, status: CampaignStatusFilter) {
+  return useQuery({
+    queryKey: keys.adCampaigns(preset, status),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/ads/campaigns", { params: { query: { preset, status } } })),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useAdCampaign(id: string, preset: ReportPreset) {
+  return useQuery({
+    queryKey: keys.adCampaign(id, preset),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/ads/campaigns/{id}", {
+          params: { path: { id }, query: { preset } },
+        }),
+      ),
+    placeholderData: (previous) => previous,
+  });
+}
+
+function useAdsMutation<T, R>(run: (input: T) => Promise<R>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["ads"] });
+      void client.invalidateQueries({ queryKey: ["reports"] });
+      void client.invalidateQueries({ queryKey: keys.inbox });
+    },
+  });
+}
+
+export function useSetAdStatus() {
+  return useAdsMutation(
+    ({ level, id, status }: { level: AdLevel; id: string; status: "ACTIVE" | "PAUSED" }) => {
+      const options = { params: { path: { id } }, body: { status } };
+      return unwrap(
+        level === "campaign"
+          ? api.POST("/api/v1/ads/campaigns/{id}/status", options)
+          : level === "adset"
+            ? api.POST("/api/v1/ads/adsets/{id}/status", options)
+            : api.POST("/api/v1/ads/ads/{id}/status", options),
+      );
+    },
+  );
+}
+
+export function useSetAdBudget() {
+  return useAdsMutation(
+    ({
+      level,
+      id,
+      dailyBudget,
+    }: {
+      level: "campaign" | "adset";
+      id: string;
+      dailyBudget: number;
+    }) => {
+      const options = { params: { path: { id } }, body: { dailyBudget } };
+      return unwrap(
+        level === "campaign"
+          ? api.PUT("/api/v1/ads/campaigns/{id}/budget", options)
+          : api.PUT("/api/v1/ads/adsets/{id}/budget", options),
+      );
+    },
+  );
+}
+
+export function useUpdateAd() {
+  return useAdsMutation(({ id, body }: { id: string; body: AdCreativeUpdate }) =>
+    unwrap(api.PUT("/api/v1/ads/ads/{id}/creative", { params: { path: { id } }, body })),
+  );
 }
 
 export function useCreatives() {

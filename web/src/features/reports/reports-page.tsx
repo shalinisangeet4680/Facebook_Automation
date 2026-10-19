@@ -494,7 +494,9 @@ function Report({ data, refreshing }: { data: ReportOverview; refreshing: boolea
               {data.campaigns.map((c, i) => (
                 <tr key={c.id} style={{ borderTop: i ? LINE : "none" }}>
                   <td style={{ ...td, textAlign: "left", paddingLeft: 18 }}>
-                    <span style={{ fontWeight: 500 }}>{c.name}</span>
+                    <Link href={`/campaigns/${c.id}`} style={{ fontWeight: 500, color: "inherit" }}>
+                      {c.name}
+                    </Link>
                     <span style={{ ...sub, textTransform: "capitalize" }}>
                       {c.status === "ACTIVE" ? "Active" : c.status.toLowerCase().replace(/_/g, " ")}
                     </span>

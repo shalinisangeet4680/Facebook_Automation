@@ -29,13 +29,16 @@ export function CreativePicker({
   onOpenChange,
   creative,
   onPick,
+  imagesOnly,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  creative: Creative;
+  creative: Pick<Creative, "imageUrl" | "post">;
   onPick: (patch: Partial<Creative>) => void;
+  imagesOnly?: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("images");
+  const [chosen, setTab] = useState<Tab>("images");
+  const tab: Tab = imagesOnly ? "images" : chosen;
   const creatives = useCreatives();
   const facebook = useLibrary("facebook", open && tab === "facebook");
   const instagram = useLibrary("instagram", open && tab === "instagram");
@@ -51,21 +54,27 @@ export function CreativePicker({
     <RpDialogRoot open={open} onOpenChange={onOpenChange}>
       <RpDialogContent
         width={760}
-        title="Choose what the ad shows"
-        description="Use an image from your library, or run the ad on a post that's already on your Page or Instagram so it keeps its likes and comments."
+        title={imagesOnly ? "Choose an image" : "Choose what the ad shows"}
+        description={
+          imagesOnly
+            ? "Pick an image from your library. Upload new ones in Creatives."
+            : "Use an image from your library, or run the ad on a post that's already on your Page or Instagram so it keeps its likes and comments."
+        }
       >
-        <div style={{ display: "flex", overflowX: "auto" }}>
-          <Seg
-            label="Source"
-            value={tab}
-            onChange={setTab}
-            options={[
-              { id: "images", label: "Your images" },
-              { id: "facebook", label: "Facebook posts" },
-              { id: "instagram", label: "Instagram posts" },
-            ]}
-          />
-        </div>
+        {imagesOnly ? null : (
+          <div style={{ display: "flex", overflowX: "auto" }}>
+            <Seg
+              label="Source"
+              value={tab}
+              onChange={setTab}
+              options={[
+                { id: "images", label: "Your images" },
+                { id: "facebook", label: "Facebook posts" },
+                { id: "instagram", label: "Instagram posts" },
+              ]}
+            />
+          </div>
+        )}
 
         {tab === "images" ? (
           creatives.isPending ? (

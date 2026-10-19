@@ -143,7 +143,7 @@ export function NewCampaign() {
       style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 760, width: "100%" }}
     >
       <Link
-        href="/campaigns"
+        href="/campaigns?tab=plans"
         className="rp-btn-quiet"
         style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
       >

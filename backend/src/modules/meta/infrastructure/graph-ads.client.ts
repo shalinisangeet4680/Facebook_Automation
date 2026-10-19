@@ -10,6 +10,8 @@ import {
   CampaignDraftInput,
   CampaignDraftResult,
   CampaignSummary,
+  CreativeInput,
+  CreativeReplaceInput,
   InsightQuery,
   InsightRow,
   MetaAds,
@@ -24,7 +26,7 @@ const CAMPAIGN_FIELDS =
 const ADSET_FIELDS =
   "id,name,campaign_id,status,effective_status,optimization_goal,billing_event,daily_budget,lifetime_budget,targeting,promoted_object";
 const AD_FIELDS =
-  "id,name,adset_id,status,effective_status,creative{id,title,body,object_story_spec,image_url,thumbnail_url,call_to_action_type}";
+  "id,name,adset_id,status,effective_status,creative{id,title,body,object_story_id,object_story_spec,source_instagram_media_id,image_url,image_hash,thumbnail_url,call_to_action_type}";
 const INSIGHT_FIELDS =
   "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,account_id,account_name,objective,spend,impressions,reach,frequency,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,cpm,actions,date_start,date_stop";
 
@@ -66,7 +68,7 @@ interface RawAdSet {
   promoted_object?: Record<string, unknown>;
 }
 
-interface RawAd {
+export interface RawAd {
   id: string;
   name: string;
   adset_id: string;
@@ -77,15 +79,23 @@ interface RawAd {
     title?: string;
     body?: string;
     image_url?: string;
+    image_hash?: string;
     thumbnail_url?: string;
     call_to_action_type?: string;
+    object_story_id?: string;
+    source_instagram_media_id?: string;
     object_story_spec?: {
+      page_id?: string;
+      instagram_user_id?: string;
+      instagram_actor_id?: string;
       link_data?: {
         link?: string;
         message?: string;
         name?: string;
+        description?: string;
         picture?: string;
-        call_to_action?: { type?: string };
+        image_hash?: string;
+        call_to_action?: { type?: string; value?: { link?: string } };
       };
     };
   };
@@ -122,9 +132,11 @@ function toAdSet(r: RawAdSet): AdSetSummary {
   };
 }
 
-function toAd(r: RawAd): AdSummary {
+export function toAd(r: RawAd): AdSummary {
   const c = r.creative;
-  const link = c?.object_story_spec?.link_data;
+  const spec = c?.object_story_spec;
+  const link = spec?.link_data;
+  const postId = c?.object_story_id ?? c?.source_instagram_media_id ?? null;
   return {
     id: r.id,
     name: r.name,
@@ -134,12 +146,20 @@ function toAd(r: RawAd): AdSummary {
     creative: c
       ? {
           id: c.id,
+          kind: postId ? "post" : link ? "link" : "other",
           title: link?.name ?? c.title ?? null,
           body: link?.message ?? c.body ?? null,
-          linkUrl: link?.link ?? null,
+          description: link?.description ?? null,
+          linkUrl: link?.link ?? link?.call_to_action?.value?.link ?? null,
           imageUrl: link?.picture ?? c.image_url ?? c.thumbnail_url ?? null,
+          imageHash: link?.image_hash ?? c.image_hash ?? null,
+          thumbnailUrl: c.thumbnail_url ?? c.image_url ?? link?.picture ?? null,
           callToAction:
             link?.call_to_action?.type ?? c.call_to_action_type ?? null,
+          pageId: spec?.page_id ?? null,
+          instagramId:
+            spec?.instagram_user_id ?? spec?.instagram_actor_id ?? null,
+          postId,
         }
       : null,
   };
@@ -237,6 +257,19 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
     };
   }
 
+  async adSets(token: string, adAccountId: string): Promise<AdSetSummary[]> {
+    const rows = await this.list<RawAdSet>(token, `/${adAccountId}/adsets`, {
+      fields: ADSET_FIELDS,
+    });
+    return rows.map(toAdSet);
+  }
+
+  async ad(token: string, adId: string): Promise<AdSummary> {
+    return toAd(
+      await this.get<RawAd>(token, `/${adId}`, { fields: AD_FIELDS }),
+    );
+  }
+
   async object(token: string, id: string): Promise<AdObject> {
     const attempts: { type: AdObjectType; fields: string }[] = [
       {
@@ -247,12 +280,12 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
       {
         type: "adset",
         fields:
-          "id,name,status,effective_status,account_id,campaign_id,daily_budget",
+          "id,name,status,effective_status,account_id,campaign_id,daily_budget,lifetime_budget",
       },
       {
         type: "campaign",
         fields:
-          "id,name,status,effective_status,account_id,daily_budget,objective",
+          "id,name,status,effective_status,account_id,daily_budget,lifetime_budget,objective",
       },
     ];
     let last: unknown = null;
@@ -271,6 +304,7 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
           campaignId:
             attempt.type === "campaign" ? str(r.id) : optStr(r.campaign_id),
           dailyBudget: optNum(r.daily_budget),
+          lifetimeBudget: optNum(r.lifetime_budget),
         };
       } catch (err) {
         if ((err as { code?: string }).code !== "META_REJECTED") throw err;
@@ -428,7 +462,22 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
     }
   }
 
-  private creativeSpec(c: CampaignDraftInput["creative"]): GraphParams {
+  async replaceCreative(
+    token: string,
+    input: CreativeReplaceInput,
+  ): Promise<{ creativeId: string }> {
+    const creative = await this.post<{ id: string }>(
+      token,
+      `/${input.adAccountId}/adcreatives`,
+      { name: input.name, ...this.creativeSpec(input.creative) },
+    );
+    await this.post(token, `/${input.adId}`, {
+      creative: { creative_id: creative.id },
+    });
+    return { creativeId: creative.id };
+  }
+
+  private creativeSpec(c: CreativeInput): GraphParams {
     if (c.existingPost?.platform === "facebook") {
       return { object_story_id: c.existingPost.id };
     }

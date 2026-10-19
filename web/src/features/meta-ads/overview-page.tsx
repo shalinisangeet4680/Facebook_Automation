@@ -95,7 +95,7 @@ function SetupCard() {
     {
       title: "Plan your first campaign",
       text: "Ask Claude for a plan; every setting comes with a reason.",
-      href: "/campaigns",
+      href: "/campaigns?tab=plans",
       done: Boolean(plans.data?.data.length),
     },
   ];
@@ -183,9 +183,14 @@ function Snapshot() {
     <Section
       title="Last 7 days"
       action={
-        <Link href="/reports" className="rp-btn-quiet">
-          Open reports →
-        </Link>
+        <span style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Link href="/campaigns" className="rp-btn-quiet">
+            Manage campaigns →
+          </Link>
+          <Link href="/reports" className="rp-btn-quiet">
+            Open reports →
+          </Link>
+        </span>
       }
     >
       <div

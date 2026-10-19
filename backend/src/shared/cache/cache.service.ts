@@ -20,6 +20,21 @@ export class CacheService {
     if (keys.length) await this.redis.del(...keys);
   }
 
+  async delPattern(pattern: string): Promise<void> {
+    let cursor = "0";
+    do {
+      const [next, keys] = await this.redis.scan(
+        cursor,
+        "MATCH",
+        pattern,
+        "COUNT",
+        200,
+      );
+      cursor = next;
+      if (keys.length) await this.redis.del(...keys);
+    } while (cursor !== "0");
+  }
+
   async wrap<T>(
     key: string,
     ttlSeconds: number,

@@ -2,7 +2,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { Env } from "@shared/config/env.validation";
 
-import { GraphAdsClient } from "./graph-ads.client";
+import { GraphAdsClient, toAd } from "./graph-ads.client";
 
 class TestClient extends GraphAdsClient {
   protected override wait(): Promise<void> {
@@ -223,5 +223,93 @@ describe("GraphAdsClient", () => {
       campaignId: "c1",
       dailyBudget: null,
     });
+  });
+
+  it("replaces an ad's creative by creating a new one and pointing the ad at it", async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ id: "cr2" }))
+      .mockResolvedValueOnce(json({ success: true }));
+    const result = await client.replaceCreative("tok", {
+      adAccountId: "act_1",
+      adId: "a1",
+      name: "Ad – edited",
+      creative: { ...draft.creative, headline: "New", imageHash: "h1" },
+    });
+    expect(result).toEqual({ creativeId: "cr2" });
+    const [first, second] = fetchMock.mock.calls;
+    const bodyOf = (c: typeof first) => c![1]!.body as URLSearchParams;
+    expect(first![0] as string).toContain("/act_1/adcreatives");
+    const spec = JSON.parse(bodyOf(first).get("object_story_spec")!);
+    expect(spec).toEqual({
+      page_id: "p1",
+      link_data: {
+        link: "https://example.com/",
+        message: "Hello",
+        name: "New",
+        image_hash: "h1",
+        call_to_action: {
+          type: "LEARN_MORE",
+          value: { link: "https://example.com/" },
+        },
+      },
+    });
+    expect(second![0] as string).toContain("/a1");
+    expect(JSON.parse(bodyOf(second).get("creative")!)).toEqual({
+      creative_id: "cr2",
+    });
+  });
+
+  it("tells link ads apart from ads that run on an existing post", () => {
+    const base = {
+      id: "a1",
+      name: "Ad",
+      adset_id: "s1",
+      status: "ACTIVE",
+      effective_status: "ACTIVE",
+    };
+    const link = toAd({
+      ...base,
+      creative: {
+        id: "cr1",
+        thumbnail_url: "https://t/1.png",
+        object_story_spec: {
+          page_id: "p1",
+          link_data: {
+            link: "https://example.com/",
+            message: "Body",
+            name: "Head",
+            description: "Desc",
+            image_hash: "h1",
+            call_to_action: { type: "SIGN_UP" },
+          },
+        },
+      },
+    });
+    expect(link.creative).toMatchObject({
+      kind: "link",
+      title: "Head",
+      body: "Body",
+      description: "Desc",
+      imageHash: "h1",
+      pageId: "p1",
+      callToAction: "SIGN_UP",
+      postId: null,
+    });
+    expect(
+      toAd({
+        ...base,
+        creative: { id: "cr2", object_story_id: "p1_42" },
+      }).creative,
+    ).toMatchObject({ kind: "post", postId: "p1_42" });
+    expect(
+      toAd({
+        ...base,
+        creative: { id: "cr3", source_instagram_media_id: "m9" },
+      }).creative,
+    ).toMatchObject({ kind: "post", postId: "m9" });
+    expect(
+      toAd({ ...base, creative: { id: "cr4", object_story_spec: {} } }).creative
+        ?.kind,
+    ).toBe("other");
   });
 });
