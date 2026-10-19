@@ -95,23 +95,23 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 Build order. Everything works on `META_MOCK` first and is tested together before going live.
 
-- [ ] 1. In-app campaign builder: wizard (goal, budget, location and audience, creative) → AI drafts the plan on the server (`POST /campaign-plans/generate`) → existing review screen → create paused → launch.
-- [ ] 2. Campaign manager:
+- [x] 1. In-app campaign builder: wizard (goal, budget, location and audience, creative) → AI drafts the plan on the server (`POST /campaign-plans/generate`) → existing review screen → create paused → launch.
+- [x] 2. Campaign manager:
   - REST `GET /ads/campaigns`, `/ads/campaigns/:id`;
   - pause and resume for campaign, ad set and ad;
   - daily budget change with guardrails;
   - edit ad text, headline and image;
   - Campaigns page with live status and drill-down.
-- [ ] 3. Tracking check: `GET /ads/tracking` (Pixel last fired, events in 24 h, which events), a card on Overview and a step in onboarding.
-- [ ] 4. Guided onboarding: business basics (website, what you sell, city), goal and budget (writes Settings), tracking check, first plan, review & launch; the remaining onboarding steps become real.
-- [ ] 5. "Continue with Facebook" for ads: Facebook Login for Business (system-user token configuration) through the **Arogya System** app (`1652483653208979`), the one Meta app for all TreeVook Meta products (Autopost and Ads), using `META_APP_ID` / `META_APP_SECRET` plus `META_ADS_LOGIN_CONFIG_ID`. Keep the system user token as an advanced option.
-- [ ] 6. Lead form ads:
+- [x] 3. Tracking check: `GET /ads/tracking` (Pixel last fired, events in 24 h, which events), a card on Overview and a step in onboarding.
+- [x] 4. Guided onboarding: business basics (website, what you sell, city), goal and budget (writes Settings), tracking check, first plan, review & launch; the remaining onboarding steps become real.
+- [x] 5. "Continue with Facebook" for ads: Facebook Login for Business (system-user token configuration) through the **Arogya System** app (`1652483653208979`), the one Meta app for all TreeVook Meta products (Autopost and Ads), using `META_APP_ID` / `META_APP_SECRET` plus `META_ADS_LOGIN_CONFIG_ID`. Keep the system user token as an advanced option.
+- [x] 6. Lead form ads:
   - instant-form leads objective (form builder: questions, privacy URL, thank-you);
   - leads inbox synced from Meta;
   - new-lead alerts to Slack and email;
   - CSV export.
-- [ ] 7. Video ads, 2–3 ad variants per ad set (A/B), saved audiences, switching between several ad accounts.
-- [ ] 8. Tests:
+- [x] 7. Video ads, 2–3 ad variants per ad set (A/B), saved audiences, switching between several ad accounts.
+- [x] 8. Tests:
   - plan service, suggestions and rollback when Meta create fails;
   - REST e2e for plans and campaigns;
   - Playwright for the builder and the manager.
