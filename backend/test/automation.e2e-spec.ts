@@ -86,6 +86,7 @@ describe("Workspace AI and automation settings", () => {
       slackConnected: false,
       slackChannel: null,
       agentsCanPost: false,
+      notifyNewLeads: true,
     });
 
     const badKey = await api("PUT", "/automation/settings", {

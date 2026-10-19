@@ -63,7 +63,7 @@ export class UpdateBusinessBasicsDto {
 
 export class UpdateGoalBudgetDto {
   @IsIn(GOAL_NAMES)
-  goal: "traffic" | "leads" | "sales" | "awareness";
+  goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
 
   @IsNumber()
   @IsPositive()
@@ -110,7 +110,7 @@ export class SettingsBudgetDto {
   platformMaxDailyBudget: number;
   monthlyBudget: number | null;
   targetCostPerResult: number | null;
-  goal: "traffic" | "leads" | "sales" | "awareness" | null;
+  goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
 }
 
 export class BusinessBasicsDto {

@@ -54,6 +54,40 @@ export class PlanReasonsDto {
   creative: string;
 }
 
+export class LeadFormIntroDto {
+  headline: string;
+  description?: string | null;
+}
+
+export class LeadFormCustomQuestionDto {
+  label: string;
+  type: "short_answer" | "multiple_choice";
+  options: string[];
+}
+
+export class LeadFormButtonDto {
+  type: "website" | "call";
+  text: string;
+  url?: string;
+  phone?: string;
+}
+
+export class LeadFormThankYouDto {
+  title: string;
+  body: string;
+  button: LeadFormButtonDto;
+}
+
+export class LeadFormDto {
+  name: string;
+  locale: string;
+  intro: LeadFormIntroDto;
+  questions: ("FULL_NAME" | "EMAIL" | "PHONE" | "CITY")[];
+  customQuestions: LeadFormCustomQuestionDto[];
+  privacyPolicyUrl: string;
+  thankYou: LeadFormThankYouDto;
+}
+
 export class CampaignPlanDto {
   name: string;
   summary: string;
@@ -64,6 +98,7 @@ export class CampaignPlanDto {
   creative: PlanCreativeDto;
   reasons: PlanReasonsDto;
   expectedResults?: string | null;
+  leadForm?: LeadFormDto | null;
 }
 
 export class PlanMetaDto {
@@ -72,6 +107,7 @@ export class PlanMetaDto {
   creativeId: string;
   adId: string;
   adsManagerUrl: string;
+  leadFormId?: string | null;
 }
 
 export class PlanResponseDto {
@@ -88,6 +124,12 @@ export class PlanResponseDto {
 export class GoalOptionDto {
   name: string;
   needsPixel: boolean;
+  instantForm: boolean;
+}
+
+export class LocaleOptionDto {
+  code: string;
+  name: string;
 }
 
 export class PlanOptionsDto {
@@ -96,6 +138,8 @@ export class PlanOptionsDto {
   goals: GoalOptionDto[];
   conversionEvents: string[];
   callsToAction: string[];
+  leadFormCallsToAction: string[];
+  leadFormLocales: LocaleOptionDto[];
 }
 
 export class PlanDetailResponseDto extends PlanResponseDto {

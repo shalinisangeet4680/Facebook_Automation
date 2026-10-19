@@ -14,12 +14,16 @@ import {
   CreativeReplaceInput,
   InsightQuery,
   InsightRow,
+  LeadFormInput,
+  LeadFormSummary,
+  LeadRecord,
   MetaAds,
   PixelDetails,
   PixelEventCount,
   TargetingOption,
   TargetingSearchType,
 } from "../domain/ports/meta-ads";
+import { metaRejected } from "../domain/meta.errors";
 import { GraphApiClient, GraphParams } from "./graph-api.client";
 
 const CAMPAIGN_FIELDS =
@@ -28,6 +32,9 @@ const ADSET_FIELDS =
   "id,name,campaign_id,status,effective_status,optimization_goal,billing_event,daily_budget,lifetime_budget,targeting,promoted_object";
 const AD_FIELDS =
   "id,name,adset_id,status,effective_status,creative{id,title,body,object_story_id,object_story_spec,source_instagram_media_id,image_url,image_hash,thumbnail_url,call_to_action_type}";
+const LEAD_FIELDS =
+  "id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id";
+const LEAD_FORM_FIELDS = "id,name,status,locale,created_time,questions";
 const INSIGHT_FIELDS =
   "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,account_id,account_name,objective,spend,impressions,reach,frequency,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,cpm,actions,date_start,date_stop";
 
@@ -96,7 +103,10 @@ export interface RawAd {
         description?: string;
         picture?: string;
         image_hash?: string;
-        call_to_action?: { type?: string; value?: { link?: string } };
+        call_to_action?: {
+          type?: string;
+          value?: { link?: string; lead_gen_form_id?: string };
+        };
       };
     };
   };
@@ -161,8 +171,87 @@ export function toAd(r: RawAd): AdSummary {
           instagramId:
             spec?.instagram_user_id ?? spec?.instagram_actor_id ?? null,
           postId,
+          leadFormId: link?.call_to_action?.value?.lead_gen_form_id ?? null,
         }
       : null,
+  };
+}
+
+export function leadFormParams(input: LeadFormInput): GraphParams {
+  const button = input.thankYou.button;
+  return {
+    name: input.name,
+    locale: input.locale,
+    questions: [
+      ...input.questions.map((type) => ({ type })),
+      ...input.customQuestions.map((q) => ({
+        type: "CUSTOM",
+        key: q.key,
+        label: q.label,
+        ...(q.options.length
+          ? {
+              options: q.options.map((value, i) => ({
+                key: `${q.key}_${i + 1}`,
+                value,
+              })),
+            }
+          : {}),
+      })),
+    ],
+    privacy_policy: {
+      url: input.privacyPolicyUrl,
+      link_text: "Privacy policy",
+    },
+    context_card: {
+      title: input.intro.headline,
+      style: "PARAGRAPH_STYLE",
+      ...(input.intro.description
+        ? { content: [input.intro.description] }
+        : {}),
+    },
+    thank_you_page: {
+      title: input.thankYou.title,
+      body: input.thankYou.body,
+      button_text: button.text,
+      ...(button.type === "website"
+        ? { button_type: "VIEW_WEBSITE", website_url: button.url }
+        : {
+            button_type: "CALL_BUSINESS",
+            business_phone_number: button.phone,
+          }),
+    },
+    ...(button.type === "website" ? { follow_up_action_url: button.url } : {}),
+  };
+}
+
+interface RawLead {
+  id: string;
+  created_time: string;
+  field_data?: { name: string; values?: string[] }[];
+  ad_id?: string;
+  ad_name?: string;
+  adset_id?: string;
+  adset_name?: string;
+  campaign_id?: string;
+  campaign_name?: string;
+  form_id?: string;
+}
+
+export function toLead(r: RawLead, formId: string): LeadRecord {
+  return {
+    id: r.id,
+    formId: r.form_id ?? formId,
+    createdTime: new Date(r.created_time).toISOString(),
+    fieldData: (r.field_data ?? []).map((f) => ({
+      name: f.name,
+      values: (f.values ?? []).map(String),
+    })),
+    adId: r.ad_id ?? null,
+    adName: r.ad_name ?? null,
+    adSetId: r.adset_id ?? null,
+    adSetName: r.adset_name ?? null,
+    campaignId: r.campaign_id ?? null,
+    campaignName: r.campaign_name ?? null,
   };
 }
 
@@ -417,19 +506,24 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
     input: CampaignDraftInput,
   ): Promise<CampaignDraftResult> {
     const account = input.adAccountId;
-    const campaign = await this.post<{ id: string }>(
-      token,
-      `/${account}/campaigns`,
-      {
-        name: input.name,
-        objective: input.objective,
-        status: "PAUSED",
-        buying_type: "AUCTION",
-        special_ad_categories: [],
-        is_adset_budget_sharing_enabled: false,
-      },
-    );
+    const form = input.leadForm
+      ? await this.createLeadForm(token, input.leadForm)
+      : null;
+    let campaignId: string | null = null;
     try {
+      const campaign = await this.post<{ id: string }>(
+        token,
+        `/${account}/campaigns`,
+        {
+          name: input.name,
+          objective: input.objective,
+          status: "PAUSED",
+          buying_type: "AUCTION",
+          special_ad_categories: [],
+          is_adset_budget_sharing_enabled: false,
+        },
+      );
+      campaignId = campaign.id;
       const adSet = await this.post<{ id: string }>(
         token,
         `/${account}/adsets`,
@@ -450,7 +544,9 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
             : {}),
         },
       );
-      const c = input.creative;
+      const c = form
+        ? { ...input.creative, leadFormId: form.id }
+        : input.creative;
       const creative = await this.post<{ id: string }>(
         token,
         `/${account}/adcreatives`,
@@ -467,13 +563,91 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
         adSetId: adSet.id,
         creativeId: creative.id,
         adId: ad.id,
+        ...(form ? { leadFormId: form.id } : {}),
       };
     } catch (err) {
-      await this.post(token, `/${campaign.id}`, {}, "DELETE").catch(
-        () => undefined,
-      );
+      if (campaignId)
+        await this.post(token, `/${campaignId}`, {}, "DELETE").catch(
+          () => undefined,
+        );
+      if (form)
+        await this.post(form.pageToken, `/${form.id}`, {
+          status: "ARCHIVED",
+        }).catch(() => undefined);
       throw err;
     }
+  }
+
+  async pageAccessToken(token: string, pageId: string): Promise<string> {
+    const res = await this.get<{ access_token?: string }>(token, `/${pageId}`, {
+      fields: "access_token",
+    });
+    if (!res.access_token)
+      throw metaRejected(
+        "TreeVook couldn't get access to your Facebook Page. Give the system user full control of the Page, then try again.",
+      );
+    return res.access_token;
+  }
+
+  async leadForms(
+    pageToken: string,
+    pageId: string,
+  ): Promise<LeadFormSummary[]> {
+    const rows = await this.list<{
+      id: string;
+      name?: string;
+      status?: string;
+      locale?: string;
+      created_time?: string;
+      questions?: { key?: string; label?: string; type?: string }[];
+    }>(pageToken, `/${pageId}/leadgen_forms`, { fields: LEAD_FORM_FIELDS });
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name ?? "Instant form",
+      status: r.status ?? "ACTIVE",
+      locale: r.locale ?? null,
+      createdTime: r.created_time ?? null,
+      questions: (r.questions ?? []).map((q) => ({
+        key: q.key ?? "",
+        label: q.label ?? q.key ?? "",
+        type: q.type ?? "CUSTOM",
+      })),
+    }));
+  }
+
+  async leads(
+    pageToken: string,
+    formId: string,
+    sinceUnix: number | null,
+  ): Promise<LeadRecord[]> {
+    const params: Record<string, string> = { fields: LEAD_FIELDS };
+    if (sinceUnix !== null)
+      params.filtering = JSON.stringify([
+        {
+          field: "time_created",
+          operator: "GREATER_THAN",
+          value: sinceUnix,
+        },
+      ]);
+    const rows = await this.list<RawLead>(
+      pageToken,
+      `/${formId}/leads`,
+      params,
+    );
+    return rows.map((r) => toLead(r, formId));
+  }
+
+  private async createLeadForm(
+    token: string,
+    form: LeadFormInput,
+  ): Promise<{ id: string; pageToken: string }> {
+    const pageToken = await this.pageAccessToken(token, form.pageId);
+    const created = await this.post<{ id: string }>(
+      pageToken,
+      `/${form.pageId}/leadgen_forms`,
+      leadFormParams(form),
+    );
+    return { id: created.id, pageToken };
   }
 
   async replaceCreative(
@@ -514,7 +688,12 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
           ...(c.description ? { description: c.description } : {}),
           ...(c.imageHash ? { image_hash: c.imageHash } : {}),
           ...(c.imageUrl && !c.imageHash ? { picture: c.imageUrl } : {}),
-          call_to_action: { type: c.callToAction, value: { link: c.link } },
+          call_to_action: {
+            type: c.callToAction,
+            value: c.leadFormId
+              ? { lead_gen_form_id: c.leadFormId }
+              : { link: c.link },
+          },
         },
       },
     };

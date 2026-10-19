@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ClipboardList,
   Image as ImageIcon,
   Megaphone,
   MousePointerClick,
@@ -13,13 +14,24 @@ import Image from "next/image";
 import { useState, type CSSProperties, type ReactNode } from "react";
 
 import type { CampaignPlan } from "@/lib/api/types";
-import { Skel } from "@/features/replyly/ui";
+import { Seg, Skel, Toggle } from "@/features/replyly/ui";
 
 import { CreativePicker, displaySrc } from "./creative-picker";
-import { money } from "./labels";
+import { PREFILL_QUESTIONS, QUESTION_LABELS, money } from "./labels";
 import { Field, Group, LocationsEditor, MUTED } from "./plan-sections";
 
-export type Goal = "traffic" | "leads" | "sales" | "awareness";
+export type Goal = "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
+export type Question = (typeof PREFILL_QUESTIONS)[number];
+
+export interface LeadFormDraft {
+  questions: Question[];
+  privacyPolicyUrl: string;
+  button: "website" | "call";
+  callPhone: string;
+  extraQuestions: boolean;
+}
+
+export type StepId = "goal" | "budget" | "audience" | "promote" | "form" | "image";
 type Targeting = CampaignPlan["targeting"];
 type Creative = CampaignPlan["creative"];
 
@@ -34,6 +46,7 @@ export interface Draft {
   landingUrl: string;
   language: string;
   visual: Pick<Creative, "imageUrl" | "post">;
+  leadForm: LeadFormDraft;
 }
 
 export interface Limits {
@@ -43,7 +56,10 @@ export interface Limits {
 }
 
 export type Errors = Partial<
-  Record<"goal" | "budget" | "where" | "ages" | "offer" | "url", string>
+  Record<
+    "goal" | "budget" | "where" | "ages" | "offer" | "url" | "questions" | "privacy" | "phone",
+    string
+  >
 >;
 
 export const WEBSITE_GOALS: Goal[] = ["traffic", "sales"];
@@ -60,6 +76,12 @@ export const GOALS: { id: Goal; title: string; text: string; icon: LucideIcon }[
     title: "Get enquiries",
     text: "People leave their details or sign up on your website so you can follow up.",
     icon: UserPlus,
+  },
+  {
+    id: "instant_leads",
+    title: "Get leads on Facebook",
+    text: "People fill a short form inside Facebook or Instagram, no website needed. Leads arrive in TreeVook.",
+    icon: ClipboardList,
   },
   {
     id: "sales",
@@ -104,15 +126,15 @@ export function isHttpsUrl(value: string): boolean {
   }
 }
 
-export function validate(step: number, draft: Draft): Errors {
+export function validate(step: StepId, draft: Draft): Errors {
   const errors: Errors = {};
-  if (step === 0 && !draft.goal) errors.goal = "Pick what you want from this campaign.";
-  if (step === 1) {
+  if (step === "goal" && !draft.goal) errors.goal = "Pick what you want from this campaign.";
+  if (step === "budget") {
     const budget = Number(draft.dailyBudget);
     if (!draft.dailyBudget.trim() || !Number.isFinite(budget) || budget <= 0)
       errors.budget = "Enter how much you want to spend each day.";
   }
-  if (step === 2) {
+  if (step === "audience") {
     const t = draft.targeting;
     if (!t.cities.length && !t.regions.length && !t.countries.length)
       errors.where = "Add at least one city or state.";
@@ -122,13 +144,22 @@ export function validate(step: number, draft: Draft): Errors {
       errors.ages = "Ages must be whole numbers from 18 to 65.";
     else if (min > max) errors.ages = "The youngest age must be lower than the oldest.";
   }
-  if (step === 3) {
+  if (step === "promote") {
     if (draft.offer.trim().length < 3) errors.offer = "Tell us what you want to promote.";
     const url = draft.landingUrl.trim();
     if (url && !isHttpsUrl(url))
       errors.url = "Use the full address starting with https://, like https://example.com.";
     else if (!url && draft.goal && WEBSITE_GOALS.includes(draft.goal))
       errors.url = "Add the page people should land on. This goal needs your website.";
+  }
+  if (step === "form") {
+    const form = draft.leadForm;
+    if (!form.questions.includes("PHONE") && !form.questions.includes("EMAIL"))
+      errors.questions = "Ask for a phone number or an email so you can contact the lead.";
+    if (!isHttpsUrl(form.privacyPolicyUrl.trim()))
+      errors.privacy = "Add your privacy policy link, starting with https://. Meta requires it.";
+    if (form.button === "call" && !/^\+[1-9]\d{6,14}$/.test(form.callPhone.replace(/[\s-]/g, "")))
+      errors.phone = "Use the full number with country code, like +919876543210.";
   }
   return errors;
 }
@@ -439,12 +470,131 @@ export function PromoteStep({
   );
 }
 
+export function LeadFormStep({
+  form,
+  errors,
+  onChange,
+}: {
+  form: LeadFormDraft;
+  errors: Errors;
+  onChange: (form: LeadFormDraft) => void;
+}) {
+  const set = (patch: Partial<LeadFormDraft>) => onChange({ ...form, ...patch });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <Group
+        title="What should the form ask?"
+        desc="Meta fills these in from the person’s profile, so the form takes seconds."
+      >
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {PREFILL_QUESTIONS.map((q) => {
+            const on = form.questions.includes(q);
+            return (
+              <button
+                key={q}
+                type="button"
+                className="rp-chip"
+                aria-pressed={on}
+                style={on ? { borderColor: "#0F6B4A", background: "#F1F5F2" } : undefined}
+                onClick={() =>
+                  set({
+                    questions: on
+                      ? form.questions.filter((x) => x !== q)
+                      : PREFILL_QUESTIONS.filter((x) => x === q || form.questions.includes(x)),
+                  })
+                }
+              >
+                {QUESTION_LABELS[q]}
+              </button>
+            );
+          })}
+        </div>
+        {errors.questions ? <ErrorText>{errors.questions}</ErrorText> : null}
+      </Group>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #EFEDE8",
+        }}
+      >
+        <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontWeight: 500, fontSize: 13.5 }}>Suggest extra questions</span>
+          <span style={{ fontSize: 12.5, color: MUTED }}>
+            AI adds up to two short questions that help you qualify each lead. You can edit them on
+            the review screen.
+          </span>
+        </span>
+        <Toggle
+          on={form.extraQuestions}
+          label="Suggest extra questions"
+          onChange={() => set({ extraQuestions: !form.extraQuestions })}
+        />
+      </div>
+      <Field
+        label="Privacy policy link"
+        error={errors.privacy}
+        hint="Meta shows this on every instant form. Use your website’s privacy page."
+      >
+        <input
+          className="rp-input"
+          type="url"
+          inputMode="url"
+          placeholder="https://"
+          style={full}
+          value={form.privacyPolicyUrl}
+          aria-invalid={Boolean(errors.privacy)}
+          onChange={(e) => set({ privacyPolicyUrl: e.target.value })}
+        />
+      </Field>
+      <Group title="After they send the form" desc="The thank-you screen shows one button.">
+        <div style={{ alignSelf: "flex-start" }}>
+          <Seg
+            label="Thank-you button"
+            value={form.button}
+            onChange={(button) => set({ button })}
+            small
+            options={[
+              { id: "website", label: "Visit website" },
+              { id: "call", label: "Call business" },
+            ]}
+          />
+        </div>
+        {form.button === "call" ? (
+          <Field label="Phone number to call" error={errors.phone}>
+            <input
+              className="rp-input"
+              type="tel"
+              inputMode="tel"
+              placeholder="+919876543210"
+              style={{ ...full, maxWidth: 260 }}
+              value={form.callPhone}
+              aria-invalid={Boolean(errors.phone)}
+              onChange={(e) => set({ callPhone: e.target.value })}
+            />
+          </Field>
+        ) : (
+          <span style={{ fontSize: 12.5, color: MUTED }}>
+            Opens the web page from the previous step, or your Facebook Page.
+          </span>
+        )}
+      </Group>
+    </div>
+  );
+}
+
 export function CreativeStep({
   visual,
   onChange,
+  imagesOnly,
 }: {
   visual: Draft["visual"];
   onChange: (visual: Draft["visual"]) => void;
+  imagesOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const src = displaySrc(visual.post?.imageUrl ?? visual.imageUrl);
@@ -529,7 +679,9 @@ export function CreativeStep({
       ) : (
         <button type="button" className="rp-drop" onClick={() => setOpen(true)}>
           <ImageIcon size={20} color={MUTED} aria-hidden />
-          <span style={{ fontWeight: 500 }}>Choose image or post</span>
+          <span style={{ fontWeight: 500 }}>
+            {imagesOnly ? "Choose an image" : "Choose image or post"}
+          </span>
           <span style={{ fontSize: 12.5, color: MUTED }}>
             From your library, your Facebook Page or Instagram
           </span>
@@ -539,6 +691,7 @@ export function CreativeStep({
         open={open}
         onOpenChange={setOpen}
         creative={creative}
+        imagesOnly={imagesOnly}
         onPick={(patch) => onChange({ imageUrl: patch.imageUrl ?? null, post: patch.post ?? null })}
       />
     </div>

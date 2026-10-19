@@ -11,6 +11,7 @@ import { IamModule } from "@modules/iam/iam.module";
 import { JobsModule } from "@modules/jobs/jobs.module";
 import { CreativesModule } from "@modules/creatives/creatives.module";
 import { InboxModule } from "@modules/inbox/inbox.module";
+import { LeadsModule } from "@modules/leads/leads.module";
 import { McpModule } from "@modules/mcp/mcp.module";
 import { ProfileModule } from "@modules/profile/profile.module";
 import { MetaLoginModule } from "@modules/meta/meta-login.module";
@@ -72,6 +73,7 @@ import { SecurityModule } from "@shared/security/security.module";
     InboxModule,
     ProfileModule,
     PlansModule,
+    LeadsModule,
     StoreModule,
     PlayModule,
     PlayReleasesModule,

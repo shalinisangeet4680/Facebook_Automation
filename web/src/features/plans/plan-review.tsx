@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   CheckCircle2,
+  ClipboardList,
   ExternalLink,
   Image as ImageIcon,
   Megaphone,
@@ -24,18 +25,21 @@ import {
   useMetaAssets,
   usePlan,
   useSavePlan,
+  useSettings,
 } from "@/lib/api/queries";
 import type { CampaignPlan, PlanDetail } from "@/lib/api/types";
 import { RpDialogClose, RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
 import { Banner, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
 import { CreativePicker } from "./creative-picker";
-import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, money, sourceLabel } from "./labels";
+import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, money, privacyFrom, sourceLabel } from "./labels";
 import {
   AdPreview,
   BehaviorsEditor,
+  defaultLeadForm,
   Field,
   Group,
+  LeadFormEditor,
   LocationsEditor,
   MUTED,
   PlanSection,
@@ -44,6 +48,20 @@ import {
 } from "./plan-sections";
 
 const full: CSSProperties = { width: "100%" };
+
+function cleanPlan(plan: CampaignPlan): CampaignPlan {
+  if (!plan.leadForm) return plan;
+  return {
+    ...plan,
+    leadForm: {
+      ...plan.leadForm,
+      customQuestions: plan.leadForm.customQuestions.map((q) => ({
+        ...q,
+        options: q.type === "multiple_choice" ? q.options.map((o) => o.trim()).filter(Boolean) : [],
+      })),
+    },
+  };
+}
 const row: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap" };
 
 export function PlanReview() {
@@ -156,6 +174,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
   const launch = useLaunchPlan(detail.id);
   const discard = useDiscardPlan(detail.id);
   const assets = useMetaAssets();
+  const settings = useSettings();
   const pageName =
     assets.data?.data.find((a) => a.kind === "page" && a.isPrimary)?.name ?? "Your Page";
 
@@ -166,6 +185,26 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
     [draft, detail.plan],
   );
   const goal = options.goals.find((g) => g.name === draft.goal);
+  const instant = Boolean(goal?.instantForm);
+  const ctas = instant ? options.leadFormCallsToAction : options.callsToAction;
+  const changeGoal = (name: string) =>
+    setDraft((d) => {
+      const next = options.goals.find((g) => g.name === name);
+      if (!next?.instantForm) return { ...d, goal: name };
+      return {
+        ...d,
+        goal: name,
+        conversionEvent: null,
+        creative: {
+          ...d.creative,
+          post: null,
+          callToAction: options.leadFormCallsToAction.includes(d.creative.callToAction)
+            ? d.creative.callToAction
+            : "SIGN_UP",
+        },
+        leadForm: d.leadForm ?? defaultLeadForm(d, privacyFrom(settings.data?.business.websiteUrl)),
+      };
+    });
   const budgetError =
     draft.dailyBudget > options.maxDailyBudget
       ? `The limit is ${money(options.maxDailyBudget, options.currency)} a day.`
@@ -182,7 +221,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
 
   const onSave = async () => {
     try {
-      await save.mutateAsync(draft);
+      await save.mutateAsync(cleanPlan(draft));
       toast("Plan saved");
     } catch (err) {
       toast(errorMessage(err));
@@ -191,7 +230,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
 
   const onCreate = async () => {
     try {
-      if (dirty) await save.mutateAsync(draft);
+      if (dirty) await save.mutateAsync(cleanPlan(draft));
       await create.mutateAsync(undefined);
       toast("Created in Meta. Everything is paused.");
     } catch (err) {
@@ -289,6 +328,11 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 : "Check it in Ads Manager if you like, then launch when you're ready."}
             </span>
           </div>
+          {detail.meta?.leadFormId ? (
+            <Link href={`/leads?campaignId=${detail.meta.campaignId}`} className="rp-btn-light">
+              <ClipboardList size={14} /> View leads
+            </Link>
+          ) : null}
           {detail.meta ? (
             <a
               href={detail.meta.adsManagerUrl}
@@ -329,7 +373,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
           }}
         >
           <PlanSection title="Goal" icon={<Target size={18} />} reason={draft.reasons.goal}>
-            <GoalPicker value={draft.goal} goals={options.goals} onChange={(v) => set("goal", v)} />
+            <GoalPicker value={draft.goal} goals={options.goals} onChange={changeGoal} />
             {goal?.needsPixel ? (
               <Field label="Result to optimise for" hint="Must be an event your Pixel sends.">
                 <select
@@ -481,7 +525,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               </p>
               {editable ? (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {draft.creative.post ? (
+                  {draft.creative.post && !instant ? (
                     <button
                       type="button"
                       className="rp-btn-light"
@@ -497,7 +541,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                     style={{ padding: "6px 10px" }}
                     onClick={() => setPickerOpen(true)}
                   >
-                    Choose image or post
+                    {instant ? "Choose image" : "Choose image or post"}
                   </button>
                 </div>
               ) : null}
@@ -507,6 +551,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               onOpenChange={setPickerOpen}
               creative={draft.creative}
               onPick={setCreative}
+              imagesOnly={instant}
             />
             <Field label="Primary text">
               <textarea
@@ -577,7 +622,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               />
             </Field>
             <div style={row}>
-              <Field inRow label="Website link">
+              <Field inRow label={instant ? "Link shown on the ad" : "Website link"}>
                 <input
                   className="rp-input"
                   type="url"
@@ -592,7 +637,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                   value={draft.creative.callToAction}
                   onChange={(e) => setCreative({ callToAction: e.target.value })}
                 >
-                  {options.callsToAction.map((c) => (
+                  {ctas.map((c) => (
                     <option key={c} value={c}>
                       {CTA_LABELS[c] ?? c}
                     </option>
@@ -622,6 +667,20 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               />
             </Field>
           </PlanSection>
+          {instant && draft.leadForm ? (
+            <PlanSection
+              title="Lead form"
+              icon={<ClipboardList size={18} />}
+              reason="People fill this in without leaving Facebook or Instagram. Meta fills in their details for them, and new leads arrive in TreeVook under Leads."
+            >
+              <LeadFormEditor
+                form={draft.leadForm}
+                locales={options.leadFormLocales}
+                disabled={!editable}
+                onChange={(leadForm) => set("leadForm", leadForm)}
+              />
+            </PlanSection>
+          ) : null}
         </div>
       </fieldset>
 

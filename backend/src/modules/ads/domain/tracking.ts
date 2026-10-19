@@ -1,4 +1,4 @@
-import { Goal, GOAL_NAMES } from "./goals";
+import { Goal, GOAL_NAMES, GOALS } from "./goals";
 
 export type TrackingStatus = "healthy" | "warning" | "missing";
 
@@ -78,6 +78,7 @@ export const CONVERSION_EVENT_NAMES = [
 export const GOAL_EVENTS: Record<Goal, string[]> = {
   traffic: [],
   leads: ["Lead", "CompleteRegistration", "Contact"],
+  instant_leads: [],
   sales: ["Purchase"],
   awareness: [],
 };
@@ -115,7 +116,9 @@ export function goalFit(
       goal,
       ready: true,
       needs,
-      message: "This goal doesn't need Pixel tracking.",
+      message: GOALS[goal].instantForm
+        ? "Instant forms collect leads on Facebook and Instagram, so no Pixel is needed."
+        : "This goal doesn't need Pixel tracking.",
       fix: null,
     };
   }

@@ -7,6 +7,7 @@ export interface PlanMeta {
   creativeId: string;
   adId: string;
   adsManagerUrl: string;
+  leadFormId?: string | null;
 }
 
 export interface PlanView {

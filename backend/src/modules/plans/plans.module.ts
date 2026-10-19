@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { AdsModule } from "@modules/ads/ads.module";
 import { CreativesModule } from "@modules/creatives/creatives.module";
 import { EngineModule } from "@modules/engine/engine.module";
+import { LeadsModule } from "@modules/leads/leads.module";
 import { MetaModule } from "@modules/meta/meta.module";
 import { SettingsModule } from "@modules/settings/settings.module";
 import { Env } from "@shared/config/env.validation";
@@ -23,6 +24,7 @@ import { PlansController } from "./interface/plans.controller";
     SettingsModule,
     EngineModule,
     CreativesModule,
+    LeadsModule,
   ],
   controllers: [PlansController],
   providers: [

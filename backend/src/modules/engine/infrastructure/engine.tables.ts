@@ -27,6 +27,7 @@ export const workspaceAutomationSettings = pgTable(
     slackWebhookCiphertext: text("slack_webhook_ciphertext"),
     slackChannel: text("slack_channel"),
     agentsCanPost: boolean("agents_can_post").notNull().default(false),
+    notifyNewLeads: boolean("notify_new_leads").notNull().default(true),
     tokenHash: text("token_hash"),
     tokenCiphertext: text("token_ciphertext"),
     tokenUserId: uuid("token_user_id").references(() => users.id, {

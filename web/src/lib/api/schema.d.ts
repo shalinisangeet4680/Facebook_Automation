@@ -916,6 +916,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ads/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LeadsController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/leads/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LeadsController_summary_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/leads/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LeadsController_export_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/leads/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["LeadsController_syncNow_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/leads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LeadsController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["LeadsController_update_v1"];
+        trace?: never;
+    };
     "/api/v1/meta/oauth/status": {
         parameters: {
             query?: never;
@@ -3054,13 +3134,13 @@ export interface components {
             key: string;
             label: string;
             /** @enum {string} */
-            status: "failed" | "warning" | "passed";
+            status: "failed" | "passed" | "warning";
             message: string;
         };
         AssetDto: {
             id: string;
             /** @enum {string} */
-            kind: "business" | "ad_account" | "page" | "instagram" | "dataset";
+            kind: "instagram" | "page" | "business" | "ad_account" | "dataset";
             externalId: string;
             name: string;
             isPrimary: boolean;
@@ -3070,7 +3150,7 @@ export interface components {
         };
         ConnectionResponseDto: {
             /** @enum {string} */
-            status: "active" | "invalid" | "not_connected";
+            status: "not_connected" | "active" | "invalid";
             /** @enum {string|null} */
             method: "system_user_token" | "facebook_login" | null;
             systemUser: components["schemas"]["SystemUserDto"] | null;
@@ -3112,7 +3192,7 @@ export interface components {
             totalCount: number;
             isComplete: boolean;
             /** @enum {string|null} */
-            goal: "traffic" | "leads" | "sales" | "awareness" | null;
+            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
         };
         AuthorizationClientDto: {
             name: string;
@@ -3184,7 +3264,7 @@ export interface components {
             monthlyBudget: number | null;
             targetCostPerResult: number | null;
             /** @enum {string|null} */
-            goal: "traffic" | "leads" | "sales" | "awareness" | null;
+            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
         };
         BusinessBasicsDto: {
             websiteUrl: string | null;
@@ -3215,7 +3295,7 @@ export interface components {
         };
         UpdateGoalBudgetDto: {
             /** @enum {string} */
-            goal: "traffic" | "leads" | "sales" | "awareness";
+            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
             dailyBudget: number;
             monthlyBudget: number | null;
             targetCostPerResult: number | null;
@@ -3245,7 +3325,7 @@ export interface components {
         };
         TrackingGoalDto: {
             /** @enum {string} */
-            goal: "traffic" | "leads" | "sales" | "awareness";
+            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
             ready: boolean;
             needs: string[];
             message: string;
@@ -3255,7 +3335,7 @@ export interface components {
             selected: boolean;
             pixel: components["schemas"]["TrackingPixelDto"] | null;
             /** @enum {string} */
-            status: "healthy" | "warning" | "missing";
+            status: "warning" | "healthy" | "missing";
             reasons: string[];
             fixes: string[];
             warnings: string[];
@@ -3409,6 +3489,7 @@ export interface components {
             link: string | null;
             imageUrl: string | null;
             thumbnailUrl: string | null;
+            leadFormId: string | null;
         };
         AdRowDto: {
             id: string;
@@ -3620,7 +3701,7 @@ export interface components {
             key: string;
             label: string;
             /** @enum {string} */
-            status: "done" | "missing" | "weak";
+            status: "missing" | "done" | "weak";
             hint: string;
         };
         FacebookCheckupDto: {
@@ -3745,7 +3826,7 @@ export interface components {
         };
         PlanPostDto: {
             /** @enum {string} */
-            platform: "instagram" | "facebook";
+            platform: "facebook" | "instagram";
             id: string;
             permalink?: string | null;
             imageUrl?: string | null;
@@ -3768,6 +3849,37 @@ export interface components {
             budget: string;
             creative: string;
         };
+        LeadFormIntroDto: {
+            headline: string;
+            description?: string | null;
+        };
+        LeadFormCustomQuestionDto: {
+            label: string;
+            /** @enum {string} */
+            type: "short_answer" | "multiple_choice";
+            options: string[];
+        };
+        LeadFormButtonDto: {
+            /** @enum {string} */
+            type: "website" | "call";
+            text: string;
+            url?: string;
+            phone?: string;
+        };
+        LeadFormThankYouDto: {
+            title: string;
+            body: string;
+            button: components["schemas"]["LeadFormButtonDto"];
+        };
+        LeadFormDto: {
+            name: string;
+            locale: string;
+            intro: components["schemas"]["LeadFormIntroDto"];
+            questions: ("FULL_NAME" | "EMAIL" | "PHONE" | "CITY")[];
+            customQuestions: components["schemas"]["LeadFormCustomQuestionDto"][];
+            privacyPolicyUrl: string;
+            thankYou: components["schemas"]["LeadFormThankYouDto"];
+        };
         CampaignPlanDto: {
             name: string;
             summary: string;
@@ -3778,6 +3890,7 @@ export interface components {
             creative: components["schemas"]["PlanCreativeDto"];
             reasons: components["schemas"]["PlanReasonsDto"];
             expectedResults?: string | null;
+            leadForm?: components["schemas"]["LeadFormDto"] | null;
         };
         ReplacePlanDto: {
             plan: components["schemas"]["CampaignPlanDto"];
@@ -3788,6 +3901,7 @@ export interface components {
             creativeId: string;
             adId: string;
             adsManagerUrl: string;
+            leadFormId?: string | null;
         };
         PlanResponseDto: {
             id: string;
@@ -3829,9 +3943,16 @@ export interface components {
             imageUrl?: string | null;
             post?: components["schemas"]["BriefPostDto"] | null;
         };
+        BriefLeadFormDto: {
+            questions?: ("FULL_NAME" | "EMAIL" | "PHONE" | "CITY")[];
+            /** Format: uri */
+            privacyPolicyUrl?: string;
+            callPhone?: string | null;
+            extraQuestions?: boolean;
+        };
         GenerateCampaignPlanDto: {
             /** @enum {string} */
-            goal: "traffic" | "leads" | "sales" | "awareness";
+            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
             dailyBudget: number;
             locations: components["schemas"]["BriefLocationsDto"];
             ageMin?: number;
@@ -3842,6 +3963,7 @@ export interface components {
             landingUrl?: string;
             creative?: components["schemas"]["BriefCreativeDto"];
             language?: string;
+            leadForm?: components["schemas"]["BriefLeadFormDto"];
         };
         GeneratedCampaignPlanDto: {
             id: string;
@@ -3856,6 +3978,11 @@ export interface components {
         GoalOptionDto: {
             name: string;
             needsPixel: boolean;
+            instantForm: boolean;
+        };
+        LocaleOptionDto: {
+            code: string;
+            name: string;
         };
         PlanOptionsDto: {
             currency: string;
@@ -3863,6 +3990,8 @@ export interface components {
             goals: components["schemas"]["GoalOptionDto"][];
             conversionEvents: string[];
             callsToAction: string[];
+            leadFormCallsToAction: string[];
+            leadFormLocales: components["schemas"]["LocaleOptionDto"][];
         };
         PlanDetailResponseDto: {
             id: string;
@@ -3878,6 +4007,75 @@ export interface components {
         };
         LaunchPlanDto: {
             confirm: boolean;
+        };
+        LeadAnswerDto: {
+            key: string;
+            label: string;
+            value: string;
+        };
+        LeadFormRefDto: {
+            id: string;
+            name: string | null;
+        };
+        LeadRefDto: {
+            id: string;
+            name: string | null;
+        };
+        LeadDto: {
+            /** @enum {string} */
+            status: "new" | "contacted" | "won" | "lost";
+            id: string;
+            leadId: string;
+            createdTime: string;
+            notes: string | null;
+            name: string | null;
+            phone: string | null;
+            email: string | null;
+            city: string | null;
+            answers: components["schemas"]["LeadAnswerDto"][];
+            form: components["schemas"]["LeadFormRefDto"];
+            campaign: components["schemas"]["LeadRefDto"] | null;
+            adSet: components["schemas"]["LeadRefDto"] | null;
+            ad: components["schemas"]["LeadRefDto"] | null;
+        };
+        LeadListDto: {
+            data: components["schemas"]["LeadDto"][];
+            nextCursor: string | null;
+        };
+        LeadSyncStateDto: {
+            /** @enum {string} */
+            status: "never" | "ok" | "error";
+            /** @enum {string|null} */
+            errorCode: "permission_missing" | "not_connected" | "no_page" | "failed" | null;
+            lastRunAt: string | null;
+            lastSuccessAt: string | null;
+            error: string | null;
+            fixes: string[];
+            permissionGranted: boolean;
+            forms: number;
+        };
+        LeadSummaryDto: {
+            total: number;
+            new: number;
+            today: number;
+            campaigns: components["schemas"]["LeadRefDto"][];
+            sync: components["schemas"]["LeadSyncStateDto"];
+        };
+        LeadSyncResultDto: {
+            /** @enum {string} */
+            status: "ok" | "error";
+            /** @enum {string|null} */
+            errorCode: "permission_missing" | "not_connected" | "no_page" | "failed" | null;
+            forms: number;
+            fetched: number;
+            created: number;
+            alerted: number;
+            error: string | null;
+        };
+        UpdateLeadDto: {
+            /** @enum {string} */
+            status?: "new" | "contacted" | "won" | "lost";
+            notes?: string | null;
         };
         MetaOAuthStatusDto: {
             facebookLogin: boolean;
@@ -4630,6 +4828,7 @@ export interface components {
             slackConnected: boolean;
             slackChannel: string | null;
             agentsCanPost: boolean;
+            notifyNewLeads: boolean;
         };
         UpdateAutomationSettingsDto: {
             /** @enum {string} */
@@ -4638,6 +4837,7 @@ export interface components {
             slackWebhook?: string | null;
             slackChannel?: string | null;
             agentsCanPost?: boolean;
+            notifyNewLeads?: boolean;
         };
         ReleasesAppDto: {
             id: string;
@@ -8082,6 +8282,186 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_list_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                status?: "new" | "contacted" | "won" | "lost";
+                campaignId?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_summary_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSummaryDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_export_v1: {
+        parameters: {
+            query?: {
+                status?: "new" | "contacted" | "won" | "lost";
+                campaignId?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_syncNow_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSyncResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    LeadsController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLeadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadDto"];
                 };
             };
             default: {

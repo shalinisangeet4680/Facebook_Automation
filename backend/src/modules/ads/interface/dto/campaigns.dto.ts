@@ -155,6 +155,7 @@ export class AdCreativeViewDto {
   link: string | null;
   imageUrl: string | null;
   thumbnailUrl: string | null;
+  leadFormId: string | null;
 }
 
 export class AdRowDto {

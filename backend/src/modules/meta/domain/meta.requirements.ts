@@ -68,7 +68,12 @@ export const PERMISSIONS: PermissionRequirement[] = [
   {
     name: "leads_retrieval",
     level: "optional",
-    purpose: "Receive leads from Facebook lead forms",
+    purpose: "Receive leads from your instant forms in TreeVook",
+  },
+  {
+    name: "pages_manage_ads",
+    level: "optional",
+    purpose: "Create instant forms (lead forms) on your Page",
   },
 ];
 

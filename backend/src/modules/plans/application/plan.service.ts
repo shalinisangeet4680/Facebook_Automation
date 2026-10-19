@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { AdsService } from "@modules/ads/application/ads.service";
@@ -7,8 +7,18 @@ import {
   CALLS_TO_ACTION,
   CONVERSION_EVENTS,
   GOALS,
+  LEAD_FORM_CALLS_TO_ACTION,
 } from "@modules/ads/domain/goals";
+import {
+  customQuestionKey,
+  LEAD_FORM_LOCALES,
+  LeadFormSpec,
+} from "@modules/ads/domain/lead-form";
 import { AuditService } from "@modules/audit/application/audit.service";
+import {
+  LeadSyncService,
+  TrackFormInput,
+} from "@modules/leads/application/lead-sync.service";
 import { MetaConnectionService } from "@modules/meta/application/meta-connection.service";
 import { SettingsService } from "@modules/settings/application/settings.service";
 import { AppConfig, appUrl } from "@shared/config/app-config";
@@ -43,14 +53,32 @@ function toView(row: CampaignPlanRow): PlanView {
   };
 }
 
+function formQuestions(form: LeadFormSpec) {
+  return [
+    ...form.questions.map((type) => ({
+      key: type === "PHONE" ? "phone_number" : type.toLowerCase(),
+      label: type,
+      type,
+    })),
+    ...form.customQuestions.map((q, i) => ({
+      key: customQuestionKey(i),
+      label: q.label,
+      type: "CUSTOM",
+    })),
+  ];
+}
+
 @Injectable()
 export class PlanService {
+  private readonly logger = new Logger(PlanService.name);
+
   constructor(
     private readonly plans: PlanRepository,
     private readonly ads: AdsService,
     private readonly connections: MetaConnectionService,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly leads: LeadSyncService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -115,9 +143,14 @@ export class PlanService {
         goals: Object.entries(GOALS).map(([name, g]) => ({
           name,
           needsPixel: g.needsPixel,
+          instantForm: g.instantForm,
         })),
         conversionEvents: [...CONVERSION_EVENTS],
         callsToAction: [...CALLS_TO_ACTION],
+        leadFormCallsToAction: [...LEAD_FORM_CALLS_TO_ACTION],
+        leadFormLocales: Object.entries(LEAD_FORM_LOCALES).map(
+          ([code, name]) => ({ code, name }),
+        ),
       },
     };
   }
@@ -149,7 +182,8 @@ export class PlanService {
   }
 
   async createInMeta(actor: AdsActor, id: string): Promise<PlanView> {
-    return this.plans.transaction(async (tx) => {
+    let createdForm: TrackFormInput | null = null;
+    const view = await this.plans.transaction(async (tx) => {
       const row = await this.plans.find(actor.workspaceId, id, tx, true);
       if (!row) throw new NotFoundError("This plan doesn't exist.");
       this.expect(
@@ -199,6 +233,7 @@ export class PlanService {
                 }
               : undefined,
           },
+          leadForm: plan.leadForm ?? undefined,
         });
       } catch (err) {
         await this.plans.update(
@@ -217,9 +252,19 @@ export class PlanService {
         creativeId: result.creativeId,
         adId: result.adId,
         adsManagerUrl: result.adsManagerUrl,
+        ...(result.leadFormId ? { leadFormId: result.leadFormId } : {}),
       };
+      if (result.leadFormId && plan.leadForm)
+        createdForm = {
+          formId: result.leadFormId,
+          pageId: result.pageId,
+          name: plan.leadForm.name,
+          planId: row.id,
+          questions: formQuestions(plan.leadForm),
+        };
       await this.record(actor, "plan.created_in_meta", row.id, {
         campaignId: meta.campaignId,
+        ...(meta.leadFormId ? { leadFormId: meta.leadFormId } : {}),
       });
       return toView(
         await this.plans.update(
@@ -233,6 +278,18 @@ export class PlanService {
         ),
       );
     });
+    if (createdForm) await this.trackForm(actor.workspaceId, createdForm);
+    return view;
+  }
+
+  private async trackForm(workspaceId: string, form: TrackFormInput) {
+    try {
+      await this.leads.trackCreatedForm(workspaceId, form);
+    } catch (err) {
+      this.logger.warn(
+        `Couldn't track lead form ${form.formId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   async launch(actor: AdsActor, id: string): Promise<PlanView> {

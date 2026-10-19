@@ -4,20 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { useInbox, useMe, useMetaConnection } from "@/lib/api/queries";
+import { useInbox, useLeadSummary, useMe, useMetaConnection } from "@/lib/api/queries";
 import { ProductShell } from "@/features/replyly/shell";
 import { cx } from "@/features/replyly/ui";
 
 const NAV = [
   ["overview", "Overview", "/setup"],
   ["campaigns", "Campaigns", "/campaigns"],
+  ["leads", "Leads", "/leads"],
   ["creatives", "Creatives", "/creatives"],
   ["profile", "Page & Instagram", "/profile"],
   ["reports", "Reports", "/reports"],
   ["account", "Meta account", "/setup/connect-meta"],
 ] as const;
 
-const NEEDS_META = new Set(["campaigns", "profile", "reports"]);
+const NEEDS_META = new Set(["campaigns", "leads", "profile", "reports"]);
+
+function Badge({ n }: { n: number }) {
+  return (
+    <span
+      style={{
+        minWidth: 18,
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "#191917",
+        color: "#fff",
+        fontSize: 11,
+        fontFamily: "var(--rp-mono)",
+        textAlign: "center",
+        boxSizing: "border-box",
+      }}
+    >
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
 
 function activeOf(pathname: string) {
   if (pathname === "/setup" || pathname.startsWith("/setup/start")) return "overview";
@@ -40,6 +61,8 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
   const { connected, loading } = useMetaConnected();
   const inbox = useInbox();
   const waiting = inbox.data ? inbox.data.suggestions.length + inbox.data.plansToReview.length : 0;
+  const leads = useLeadSummary(connected);
+  const newLeads = leads.data?.new ?? 0;
   return (
     <>
       {NAV.map(([id, label, href]) => {
@@ -53,23 +76,8 @@ function NavLinks({ mobile }: { mobile?: boolean }) {
             style={mobile ? { flexShrink: 0, gap: 6 } : undefined}
           >
             <span>{label}</span>
-            {id === "overview" && waiting > 0 ? (
-              <span
-                style={{
-                  minWidth: 18,
-                  padding: "1px 6px",
-                  borderRadius: 999,
-                  background: "#191917",
-                  color: "#fff",
-                  fontSize: 11,
-                  fontFamily: "var(--rp-mono)",
-                  textAlign: "center",
-                  boxSizing: "border-box",
-                }}
-              >
-                {waiting > 99 ? "99+" : waiting}
-              </span>
-            ) : null}
+            {id === "overview" && waiting > 0 ? <Badge n={waiting} /> : null}
+            {id === "leads" && newLeads > 0 ? <Badge n={newLeads} /> : null}
           </Link>
         );
       })}

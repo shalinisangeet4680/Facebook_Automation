@@ -236,6 +236,7 @@ export class CampaignManagerService {
               link: c?.linkUrl ?? null,
               imageUrl: c?.imageUrl ?? null,
               thumbnailUrl: c?.thumbnailUrl ?? c?.imageUrl ?? null,
+              leadFormId: c?.leadFormId ?? null,
             },
             metrics: metrics(ads.get(a.id)),
           };

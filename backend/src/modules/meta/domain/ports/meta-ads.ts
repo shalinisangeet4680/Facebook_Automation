@@ -74,6 +74,7 @@ export interface AdCreativeSummary {
   pageId: string | null;
   instagramId: string | null;
   postId: string | null;
+  leadFormId?: string | null;
 }
 
 export interface AdSummary {
@@ -132,6 +133,54 @@ export interface TargetingOption {
   audienceSize: number | null;
 }
 
+export type LeadFormButtonInput =
+  | { type: "website"; text: string; url: string }
+  | { type: "call"; text: string; phone: string };
+
+export interface LeadFormInput {
+  pageId: string;
+  name: string;
+  locale: string;
+  intro: { headline: string; description: string | null };
+  questions: string[];
+  customQuestions: { key: string; label: string; options: string[] }[];
+  privacyPolicyUrl: string;
+  thankYou: { title: string; body: string; button: LeadFormButtonInput };
+}
+
+export interface LeadFormQuestion {
+  key: string;
+  label: string;
+  type: string;
+}
+
+export interface LeadFormSummary {
+  id: string;
+  name: string;
+  status: string;
+  locale: string | null;
+  createdTime: string | null;
+  questions: LeadFormQuestion[];
+}
+
+export interface LeadFieldValue {
+  name: string;
+  values: string[];
+}
+
+export interface LeadRecord {
+  id: string;
+  formId: string;
+  createdTime: string;
+  fieldData: LeadFieldValue[];
+  adId: string | null;
+  adName: string | null;
+  adSetId: string | null;
+  adSetName: string | null;
+  campaignId: string | null;
+  campaignName: string | null;
+}
+
 export interface CampaignDraftInput {
   adAccountId: string;
   name: string;
@@ -145,6 +194,7 @@ export interface CampaignDraftInput {
     targeting: Record<string, unknown>;
   };
   creative: CreativeInput;
+  leadForm?: LeadFormInput | null;
 }
 
 export interface CreativeInput {
@@ -158,6 +208,7 @@ export interface CreativeInput {
   imageHash: string | null;
   callToAction: string;
   existingPost: { platform: "facebook" | "instagram"; id: string } | null;
+  leadFormId?: string | null;
 }
 
 export interface CreativeReplaceInput {
@@ -172,6 +223,7 @@ export interface CampaignDraftResult {
   adSetId: string;
   creativeId: string;
   adId: string;
+  leadFormId?: string;
 }
 
 export interface MetaAds {
@@ -208,4 +260,11 @@ export interface MetaAds {
     token: string,
     input: CreativeReplaceInput,
   ): Promise<{ creativeId: string }>;
+  pageAccessToken(token: string, pageId: string): Promise<string>;
+  leadForms(pageToken: string, pageId: string): Promise<LeadFormSummary[]>;
+  leads(
+    pageToken: string,
+    formId: string,
+    sinceUnix: number | null,
+  ): Promise<LeadRecord[]>;
 }

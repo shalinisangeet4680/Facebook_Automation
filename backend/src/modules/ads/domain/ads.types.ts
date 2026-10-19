@@ -1,4 +1,5 @@
 import { ConversionEvent, CallToAction, Goal } from "./goals";
+import { LeadFormSpec } from "./lead-form";
 
 export interface AdsActor {
   userId: string;
@@ -45,6 +46,7 @@ export interface DraftInput {
     callToAction: CallToAction;
     post?: { platform: "facebook" | "instagram"; id: string };
   };
+  leadForm?: LeadFormSpec;
 }
 
 export interface ConfirmationRequired {

@@ -9,7 +9,7 @@ export interface Reply {
 
 export async function call(
   app: NestFastifyApplication,
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   url: string,
   options: {
     body?: unknown;

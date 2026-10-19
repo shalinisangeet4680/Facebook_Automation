@@ -1,7 +1,9 @@
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNumber,
@@ -20,6 +22,7 @@ import {
 } from "class-validator";
 
 import { GOAL_NAMES } from "@modules/ads/domain/goals";
+import { PREFILL_QUESTIONS } from "@modules/ads/domain/lead-form";
 
 const HTTPS = { protocols: ["https"], require_protocol: true };
 
@@ -103,9 +106,34 @@ export class BriefCreativeDto {
   post?: BriefPostDto | null;
 }
 
+export class BriefLeadFormDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(4)
+  @IsIn(PREFILL_QUESTIONS, { each: true })
+  questions?: ("FULL_NAME" | "EMAIL" | "PHONE" | "CITY")[];
+
+  @IsOptional()
+  @IsUrl(HTTPS, { message: "privacyPolicyUrl must be an https link" })
+  @MaxLength(2000)
+  privacyPolicyUrl?: string;
+
+  @IsOptional()
+  @Matches(/^\+[1-9]\d{6,14}$/, {
+    message:
+      "callPhone must be the full phone number with country code, like +919876543210",
+  })
+  callPhone?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  extraQuestions?: boolean;
+}
+
 export class GenerateCampaignPlanDto {
   @IsIn(GOAL_NAMES)
-  goal: "traffic" | "leads" | "sales" | "awareness";
+  goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
 
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
@@ -152,6 +180,11 @@ export class GenerateCampaignPlanDto {
   @IsString()
   @Length(2, 40)
   language?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BriefLeadFormDto)
+  leadForm?: BriefLeadFormDto;
 }
 
 export class GeneratedCampaignPlanDto {

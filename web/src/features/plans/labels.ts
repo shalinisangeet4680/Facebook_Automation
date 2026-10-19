@@ -5,6 +5,11 @@ export const GOAL_LABELS: Record<string, { title: string; description: string }>
     title: "Leads",
     description: "Sign-ups or enquiries on your website, tracked by the Pixel",
   },
+  instant_leads: {
+    title: "Instant form leads",
+    description:
+      "People fill a short form inside Facebook or Instagram. No website or Pixel needed",
+  },
   sales: { title: "Sales", description: "Purchases on your website, tracked by the Pixel" },
   traffic: { title: "Website visits", description: "People who open your website" },
   awareness: { title: "Awareness", description: "Reach as many people as possible" },
@@ -33,6 +38,25 @@ export const CTA_LABELS: Record<string, string> = {
   GET_OFFER: "Get offer",
   WHATSAPP_MESSAGE: "Send WhatsApp message",
 };
+
+export const QUESTION_LABELS: Record<string, string> = {
+  FULL_NAME: "Full name",
+  PHONE: "Phone number",
+  EMAIL: "Email",
+  CITY: "City",
+};
+
+export const PREFILL_QUESTIONS = ["FULL_NAME", "PHONE", "EMAIL", "CITY"] as const;
+
+export function privacyFrom(website: string | null | undefined): string {
+  if (!website) return "";
+  try {
+    const url = new URL(website);
+    return url.protocol === "https:" ? `${url.origin}/privacy` : "";
+  } catch {
+    return "";
+  }
+}
 
 export const STATUS_LABELS: Record<PlanStatus, { label: string; bg: string; fg: string }> = {
   draft: { label: "Ready for review", bg: "#EEF2FB", fg: "#2B4C9A" },

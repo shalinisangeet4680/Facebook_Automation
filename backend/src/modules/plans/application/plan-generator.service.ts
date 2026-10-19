@@ -2,7 +2,13 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 
 import { AdsService } from "@modules/ads/application/ads.service";
 import { AdsActor } from "@modules/ads/domain/ads.types";
-import { Goal } from "@modules/ads/domain/goals";
+import { GOALS, Goal } from "@modules/ads/domain/goals";
+import {
+  DEFAULT_PREFILL_QUESTIONS,
+  localeFor,
+  PrefillQuestion,
+  privacyPolicyFor,
+} from "@modules/ads/domain/lead-form";
 import { AuditService } from "@modules/audit/application/audit.service";
 import { CreativesService } from "@modules/creatives/application/creatives.service";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
@@ -14,6 +20,7 @@ import {
   clampBudget,
   draftPlanCopy,
   GenerationContext,
+  LeadFormContext,
   locationNames,
   PlanLocations,
   PlanPost,
@@ -42,6 +49,12 @@ export interface GeneratePlanInput {
     post?: PlanPost | null;
   };
   language?: string;
+  leadForm?: {
+    questions?: PrefillQuestion[];
+    privacyPolicyUrl?: string;
+    callPhone?: string | null;
+    extraQuestions?: boolean;
+  };
 }
 
 export interface GeneratedPlan {
@@ -104,13 +117,18 @@ export class PlanGeneratorService {
         "Add the web page people should visit, or select a Facebook Page in Setup.",
       );
 
+    const language =
+      request.language?.trim() || profile.basics.language || null;
+    const leadForm = GOALS[request.goal].instantForm
+      ? this.leadForm(request, linkUrl, profile.basics.websiteUrl, language)
+      : null;
     const budget = clampBudget(request.dailyBudget, targets.maxDailyBudget);
     const input: PlanAiInput = {
       goal: request.goal,
       offer: request.offer.trim(),
       audienceNotes: request.audienceNotes?.trim() || null,
       landingUrl: request.landingUrl ?? null,
-      language: request.language?.trim() || profile.basics.language || null,
+      language,
       dailyBudget: budget.dailyBudget,
       requestedDailyBudget: request.dailyBudget,
       currency: account.currency,
@@ -132,6 +150,13 @@ export class PlanGeneratorService {
         category: profile.basics.category,
       },
       pastCampaigns: this.pastCampaigns(context),
+      leadForm: leadForm
+        ? {
+            questions: leadForm.questions,
+            extraQuestions: request.leadForm?.extraQuestions ?? true,
+            button: leadForm.button.type,
+          }
+        : null,
     };
     const ctx: GenerationContext = {
       input,
@@ -139,6 +164,7 @@ export class PlanGeneratorService {
       linkUrl,
       imageUrl: visual.imageUrl,
       post: visual.post,
+      leadForm,
     };
 
     const { copy, ai } = await this.write(ws, input);
@@ -186,6 +212,51 @@ export class PlanGeneratorService {
       );
     if (request.creative?.imageUrl && request.creative.post)
       throw new ValidationError("Choose either an image or a post, not both.");
+    if (GOALS[request.goal].instantForm && request.creative?.post)
+      throw new ValidationError(
+        "Instant form ads need an image, not an existing post.",
+      );
+    const questions = request.leadForm?.questions;
+    if (
+      questions &&
+      !questions.includes("PHONE") &&
+      !questions.includes("EMAIL")
+    )
+      throw new ValidationError(
+        "Ask for a phone number or an email so you can contact the lead.",
+      );
+  }
+
+  private leadForm(
+    request: GeneratePlanInput,
+    linkUrl: string,
+    website: string | null,
+    language: string | null,
+  ): LeadFormContext {
+    const privacyPolicyUrl =
+      request.leadForm?.privacyPolicyUrl ??
+      privacyPolicyFor(website ?? request.landingUrl ?? null);
+    if (!privacyPolicyUrl)
+      throw new ValidationError(
+        "Add the link to your privacy policy. Meta shows it on every instant form.",
+      );
+    const phone = request.leadForm?.callPhone?.trim();
+    return {
+      questions: [
+        ...new Set(request.leadForm?.questions ?? DEFAULT_PREFILL_QUESTIONS),
+      ],
+      privacyPolicyUrl,
+      locale: localeFor(language),
+      button: phone
+        ? { type: "call", phone }
+        : {
+            type: "website",
+            url:
+              request.landingUrl ??
+              (website?.startsWith("https://") ? website : null) ??
+              linkUrl,
+          },
+    };
   }
 
   private async visual(

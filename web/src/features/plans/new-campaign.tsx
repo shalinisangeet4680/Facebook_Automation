@@ -19,20 +19,50 @@ import {
   type Errors,
   GoalStep,
   LANGUAGES,
+  LeadFormStep,
   type Limits,
   PromoteStep,
+  type StepId,
   validate,
 } from "./new-campaign-steps";
+import { privacyFrom } from "./labels";
 import { MUTED } from "./plan-sections";
 import { StepBar } from "./step-bar";
 
-const STEPS = [
-  { title: "What do you want?", sub: "Pick the one result that matters most right now." },
-  { title: "How much per day?", sub: "Set a daily budget. You can change it before launch." },
-  { title: "Who and where?", sub: "Tell us where your customers are and who they are." },
-  { title: "What are you promoting?", sub: "Describe your offer and where people should go." },
-  { title: "Add an image", sub: "Pick what the ad shows, or skip and add it later." },
+const ALL_STEPS: { id: StepId; title: string; sub: string }[] = [
+  {
+    id: "goal",
+    title: "What do you want?",
+    sub: "Pick the one result that matters most right now.",
+  },
+  {
+    id: "budget",
+    title: "How much per day?",
+    sub: "Set a daily budget. You can change it before launch.",
+  },
+  {
+    id: "audience",
+    title: "Who and where?",
+    sub: "Tell us where your customers are and who they are.",
+  },
+  {
+    id: "promote",
+    title: "What are you promoting?",
+    sub: "Describe your offer and where people should go.",
+  },
+  {
+    id: "form",
+    title: "Lead form",
+    sub: "Choose what the instant form asks. AI writes the intro and thank-you screen.",
+  },
+  { id: "image", title: "Add an image", sub: "Pick what the ad shows, or skip and add it later." },
 ];
+
+const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six"];
+
+function stepsFor(goal: Draft["goal"]) {
+  return ALL_STEPS.filter((s) => s.id !== "form" || goal === "instant_leads");
+}
 
 const EMPTY: Draft = {
   goal: null,
@@ -56,6 +86,13 @@ const EMPTY: Draft = {
   landingUrl: "",
   language: "",
   visual: { imageUrl: null, post: null },
+  leadForm: {
+    questions: ["FULL_NAME", "PHONE", "CITY"],
+    privacyPolicyUrl: "",
+    button: "website",
+    callPhone: "",
+    extraQuestions: true,
+  },
 };
 
 export function prefill(settings: Settings | undefined): Draft {
@@ -68,6 +105,7 @@ export function prefill(settings: Settings | undefined): Draft {
     offer: business.offer ?? "",
     landingUrl: business.websiteUrl ?? "",
     language: LANGUAGES.some((l) => l.id === business.language) ? (business.language ?? "") : "",
+    leadForm: { ...EMPTY.leadForm, privacyPolicyUrl: privacyFrom(business.websiteUrl) },
   };
 }
 
@@ -101,6 +139,18 @@ function toBrief(draft: Draft): CampaignBrief {
       : visual.imageUrl
         ? { imageUrl: visual.imageUrl }
         : undefined,
+    leadForm:
+      draft.goal === "instant_leads"
+        ? {
+            questions: draft.leadForm.questions,
+            privacyPolicyUrl: draft.leadForm.privacyPolicyUrl.trim(),
+            callPhone:
+              draft.leadForm.button === "call"
+                ? draft.leadForm.callPhone.replace(/[\s-]/g, "")
+                : null,
+            extraQuestions: draft.leadForm.extraQuestions,
+          }
+        : undefined,
   };
 }
 
@@ -125,7 +175,7 @@ function Builder({ initial }: { initial: Draft }) {
   const generate = useGeneratePlan();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(initial);
-  const [tried, setTried] = useState<Record<number, boolean>>({});
+  const [tried, setTried] = useState<Partial<Record<StepId, boolean>>>({});
   const [done, setDone] = useState(false);
 
   const limits: Limits | null = settings.data
@@ -135,26 +185,28 @@ function Builder({ initial }: { initial: Draft }) {
         targetCostPerResult: settings.data.budget.targetCostPerResult,
       }
     : null;
-  const errors: Errors = tried[step] ? validate(step, draft) : {};
-  const last = step === STEPS.length - 1;
+  const steps = stepsFor(draft.goal);
+  const current = steps[Math.min(step, steps.length - 1)]!;
+  const errors: Errors = tried[current.id] ? validate(current.id, draft) : {};
+  const last = step === steps.length - 1;
   const working = generate.isPending || done;
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
-  const firstInvalid = () => STEPS.findIndex((_, i) => Object.keys(validate(i, draft)).length > 0);
+  const firstInvalid = () => steps.findIndex((s) => Object.keys(validate(s.id, draft)).length > 0);
 
   const next = () => {
-    if (Object.keys(validate(step, draft)).length) {
-      setTried((t) => ({ ...t, [step]: true }));
+    if (Object.keys(validate(current.id, draft)).length) {
+      setTried((t) => ({ ...t, [current.id]: true }));
       return;
     }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setStep((s) => Math.min(s + 1, steps.length - 1));
   };
 
   const submit = () => {
     const invalid = firstInvalid();
     if (invalid !== -1) {
-      setTried((t) => ({ ...t, [invalid]: true }));
+      setTried((t) => ({ ...t, [steps[invalid]!.id]: true }));
       setStep(invalid);
       return;
     }
@@ -186,12 +238,12 @@ function Builder({ initial }: { initial: Draft }) {
           New campaign
         </h1>
         <span style={{ color: "#55534E", fontSize: 13.5 }}>
-          Answer five quick questions. AI builds the full plan, and you check it before anything
-          goes live.
+          Answer {COUNT_WORDS[steps.length]} quick questions. AI builds the full plan, and you check
+          it before anything goes live.
         </span>
       </div>
 
-      <StepBar steps={STEPS} step={step} onGo={(i) => setStep(i)} />
+      <StepBar steps={steps} step={step} onGo={(i) => setStep(i)} />
 
       {generate.isError ? (
         <Banner
@@ -210,21 +262,28 @@ function Builder({ initial }: { initial: Draft }) {
       <section className="rp-card" aria-labelledby="step-title" style={{ overflow: "visible" }}>
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #EFEDE8" }}>
           <h2 id="step-title" style={{ fontSize: 17, fontWeight: 600 }}>
-            {STEPS[step]!.title}
+            {current.title}
           </h2>
-          <p style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{STEPS[step]!.sub}</p>
+          <p style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{current.sub}</p>
         </div>
         <div style={{ padding: 20 }}>
-          {step === 0 ? (
+          {current.id === "goal" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <GoalStep
                 value={draft.goal}
                 error={errors.goal}
-                onChange={(goal) => update({ goal })}
+                onChange={(goal) =>
+                  update({
+                    goal,
+                    ...(goal === "instant_leads" && draft.visual.post
+                      ? { visual: { imageUrl: null, post: null } }
+                      : {}),
+                  })
+                }
               />
               <TrackingGoalWarning goal={draft.goal} />
             </div>
-          ) : step === 1 ? (
+          ) : current.id === "budget" ? (
             settings.isError ? (
               <Banner
                 tone="error"
@@ -249,13 +308,23 @@ function Builder({ initial }: { initial: Draft }) {
                 onChange={(dailyBudget) => update({ dailyBudget })}
               />
             )
-          ) : step === 2 ? (
+          ) : current.id === "audience" ? (
             <AudienceStep draft={draft} errors={errors} onChange={update} />
-          ) : step === 3 ? (
+          ) : current.id === "promote" ? (
             <PromoteStep draft={draft} errors={errors} onChange={update} />
+          ) : current.id === "form" ? (
+            <LeadFormStep
+              form={draft.leadForm}
+              errors={errors}
+              onChange={(leadForm) => update({ leadForm })}
+            />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <CreativeStep visual={draft.visual} onChange={(visual) => update({ visual })} />
+              <CreativeStep
+                visual={draft.visual}
+                imagesOnly={draft.goal === "instant_leads"}
+                onChange={(visual) => update({ visual })}
+              />
               <TrackingGoalWarning goal={draft.goal} />
             </div>
           )}

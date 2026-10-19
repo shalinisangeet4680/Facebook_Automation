@@ -39,12 +39,14 @@ function input(overrides: Partial<PlanAiInput> = {}): PlanAiInput {
       category: null,
     },
     pastCampaigns: [],
+    leadForm: null,
     ...overrides,
   };
 }
 
 function context(overrides: Partial<PlanAiInput> = {}): GenerationContext {
   return {
+    leadForm: null,
     input: input(overrides),
     locations: {
       countries: [],
@@ -160,5 +162,98 @@ describe("buildPlan fallback", () => {
     expect(built.plan.targeting).toMatchObject({ ageMin: 30, ageMax: 50 });
     expect(built.plan.creative.imageUrl).toBeNull();
     expect(built.plan.creative.post?.id).toBe("17900000000000001");
+  });
+});
+
+describe("instant form plans", () => {
+  function instant(): GenerationContext {
+    const ctx = context({
+      goal: "instant_leads",
+      language: "Hindi",
+      leadForm: {
+        questions: ["FULL_NAME", "PHONE", "CITY"],
+        extraQuestions: true,
+        button: "website",
+      },
+    });
+    ctx.imageUrl = "https://glow.example.com/ad.png";
+    ctx.leadForm = {
+      questions: ["FULL_NAME", "PHONE", "CITY"],
+      privacyPolicyUrl: "https://glow.example.com/privacy",
+      locale: "HI_IN",
+      button: { type: "website", url: "https://glow.example.com/book" },
+    };
+    return ctx;
+  }
+
+  it("drafts a complete lead form without AI", () => {
+    const ctx = instant();
+    const built = buildPlan(ctx, draftPlanCopy(ctx.input), []);
+    expect(built.usedTemplate).toBe(false);
+    expect(built.plan).toMatchObject({
+      goal: "instant_leads",
+      conversionEvent: null,
+      creative: { callToAction: "SIGN_UP" },
+      leadForm: {
+        locale: "HI_IN",
+        questions: ["FULL_NAME", "PHONE", "CITY"],
+        privacyPolicyUrl: "https://glow.example.com/privacy",
+        intro: { headline: "Free skin consultation for new clients" },
+        thankYou: {
+          button: {
+            type: "website",
+            text: "Visit website",
+            url: "https://glow.example.com/book",
+          },
+        },
+      },
+    });
+    expect(built.plan.leadForm?.customQuestions).toEqual([
+      {
+        label: "When is the best time to call you?",
+        type: "multiple_choice",
+        options: ["Morning", "Afternoon", "Evening"],
+      },
+    ]);
+    expect(built.plan.reasons.goal).toContain("no website or Pixel");
+  });
+
+  it("repairs AI form copy instead of dropping the plan", () => {
+    const ctx = instant();
+    const copy = draftPlanCopy(ctx.input);
+    const built = buildPlan(
+      ctx,
+      {
+        ...copy,
+        callToAction: "SHOP_NOW",
+        leadForm: {
+          ...copy.leadForm!,
+          headline: "x".repeat(120),
+          customQuestions: [
+            { label: "Budget?", type: "multiple_choice", options: ["Low"] },
+            { label: "Anything else?", type: "short_answer", options: [] },
+            { label: "Q3", type: "short_answer", options: [] },
+            { label: "Q4", type: "short_answer", options: [] },
+          ],
+        },
+      },
+      [],
+    );
+    expect(built.usedTemplate).toBe(false);
+    expect(built.plan.creative.callToAction).toBe("SIGN_UP");
+    expect(built.plan.leadForm?.intro.headline.length).toBeLessThanOrEqual(60);
+    expect(built.plan.leadForm?.customQuestions).toHaveLength(3);
+    expect(built.plan.leadForm?.customQuestions[0]).toEqual({
+      label: "Budget?",
+      type: "short_answer",
+      options: [],
+    });
+  });
+
+  it("skips custom questions when the owner doesn't want them", () => {
+    const ctx = instant();
+    ctx.input.leadForm!.extraQuestions = false;
+    const built = buildPlan(ctx, draftPlanCopy(ctx.input), []);
+    expect(built.plan.leadForm?.customQuestions).toEqual([]);
   });
 });

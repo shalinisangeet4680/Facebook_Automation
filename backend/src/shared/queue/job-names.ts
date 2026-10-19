@@ -8,6 +8,8 @@ export const JOBS = {
   BUSINESS_TICK: "business-tick",
   PLAY_RELEASES_TICK: "play-releases-tick",
   AUTOPOST_TICK: "autopost-tick",
+  LEADS_SYNC: "leads-sync",
+  LEADS_RECONCILE: "leads-reconcile",
 } as const;
 
 export interface WorkspaceJobData {

@@ -2,7 +2,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { Env } from "@shared/config/env.validation";
 
-import { GraphAdsClient, toAd } from "./graph-ads.client";
+import { GraphAdsClient, leadFormParams, toAd } from "./graph-ads.client";
 
 class TestClient extends GraphAdsClient {
   protected override wait(): Promise<void> {
@@ -311,5 +311,216 @@ describe("GraphAdsClient", () => {
       toAd({ ...base, creative: { id: "cr4", object_story_spec: {} } }).creative
         ?.kind,
     ).toBe("other");
+  });
+
+  describe("instant form ads", () => {
+    const leadForm = {
+      pageId: "p1",
+      name: "Free demo – Instant form",
+      locale: "EN_US",
+      intro: { headline: "Free demo", description: "We'll call you." },
+      questions: ["FULL_NAME", "PHONE", "CITY"],
+      customQuestions: [
+        {
+          key: "custom_1",
+          label: "Best time to call?",
+          options: ["Morning", "Evening"],
+        },
+        { key: "custom_2", label: "Clinic name", options: [] },
+      ],
+      privacyPolicyUrl: "https://example.com/privacy",
+      thankYou: {
+        title: "Thanks!",
+        body: "We'll be in touch.",
+        button: {
+          type: "website" as const,
+          text: "Visit website",
+          url: "https://example.com/",
+        },
+      },
+    };
+    const instant = {
+      ...draft,
+      objective: "OUTCOME_LEADS",
+      adSet: {
+        ...draft.adSet,
+        optimizationGoal: "LEAD_GENERATION",
+        destinationType: "ON_AD",
+        promotedObject: { page_id: "p1" },
+      },
+      creative: { ...draft.creative, callToAction: "SIGN_UP" },
+      leadForm,
+    };
+    const urlOf = (i: number) => fetchMock.mock.calls[i]![0] as string;
+    const bodyOf = (i: number) =>
+      fetchMock.mock.calls[i]![1]?.body as URLSearchParams;
+
+    it("creates the form with a Page token and points the ad at it", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: "page-tok", id: "p1" }))
+        .mockResolvedValueOnce(json({ id: "f1" }))
+        .mockResolvedValueOnce(json({ id: "c1" }))
+        .mockResolvedValueOnce(json({ id: "s1" }))
+        .mockResolvedValueOnce(json({ id: "cr1" }))
+        .mockResolvedValueOnce(json({ id: "a1" }));
+      const result = await client.createDraft("tok", instant);
+      expect(result).toEqual({
+        campaignId: "c1",
+        adSetId: "s1",
+        creativeId: "cr1",
+        adId: "a1",
+        leadFormId: "f1",
+      });
+      expect(urlOf(0)).toContain("/p1?fields=access_token");
+      expect(urlOf(1)).toContain("/p1/leadgen_forms");
+      expect(
+        (fetchMock.mock.calls[1]![1]!.headers as Record<string, string>)
+          .Authorization,
+      ).toBe("Bearer page-tok");
+      expect(JSON.parse(bodyOf(1).get("privacy_policy")!)).toEqual({
+        url: "https://example.com/privacy",
+        link_text: "Privacy policy",
+      });
+      expect(bodyOf(2).get("objective")).toBe("OUTCOME_LEADS");
+      expect(bodyOf(3).get("destination_type")).toBe("ON_AD");
+      expect(bodyOf(3).get("optimization_goal")).toBe("LEAD_GENERATION");
+      expect(bodyOf(3).get("billing_event")).toBe("IMPRESSIONS");
+      expect(JSON.parse(bodyOf(3).get("promoted_object")!)).toEqual({
+        page_id: "p1",
+      });
+      const spec = JSON.parse(bodyOf(4).get("object_story_spec")!);
+      expect(spec.link_data.call_to_action).toEqual({
+        type: "SIGN_UP",
+        value: { lead_gen_form_id: "f1" },
+      });
+    });
+
+    it("maps the form spec to Meta's leadgen form fields", () => {
+      const params = leadFormParams(leadForm);
+      expect(params.questions).toEqual([
+        { type: "FULL_NAME" },
+        { type: "PHONE" },
+        { type: "CITY" },
+        {
+          type: "CUSTOM",
+          key: "custom_1",
+          label: "Best time to call?",
+          options: [
+            { key: "custom_1_1", value: "Morning" },
+            { key: "custom_1_2", value: "Evening" },
+          ],
+        },
+        { type: "CUSTOM", key: "custom_2", label: "Clinic name" },
+      ]);
+      expect(params.context_card).toEqual({
+        title: "Free demo",
+        style: "PARAGRAPH_STYLE",
+        content: ["We'll call you."],
+      });
+      expect(params.thank_you_page).toEqual({
+        title: "Thanks!",
+        body: "We'll be in touch.",
+        button_text: "Visit website",
+        button_type: "VIEW_WEBSITE",
+        website_url: "https://example.com/",
+      });
+      expect(
+        leadFormParams({
+          ...leadForm,
+          thankYou: {
+            ...leadForm.thankYou,
+            button: { type: "call", text: "Call us", phone: "+919876543210" },
+          },
+        }).thank_you_page,
+      ).toMatchObject({
+        button_type: "CALL_BUSINESS",
+        business_phone_number: "+919876543210",
+      });
+    });
+
+    it("archives the form and deletes the campaign when a later step fails", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: "page-tok" }))
+        .mockResolvedValueOnce(json({ id: "f1" }))
+        .mockResolvedValueOnce(json({ id: "c1" }))
+        .mockResolvedValueOnce(
+          json({ error: { code: 100, message: "Bad targeting" } }, 400),
+        )
+        .mockResolvedValueOnce(json({ success: true }))
+        .mockResolvedValueOnce(json({ success: true }));
+      await expect(client.createDraft("tok", instant)).rejects.toMatchObject({
+        code: "META_REJECTED",
+      });
+      expect(urlOf(4)).toContain("/c1");
+      expect(fetchMock.mock.calls[4]![1]?.method).toBe("DELETE");
+      expect(urlOf(5)).toContain("/f1");
+      expect(bodyOf(5).get("status")).toBe("ARCHIVED");
+    });
+
+    it("pages through leads newer than the cursor", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          json({
+            data: [
+              {
+                id: "l2",
+                created_time: "2026-10-19T10:00:00+0000",
+                field_data: [{ name: "full_name", values: ["Priya"] }],
+                ad_id: "a1",
+                campaign_id: "c1",
+                campaign_name: "Demo",
+              },
+            ],
+            paging: { next: "https://graph.facebook.com/v23.0/next-page" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          json({
+            data: [{ id: "l1", created_time: "2026-10-19T09:00:00+0000" }],
+          }),
+        );
+      const leads = await client.leads("page-tok", "f1", 1_760_000_000);
+      const url = new URL(urlOf(0));
+      expect(url.pathname).toBe("/v23.0/f1/leads");
+      expect(JSON.parse(url.searchParams.get("filtering")!)).toEqual([
+        {
+          field: "time_created",
+          operator: "GREATER_THAN",
+          value: 1_760_000_000,
+        },
+      ]);
+      expect(url.searchParams.get("fields")).toContain("field_data");
+      expect(leads.map((l) => l.id)).toEqual(["l2", "l1"]);
+      expect(leads[0]).toMatchObject({
+        formId: "f1",
+        createdTime: "2026-10-19T10:00:00.000Z",
+        campaignName: "Demo",
+        adSetId: null,
+      });
+    });
+
+    it("reads the form id back from a lead ad's creative", () => {
+      const ad = toAd({
+        id: "a1",
+        name: "Ad",
+        adset_id: "s1",
+        status: "PAUSED",
+        effective_status: "PAUSED",
+        creative: {
+          id: "cr1",
+          object_story_spec: {
+            page_id: "p1",
+            link_data: {
+              link: "https://example.com/",
+              call_to_action: {
+                type: "SIGN_UP",
+                value: { lead_gen_form_id: "f1" },
+              },
+            },
+          },
+        },
+      });
+      expect(ad.creative?.leadFormId).toBe("f1");
+    });
   });
 });

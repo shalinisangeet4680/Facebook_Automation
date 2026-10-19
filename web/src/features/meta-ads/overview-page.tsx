@@ -6,6 +6,7 @@ import Link from "next/link";
 import { errorMessage } from "@/lib/api/errors";
 import {
   useInbox,
+  useLeadSummary,
   useOnboarding,
   useRefreshInbox,
   useReport,
@@ -169,6 +170,7 @@ function SetupCard() {
 
 function Snapshot() {
   const report = useReport("last_7d");
+  const leads = useLeadSummary();
   if (report.isPending) return <Skel h={92} r={14} />;
   if (!report.data) return null;
   const { kpis, currency, targetCostPerResult } = report.data;
@@ -183,6 +185,13 @@ function Snapshot() {
     ],
     ["Link CTR", kpis.ctr === null ? "—" : `${kpis.ctr.toFixed(2)}%`],
   ];
+  const lead = leads.data;
+  if (lead && (lead.total > 0 || lead.sync.forms > 0))
+    tiles.push([
+      "New leads today",
+      String(lead.today),
+      lead.new ? `${lead.new} not contacted yet` : undefined,
+    ]);
   return (
     <Section
       title="Last 7 days"
@@ -191,6 +200,11 @@ function Snapshot() {
           <Link href="/campaigns" className="rp-btn-quiet">
             Manage campaigns →
           </Link>
+          {lead && lead.total > 0 ? (
+            <Link href="/leads" className="rp-btn-quiet">
+              View leads →
+            </Link>
+          ) : null}
           <Link href="/reports" className="rp-btn-quiet">
             Open reports →
           </Link>

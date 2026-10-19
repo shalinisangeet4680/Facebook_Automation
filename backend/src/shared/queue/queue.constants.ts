@@ -10,6 +10,7 @@ export const QUEUES = {
   BUSINESS: "business",
   PLAY_RELEASES: "play-releases",
   AUTOPOST: "autopost",
+  LEADS: "leads",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

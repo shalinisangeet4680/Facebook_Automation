@@ -6,7 +6,9 @@ import {
   CALLS_TO_ACTION,
   CONVERSION_EVENTS,
   GOALS,
+  LEAD_FORM_CALLS_TO_ACTION,
 } from "@modules/ads/domain/goals";
+import { MAX_CUSTOM_QUESTIONS } from "@modules/ads/domain/lead-form";
 import { formatMoney } from "@modules/ads/domain/money";
 import { ReplyAiError } from "@modules/engine/domain/ports/reply-ai";
 import { REPLY_MODEL } from "@modules/engine/infrastructure/anthropic-reply.ai";
@@ -34,7 +36,40 @@ const planOutput = z.object({
     creative: z.string(),
   }),
   expected_results: z.string().nullable(),
+  lead_form: z
+    .object({
+      name: z.string(),
+      headline: z.string(),
+      description: z.string().nullable(),
+      custom_questions: z.array(
+        z.object({
+          label: z.string(),
+          type: z.enum(["short_answer", "multiple_choice"]),
+          options: z.array(z.string()),
+        }),
+      ),
+      thank_you_title: z.string(),
+      thank_you_body: z.string(),
+      button_text: z.string(),
+    })
+    .nullable(),
 });
+
+function leadFormRules(input: PlanAiInput): string[] {
+  if (!input.leadForm) return ["Set lead_form to null."];
+  const asked = input.leadForm.questions
+    .map((q) => q.toLowerCase().replace("_", " "))
+    .join(", ");
+  return [
+    `The ad opens a Meta instant form inside Facebook or Instagram. It already asks for: ${asked} (Meta fills these in). Pick call_to_action from: ${LEAD_FORM_CALLS_TO_ACTION.join(", ")}.`,
+    `lead_form.name: a short internal form name, up to 60 characters. headline: up to 60 characters, the offer in plain words. description: one or two sentences (up to 300 characters) telling people what happens after they send the form, or null.`,
+    input.leadForm.extraQuestions
+      ? `custom_questions: up to ${Math.min(2, MAX_CUSTOM_QUESTIONS)} short questions that help the business qualify the lead (label up to 80 characters). Prefer multiple_choice with 2 to 4 short options (up to 40 characters each); use short_answer with no options only when needed. Never ask for sensitive information (health, finances, religion, ethnicity, sexual orientation, criminal history, government ids) or repeat the questions already asked.`
+      : "custom_questions: an empty list.",
+    `thank_you_title: up to 60 characters. thank_you_body: one or two sentences (up to 300 characters) saying what happens next. button_text: up to 30 characters for a button that ${input.leadForm.button === "call" ? "calls the business" : "opens the website"}.`,
+    `Write every lead_form text in the same language as the ad copy.`,
+  ];
+}
 
 function system(input: PlanAiInput): string {
   const goal = GOALS[input.goal];
@@ -44,7 +79,9 @@ function system(input: PlanAiInput): string {
     goal.needsPixel
       ? `Pick conversion_event from: ${CONVERSION_EVENTS.join(", ")}. Prefer an event the Pixel already sends.`
       : "Set conversion_event to null.",
-    `Pick call_to_action from: ${CALLS_TO_ACTION.join(", ")}.`,
+    input.leadForm
+      ? ""
+      : `Pick call_to_action from: ${CALLS_TO_ACTION.join(", ")}.`,
     `The daily budget is fixed at ${formatMoney(input.dailyBudget, input.currency)} in the account currency (${input.currency}). The workspace limit is ${formatMoney(input.maxDailyBudget, input.currency)} a day.`,
     input.requestedDailyBudget > input.dailyBudget
       ? `The owner asked for ${formatMoney(input.requestedDailyBudget, input.currency)} but it was lowered to the limit; say so in the budget reason.`
@@ -59,6 +96,7 @@ function system(input: PlanAiInput): string {
     "reasons: one or two plain-English sentences each for goal, audience, budget and creative, written to the owner, no jargon, using the business context and past results when they help.",
     "image_idea: one sentence describing the ideal ad image.",
     `Write the name, summary and reasons in English. Write the ad copy in ${input.language ?? "the language that best fits the audience (English unless the notes say otherwise)"}.`,
+    ...leadFormRules(input),
   ]
     .filter(Boolean)
     .join("\n");
@@ -85,7 +123,9 @@ function user(input: PlanAiInput): string {
     `<past_campaigns_90_days>\n${past || "none"}\n</past_campaigns_90_days>`,
     "<request>",
     `Offer: ${input.offer}`,
-    `Landing page: ${input.landingUrl ?? "none (the ad links to the Facebook Page)"}`,
+    input.leadForm
+      ? `Destination: an instant form on Facebook (website: ${input.landingUrl ?? input.business.website ?? "none"})`
+      : `Landing page: ${input.landingUrl ?? "none (the ad links to the Facebook Page)"}`,
     `Locations: ${input.locations.join(", ")}`,
     input.ageMin || input.ageMax
       ? `Ages: ${input.ageMin ?? 18}–${input.ageMax ?? 65}`
@@ -150,6 +190,20 @@ export class AnthropicPlanAi implements PlanAi {
       imageIdea: out.image_idea,
       reasons: out.reasons,
       expectedResults: out.expected_results,
+      leadForm:
+        input.leadForm && out.lead_form
+          ? {
+              name: out.lead_form.name,
+              headline: out.lead_form.headline,
+              description: out.lead_form.description,
+              customQuestions: input.leadForm.extraQuestions
+                ? out.lead_form.custom_questions.slice(0, MAX_CUSTOM_QUESTIONS)
+                : [],
+              thankYouTitle: out.lead_form.thank_you_title,
+              thankYouBody: out.lead_form.thank_you_body,
+              buttonText: out.lead_form.button_text,
+            }
+          : null,
     };
   }
 }

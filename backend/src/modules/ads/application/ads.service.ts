@@ -34,8 +34,14 @@ import {
   CALLS_TO_ACTION,
   CONVERSION_EVENTS,
   GOALS,
+  LEAD_FORM_CALLS_TO_ACTION,
   resultFor,
 } from "../domain/goals";
+import {
+  customQuestionKey,
+  LeadFormSpec,
+  parseLeadForm,
+} from "../domain/lead-form";
 import { formatMoney, toMajor, toMinor } from "../domain/money";
 import { buildTrackingReport, TrackingReport } from "../domain/tracking";
 import {
@@ -53,6 +59,8 @@ export interface DraftResult {
   adSetId: string;
   creativeId: string;
   adId: string;
+  leadFormId?: string;
+  pageId: string;
   dailyBudget: number;
   currency: string;
   adsManagerUrl: string;
@@ -340,6 +348,7 @@ export class AdsService {
       );
     }
     const post = input.creative.post ?? null;
+    const leadForm = goal.instantForm ? this.leadFormFor(input) : null;
     if (post?.platform === "instagram" && !ws.instagram) {
       throw rejected(
         ErrorCode.META_ASSETS_MISSING,
@@ -368,9 +377,11 @@ export class AdsService {
         optimizationGoal: goal.optimizationGoal,
         billingEvent: "IMPRESSIONS",
         destinationType: goal.destinationType,
-        promotedObject: goal.needsPixel
-          ? { pixel_id: ws.dataset!.externalId, custom_event_type: event }
-          : null,
+        promotedObject: goal.instantForm
+          ? { page_id: ws.page.externalId }
+          : goal.needsPixel
+            ? { pixel_id: ws.dataset!.externalId, custom_event_type: event }
+            : null,
         targeting: this.targeting(input.targeting),
       },
       creative: {
@@ -385,6 +396,25 @@ export class AdsService {
         existingPost: post,
         callToAction: input.creative.callToAction,
       },
+      leadForm: leadForm
+        ? {
+            pageId: ws.page.externalId,
+            name: leadForm.name,
+            locale: leadForm.locale,
+            intro: {
+              headline: leadForm.intro.headline,
+              description: leadForm.intro.description ?? null,
+            },
+            questions: leadForm.questions,
+            customQuestions: leadForm.customQuestions.map((q, i) => ({
+              key: customQuestionKey(i),
+              label: q.label,
+              options: q.type === "multiple_choice" ? q.options : [],
+            })),
+            privacyPolicyUrl: leadForm.privacyPolicyUrl,
+            thankYou: leadForm.thankYou,
+          }
+        : null,
     });
 
     await this.record(actor, "ads.draft_created", result.campaignId, {
@@ -397,6 +427,7 @@ export class AdsService {
     const response: DraftResult = {
       status: "created_paused",
       ...result,
+      pageId: ws.page.externalId,
       dailyBudget: input.dailyBudget,
       currency: ws.currency,
       adsManagerUrl: this.adsManagerUrl(ws, result.campaignId),
@@ -404,6 +435,35 @@ export class AdsService {
     };
     await this.cache.set(dedupeKey, response, DRAFT_DEDUPE_SECONDS);
     return response;
+  }
+
+  private leadFormFor(input: DraftInput): LeadFormSpec {
+    if (!input.leadForm)
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "Instant form ads need a lead form. Plan the campaign with propose_campaign_plan or the campaign builder.",
+      );
+    const parsed = parseLeadForm(input.leadForm);
+    if (!parsed.ok)
+      throw rejected(
+        ErrorCode.VALIDATION,
+        `The lead form is not valid: ${parsed.message}`,
+      );
+    if (input.creative.post)
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "Instant form ads need an image, not an existing post.",
+      );
+    if (
+      !(LEAD_FORM_CALLS_TO_ACTION as readonly string[]).includes(
+        input.creative.callToAction,
+      )
+    )
+      throw rejected(
+        ErrorCode.VALIDATION,
+        `Instant forms use one of these buttons: ${LEAD_FORM_CALLS_TO_ACTION.join(", ")}.`,
+      );
+    return parsed.form;
   }
 
   async pause(actor: AdsActor, id: string) {
@@ -582,6 +642,7 @@ export class AdsService {
           name,
           metaObjective: g.objective,
           needsPixel: g.needsPixel,
+          instantForm: g.instantForm,
         })),
         conversionEvents: CONVERSION_EVENTS,
         callsToAction: CALLS_TO_ACTION,

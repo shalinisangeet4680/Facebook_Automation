@@ -1,4 +1,5 @@
 import { Goal } from "@modules/ads/domain/goals";
+import { PrefillQuestion } from "@modules/ads/domain/lead-form";
 
 export const PLAN_AI = Symbol("PLAN_AI");
 
@@ -37,6 +38,25 @@ export interface PlanAiInput {
     category: string | null;
   };
   pastCampaigns: PlanAiPastCampaign[];
+  leadForm: {
+    questions: PrefillQuestion[];
+    extraQuestions: boolean;
+    button: "website" | "call";
+  } | null;
+}
+
+export interface PlanAiLeadForm {
+  name: string;
+  headline: string;
+  description: string | null;
+  customQuestions: {
+    label: string;
+    type: "short_answer" | "multiple_choice";
+    options: string[];
+  }[];
+  thankYouTitle: string;
+  thankYouBody: string;
+  buttonText: string;
 }
 
 export interface PlanAiResult {
@@ -55,6 +75,7 @@ export interface PlanAiResult {
   imageIdea: string | null;
   reasons: { goal: string; audience: string; budget: string; creative: string };
   expectedResults: string | null;
+  leadForm: PlanAiLeadForm | null;
 }
 
 export interface PlanAi {

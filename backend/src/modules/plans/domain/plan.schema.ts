@@ -4,7 +4,11 @@ import {
   CALLS_TO_ACTION,
   CONVERSION_EVENTS,
   GOAL_NAMES,
+  GOALS,
+  Goal,
+  LEAD_FORM_CALLS_TO_ACTION,
 } from "@modules/ads/domain/goals";
+import { leadFormSchema } from "@modules/ads/domain/lead-form";
 
 const named = z.object({
   id: z.string().min(1).max(40),
@@ -80,10 +84,39 @@ export const planSchema = z
       creative: reason,
     }),
     expectedResults: z.string().trim().max(500).nullable().optional(),
+    leadForm: leadFormSchema.nullable().optional(),
   })
-  .refine((p) => p.targeting.ageMin <= p.targeting.ageMax, {
-    message: "ageMin must be less than or equal to ageMax",
-    path: ["targeting", "ageMin"],
+  .superRefine((p, ctx) => {
+    if (p.targeting.ageMin > p.targeting.ageMax)
+      ctx.addIssue({
+        code: "custom",
+        message: "ageMin must be less than or equal to ageMax",
+        path: ["targeting", "ageMin"],
+      });
+    if (!GOALS[p.goal as Goal].instantForm) return;
+    if (!p.leadForm)
+      ctx.addIssue({
+        code: "custom",
+        message: "Instant form ads need a lead form",
+        path: ["leadForm"],
+      });
+    if (p.creative.post)
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Instant form ads need an image, not an existing post. Remove the post and add an image",
+        path: ["creative", "post"],
+      });
+    if (
+      !(LEAD_FORM_CALLS_TO_ACTION as readonly string[]).includes(
+        p.creative.callToAction,
+      )
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: `Instant forms use one of these buttons: ${LEAD_FORM_CALLS_TO_ACTION.join(", ")}`,
+        path: ["creative", "callToAction"],
+      });
   });
 
 export type CampaignPlan = z.infer<typeof planSchema>;

@@ -95,6 +95,14 @@ export class PlansController {
           }
         : undefined,
       language: body.language,
+      leadForm: body.leadForm
+        ? {
+            questions: body.leadForm.questions,
+            privacyPolicyUrl: body.leadForm.privacyPolicyUrl,
+            callPhone: body.leadForm.callPhone ?? null,
+            extraQuestions: body.leadForm.extraQuestions,
+          }
+        : undefined,
     });
   }
 

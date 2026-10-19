@@ -20,6 +20,7 @@ export interface AutomationUpdate {
   slackWebhook?: string | null;
   slackChannel?: string | null;
   agentsCanPost?: boolean;
+  notifyNewLeads?: boolean;
 }
 
 export interface AutomationSettingsView {
@@ -33,6 +34,7 @@ export interface AutomationSettingsView {
   slackConnected: boolean;
   slackChannel: string | null;
   agentsCanPost: boolean;
+  notifyNewLeads: boolean;
 }
 
 @Injectable()
@@ -58,6 +60,7 @@ export class AutomationSettingsService {
       slackConnected: Boolean(ws?.slackWebhookCiphertext),
       slackChannel: ws?.slackChannel ?? null,
       agentsCanPost: ws?.agentsCanPost ?? false,
+      notifyNewLeads: ws?.notifyNewLeads ?? true,
     };
   }
 
@@ -115,6 +118,8 @@ export class AutomationSettingsService {
     }
     if (input.agentsCanPost !== undefined)
       values.agentsCanPost = input.agentsCanPost;
+    if (input.notifyNewLeads !== undefined)
+      values.notifyNewLeads = input.notifyNewLeads;
     const fields = (Object.keys(input) as (keyof AutomationUpdate)[]).filter(
       (k) => input[k] !== undefined,
     );

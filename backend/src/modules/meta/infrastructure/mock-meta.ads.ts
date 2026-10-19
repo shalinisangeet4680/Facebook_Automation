@@ -14,6 +14,9 @@ import {
   CreativeReplaceInput,
   InsightQuery,
   InsightRow,
+  LeadFormInput,
+  LeadFormSummary,
+  LeadRecord,
   MetaAds,
   PixelDetails,
   PixelEventCount,
@@ -25,13 +28,56 @@ const ACCOUNT = "act_1201000000000001";
 const PAGE = "1301000000000001";
 const DAY_MS = 86_400_000;
 
+interface MockLeadForm {
+  id: string;
+  pageId: string;
+  name: string;
+  status: string;
+  locale: string;
+  createdAt: number;
+  everyMs: number;
+  spec: LeadFormInput | null;
+  adId: string | null;
+}
+
 interface Store {
   campaigns: Map<string, CampaignSummary>;
   adSets: Map<string, AdSetSummary>;
   ads: Map<string, AdSummary>;
   pausedSince: Map<string, string>;
+  forms: Map<string, MockLeadForm>;
+  leadClockMs: number;
   sequence: number;
 }
+
+const SEEDED_FORM = "1401000000000001";
+const FIRST_NAMES = [
+  "Aarav",
+  "Priya",
+  "Rohan",
+  "Sneha",
+  "Vikram",
+  "Ananya",
+  "Rahul",
+  "Kavya",
+  "Arjun",
+  "Meera",
+  "Sanjay",
+  "Pooja",
+];
+const LAST_NAMES = [
+  "Sharma",
+  "Verma",
+  "Singh",
+  "Kumar",
+  "Gupta",
+  "Mishra",
+  "Jha",
+  "Prasad",
+  "Sinha",
+  "Das",
+];
+const CITIES = ["Patna", "Gaya", "Muzaffarpur", "Bhagalpur", "Darbhanga"];
 
 function linkCreative(
   id: string,
@@ -283,11 +329,29 @@ function seed(): Store {
       postId: `${PAGE}_1029384756`,
     },
   });
+  const forms = new Map<string, MockLeadForm>([
+    [
+      SEEDED_FORM,
+      {
+        id: SEEDED_FORM,
+        pageId: PAGE,
+        name: "Free demo – Instant form",
+        status: "ACTIVE",
+        locale: "EN_US",
+        createdAt: Date.now() - 10 * DAY_MS,
+        everyMs: 7 * 3_600_000,
+        spec: null,
+        adId: "120230000000000001",
+      },
+    ],
+  ]);
   return {
     campaigns,
     adSets,
     ads,
     pausedSince: new Map([["120210000000000003", pausedOn]]),
+    forms,
+    leadClockMs: 0,
     sequence: 100,
   };
 }
@@ -296,6 +360,69 @@ let store = seed();
 
 export function resetMockAds(): void {
   store = seed();
+}
+
+export function advanceMockLeads(ms: number): void {
+  store.leadClockMs += ms;
+}
+
+export function mockLeadForm(formId: string): {
+  name: string;
+  status: string;
+  spec: LeadFormInput | null;
+} | null {
+  const form = store.forms.get(formId);
+  return form
+    ? { name: form.name, status: form.status, spec: form.spec }
+    : null;
+}
+
+function mockLead(form: MockLeadForm, slot: number): LeadRecord {
+  const r = hash(`${form.id}:${slot}`);
+  const first = FIRST_NAMES[Math.floor(r * FIRST_NAMES.length)]!;
+  const last =
+    LAST_NAMES[
+      Math.floor(hash(`${form.id}:${slot}:last`) * LAST_NAMES.length)
+    ]!;
+  const city =
+    CITIES[Math.floor(hash(`${form.id}:${slot}:city`) * CITIES.length)]!;
+  const phone = `+9198${String(Math.floor(r * 1e8)).padStart(8, "0")}`;
+  const asks = form.spec?.questions ?? ["FULL_NAME", "PHONE", "EMAIL", "CITY"];
+  const fieldData: LeadRecord["fieldData"] = [];
+  for (const q of asks) {
+    if (q === "FULL_NAME")
+      fieldData.push({ name: "full_name", values: [`${first} ${last}`] });
+    if (q === "PHONE")
+      fieldData.push({ name: "phone_number", values: [phone] });
+    if (q === "EMAIL")
+      fieldData.push({
+        name: "email",
+        values: [`${first}.${last}${slot}@example.com`.toLowerCase()],
+      });
+    if (q === "CITY") fieldData.push({ name: "city", values: [city] });
+  }
+  for (const q of form.spec?.customQuestions ?? [])
+    fieldData.push({
+      name: q.key,
+      values: [
+        q.options.length ? q.options[slot % q.options.length]! : "Next week",
+      ],
+    });
+  const ad = form.adId ? store.ads.get(form.adId) : undefined;
+  const adSet = ad ? store.adSets.get(ad.adSetId) : undefined;
+  const campaign = adSet ? store.campaigns.get(adSet.campaignId) : undefined;
+  return {
+    id: `${form.id.slice(-6)}${String(slot).padStart(6, "0")}`,
+    formId: form.id,
+    createdTime: new Date(form.createdAt + slot * form.everyMs).toISOString(),
+    fieldData,
+    adId: ad?.id ?? null,
+    adName: ad?.name ?? null,
+    adSetId: adSet?.id ?? null,
+    adSetName: adSet?.name ?? null,
+    campaignId: campaign?.id ?? null,
+    campaignName: campaign?.name ?? null,
+  };
 }
 
 function hash(text: string): number {
@@ -774,9 +901,26 @@ export class MockMetaAds implements MetaAds {
     const next = () =>
       `1202900000000${String(++store.sequence).padStart(5, "0")}`;
     const now = new Date().toISOString();
+    if (input.leadForm && input.leadForm.pageId !== PAGE)
+      return Promise.reject(metaRejected("Page not found."));
+    const leadFormId = input.leadForm
+      ? `1402000000${String(++store.sequence).padStart(6, "0")}`
+      : null;
     const campaignId = next();
     const adSetId = next();
     const adId = next();
+    if (input.leadForm && leadFormId)
+      store.forms.set(leadFormId, {
+        id: leadFormId,
+        pageId: input.leadForm.pageId,
+        name: input.leadForm.name,
+        status: "ACTIVE",
+        locale: input.leadForm.locale,
+        createdAt: Date.now() + store.leadClockMs,
+        everyMs: 20 * 60_000,
+        spec: input.leadForm,
+        adId,
+      });
     store.campaigns.set(campaignId, {
       id: campaignId,
       name: input.name,
@@ -826,6 +970,7 @@ export class MockMetaAds implements MetaAds {
         pageId: input.creative.pageId,
         instagramId: input.creative.instagramId,
         postId: input.creative.existingPost?.id ?? null,
+        leadFormId,
       },
     });
     return Promise.resolve({
@@ -833,6 +978,7 @@ export class MockMetaAds implements MetaAds {
       adSetId,
       creativeId: `${adId}9`,
       adId,
+      ...(leadFormId ? { leadFormId } : {}),
     });
   }
 
@@ -886,8 +1032,74 @@ export class MockMetaAds implements MetaAds {
       pageId: c.pageId,
       instagramId: c.instagramId,
       postId: null,
+      leadFormId: c.leadFormId ?? null,
     };
     return Promise.resolve({ creativeId });
+  }
+
+  pageAccessToken(token: string, pageId: string): Promise<string> {
+    if (pageId !== PAGE) return Promise.reject(metaRejected("Page not found."));
+    return Promise.resolve(`page:${token}`);
+  }
+
+  leadForms(_pageToken: string, pageId: string): Promise<LeadFormSummary[]> {
+    return Promise.resolve(
+      [...store.forms.values()]
+        .filter((f) => f.pageId === pageId)
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          status: f.status,
+          locale: f.locale,
+          createdTime: new Date(f.createdAt).toISOString(),
+          questions: [
+            ...(
+              f.spec?.questions ?? ["FULL_NAME", "PHONE", "EMAIL", "CITY"]
+            ).map((type) => ({
+              key: type === "PHONE" ? "phone_number" : type.toLowerCase(),
+              label: type,
+              type,
+            })),
+            ...(f.spec?.customQuestions ?? []).map((q) => ({
+              key: q.key,
+              label: q.label,
+              type: "CUSTOM",
+            })),
+          ],
+        })),
+    );
+  }
+
+  leads(
+    pageToken: string,
+    formId: string,
+    sinceUnix: number | null,
+  ): Promise<LeadRecord[]> {
+    if (pageToken.includes("noleads"))
+      return Promise.reject(
+        metaRejected(
+          "(#200) The user hasn't authorized the application to perform this action. Requires leads_retrieval permission.",
+          { metaCode: 200 },
+        ),
+      );
+    const form = store.forms.get(formId);
+    if (!form) return Promise.reject(metaRejected("Form not found."));
+    const now = Date.now() + store.leadClockMs;
+    const slots = Math.max(
+      0,
+      Math.floor((now - form.createdAt) / form.everyMs),
+    );
+    const out: LeadRecord[] = [];
+    for (let slot = slots; slot >= 1 && out.length < 500; slot--) {
+      const lead = mockLead(form, slot);
+      if (
+        sinceUnix !== null &&
+        Date.parse(lead.createdTime) / 1000 <= sinceUnix
+      )
+        break;
+      out.push(lead);
+    }
+    return Promise.resolve(out);
   }
 }
 

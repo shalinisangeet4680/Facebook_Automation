@@ -20,6 +20,7 @@ const STATUS: Record<TrackingStatus, { label: string; tone: "success" | "warn" |
 const GOAL_NAMES: Record<string, string> = {
   traffic: "website visits",
   leads: "enquiries",
+  instant_leads: "instant form leads",
   sales: "online sales",
   awareness: "getting known",
 };

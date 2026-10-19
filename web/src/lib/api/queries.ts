@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, setSigningOut, unwrap } from "./client";
+import { api, authFetch, setSigningOut, unwrap } from "./client";
+import { toApiError } from "./errors";
 import type {
   AdCreativeUpdate,
   AdLevel,
@@ -18,6 +19,8 @@ import type {
   PlanDetail,
   FacebookPart,
   GoalBudgetUpdate,
+  LeadStatus,
+  LeadUpdate,
   Onboarding,
   ProfileDraftInput,
   ProfileUpdate,
@@ -54,6 +57,9 @@ export const keys = {
   adCampaigns: (preset: string, status: string) => ["ads", "campaigns", preset, status] as const,
   adCampaign: (id: string, preset: string) => ["ads", "campaign", id, preset] as const,
   plans: ["plans"] as const,
+  leads: ["leads"] as const,
+  leadList: (filters: LeadFilters) => ["leads", "list", filters] as const,
+  leadSummary: ["leads", "summary"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
   store: ["store"] as const,
@@ -74,6 +80,91 @@ export const keys = {
   playAnalytics: (range: AnalyticsRange, appId?: string) =>
     ["play", "analytics", range, appId ?? "all"] as const,
 };
+
+export interface LeadFilters {
+  status?: LeadStatus;
+  campaignId?: string;
+  q?: string;
+}
+
+const leadQuery = (filters: LeadFilters) => ({
+  status: filters.status,
+  campaignId: filters.campaignId || undefined,
+  q: filters.q?.trim() || undefined,
+});
+
+export function useLeads(filters: LeadFilters) {
+  return useInfiniteQuery({
+    queryKey: keys.leadList(filters),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      unwrap(
+        api.GET("/api/v1/ads/leads", {
+          params: { query: { ...leadQuery(filters), cursor: pageParam, limit: 25 } },
+        }),
+      ),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useLead(id: string | null) {
+  return useQuery({
+    queryKey: [...keys.leads, "one", id ?? "none"],
+    queryFn: () => unwrap(api.GET("/api/v1/ads/leads/{id}", { params: { path: { id: id! } } })),
+    enabled: Boolean(id),
+  });
+}
+
+export function useLeadSummary(enabled = true) {
+  return useQuery({
+    queryKey: keys.leadSummary,
+    queryFn: () => unwrap(api.GET("/api/v1/ads/leads/summary")),
+    enabled,
+    refetchInterval: 5 * 60_000,
+  });
+}
+
+export function useUpdateLead() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: LeadUpdate }) =>
+      unwrap(api.PATCH("/api/v1/ads/leads/{id}", { params: { path: { id } }, body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.leads }),
+  });
+}
+
+export function useSyncLeads() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(api.POST("/api/v1/ads/leads/sync")),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.leads }),
+  });
+}
+
+export async function downloadLeadsCsv(filters: LeadFilters): Promise<void> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(leadQuery(filters))) if (value) query.set(key, value);
+  const qs = query.toString();
+  const response = await authFetch(
+    new Request(`/api/v1/ads/leads/export.csv${qs ? `?${qs}` : ""}`, {
+      headers: { "X-Client": "web" },
+      credentials: "same-origin",
+    }),
+  );
+  if (!response.ok) throw toApiError(response.status, await response.json().catch(() => null));
+  const name =
+    /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    "leads.csv";
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 export function useMe() {
   return useQuery({ queryKey: keys.me, queryFn: () => unwrap(api.GET("/api/v1/me")) });

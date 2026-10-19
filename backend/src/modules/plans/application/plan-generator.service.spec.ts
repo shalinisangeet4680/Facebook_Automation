@@ -116,6 +116,7 @@ describe("PlanGeneratorService", () => {
       imageIdea: null,
       reasons: { goal: "", audience: "", budget: "", creative: "" },
       expectedResults: null,
+      leadForm: null,
     };
     const { service, proposed } = setup({
       write: () => Promise.resolve(invalid),
@@ -177,5 +178,92 @@ describe("PlanGeneratorService", () => {
     });
     await service.generate(actor, { ...request, language: "English" });
     expect(write.mock.calls[1]![1].language).toBe("English");
+  });
+
+  it("builds an instant form from the website's privacy page", async () => {
+    const write = vi.fn((_key: string, _input: PlanAiInput) =>
+      Promise.reject(new Error("overloaded")),
+    );
+    const { service, proposed } = setup({ write });
+    await service.generate(actor, {
+      ...request,
+      goal: "instant_leads",
+      creative: { imageUrl: "https://glowclinic.in/ad.png" },
+    });
+    expect(write.mock.calls[0]![1].leadForm).toEqual({
+      questions: ["FULL_NAME", "PHONE", "CITY"],
+      extraQuestions: true,
+      button: "website",
+    });
+    const plan = proposed[0]!.plan;
+    expect(plan.goal).toBe("instant_leads");
+    expect(plan.leadForm).toMatchObject({
+      privacyPolicyUrl: "https://glowclinic.in/privacy",
+      questions: ["FULL_NAME", "PHONE", "CITY"],
+      thankYou: { button: { type: "website", url: "https://glowclinic.in" } },
+    });
+  });
+
+  it("asks for a privacy policy, a contact question and an image for instant forms", async () => {
+    const { service } = setup({ write: () => Promise.reject(new Error()) });
+    const noSite = new PlanGeneratorService(
+      { propose: vi.fn() } as unknown as PlanService,
+      {
+        account: () =>
+          Promise.resolve({
+            currency: "INR",
+            page: { externalId: "1001", name: "Glow" },
+            instagram: null,
+            business: null,
+            dataset: null,
+          }),
+        planningContext: () => Promise.reject(new Error("down")),
+        searchTargeting: () => Promise.resolve({ results: [] }),
+      } as unknown as AdsService,
+      {
+        targets: () =>
+          Promise.resolve({
+            maxDailyBudget: 1000,
+            monthlyBudget: null,
+            targetCostPerResult: null,
+          }),
+        profile: () =>
+          Promise.resolve({
+            basics: {
+              websiteUrl: null,
+              offer: null,
+              area: null,
+              category: null,
+              language: null,
+            },
+          }),
+      } as unknown as SettingsService,
+      {} as CreativesService,
+      {
+        registerDraftCounter: vi.fn(),
+        settings: () => Promise.resolve(null),
+        keyFrom: () => null,
+        allowance: () => Promise.resolve(0),
+      } as unknown as WorkspaceAiService,
+      {} as AuditService,
+      { write: () => Promise.reject(new Error()) },
+    );
+    await expect(
+      noSite.generate(actor, { ...request, goal: "instant_leads" }),
+    ).rejects.toThrow("privacy policy");
+    await expect(
+      service.generate(actor, {
+        ...request,
+        goal: "instant_leads",
+        leadForm: { questions: ["FULL_NAME", "CITY"] },
+      }),
+    ).rejects.toThrow("phone number or an email");
+    await expect(
+      service.generate(actor, {
+        ...request,
+        goal: "instant_leads",
+        creative: { post: { platform: "facebook", id: "1_2" } },
+      }),
+    ).rejects.toThrow("image, not an existing post");
   });
 });

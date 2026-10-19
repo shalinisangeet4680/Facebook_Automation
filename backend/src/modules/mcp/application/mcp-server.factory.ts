@@ -215,7 +215,7 @@ export class McpServerFactory {
       {
         title: "Check Pixel tracking",
         description:
-          "Pixel (dataset) health: status (healthy, warning or missing) with reasons and plain-language fixes, last fire time, event counts for the last 24 hours and 7 days, whether it fits each goal (leads needs Lead, CompleteRegistration or Contact; sales needs Purchase) and an Events Manager link.",
+          "Pixel (dataset) health: status (healthy, warning or missing) with reasons and plain-language fixes, last fire time, event counts for the last 24 hours and 7 days, whether it fits each goal (leads needs Lead, CompleteRegistration or Contact; sales needs Purchase; instant_leads needs no Pixel) and an Events Manager link.",
         annotations: readOnly,
       },
       () => run(() => this.ads.tracking(ws)),
@@ -1297,7 +1297,7 @@ export class McpServerFactory {
       {
         title: "Propose a campaign plan",
         description:
-          "Save a complete campaign plan for the owner to review in TreeVook. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
+          "Save a complete campaign plan for the owner to review in TreeVook. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. For goal instant_leads (leads collected on Facebook or Instagram with a Meta instant form, no website or Pixel needed) fill leadForm: name, locale, intro (headline, description), questions (FULL_NAME, EMAIL, PHONE, CITY; include PHONE or EMAIL), up to 3 customQuestions (short_answer, or multiple_choice with 2–6 options), privacyPolicyUrl (the business's https privacy page) and thankYou (title, body, button: website url or call phone), use an image (not a post) and a form button such as SIGN_UP, GET_QUOTE, APPLY_NOW or CONTACT_US. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
         inputSchema: planSchema,
         annotations: {
           readOnlyHint: false,
@@ -1347,7 +1347,7 @@ export class McpServerFactory {
       {
         title: "Create a paused campaign",
         description:
-          "Creates a campaign, ad set, creative and ad in Meta, all PAUSED, using the selected Page, Instagram account and Pixel. Goals: traffic (landing page views), leads (website leads via the Pixel), sales (website purchases via the Pixel), awareness (reach). daily_budget is in the account currency (major units). Agree the copy, image, audience and budget with the user before calling.",
+          "Creates a campaign, ad set, creative and ad in Meta, all PAUSED, using the selected Page, Instagram account and Pixel. Goals: traffic (landing page views), leads (website leads via the Pixel), sales (website purchases via the Pixel), awareness (reach). For instant_leads (a Meta instant form, no website or Pixel) use propose_campaign_plan instead, because the form is built there. daily_budget is in the account currency (major units). Agree the copy, image, audience and budget with the user before calling.",
         inputSchema: {
           name: z.string().min(3).max(200),
           goal: z.enum(GOAL_NAMES as [string, ...string[]]),

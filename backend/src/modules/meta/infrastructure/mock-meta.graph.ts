@@ -23,6 +23,9 @@ export class MockMetaGraph implements MetaGraph {
     if (token.includes("noperms")) {
       return Promise.resolve(all.filter((p) => p !== "ads_management"));
     }
+    if (token.includes("noleads")) {
+      return Promise.resolve(all.filter((p) => p !== "leads_retrieval"));
+    }
     if (token.includes("basicperms")) {
       return Promise.resolve(
         PERMISSIONS.filter((p) => p.level === "required").map((p) => p.name),

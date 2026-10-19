@@ -3,7 +3,7 @@ import {
   CreativeInput,
 } from "@modules/meta/domain/ports/meta-ads";
 
-import { CALLS_TO_ACTION } from "./goals";
+import { CALLS_TO_ACTION, LEAD_FORM_CALLS_TO_ACTION } from "./goals";
 
 export interface CreativeEdit {
   primaryText?: string;
@@ -73,6 +73,15 @@ export function editCreative(
   if (!(CALLS_TO_ACTION as readonly string[]).includes(callToAction)) {
     return { ok: false, message: "Choose a supported button." };
   }
+  if (
+    current.leadFormId &&
+    !(LEAD_FORM_CALLS_TO_ACTION as readonly string[]).includes(callToAction)
+  ) {
+    return {
+      ok: false,
+      message: `This ad opens an instant form, so its button must be one of: ${LEAD_FORM_CALLS_TO_ACTION.join(", ")}.`,
+    };
+  }
   if (newImage && !newImage.startsWith("https://")) {
     return {
       ok: false,
@@ -111,6 +120,7 @@ export function editCreative(
       imageHash,
       callToAction,
       existingPost: null,
+      ...(current.leadFormId ? { leadFormId: current.leadFormId } : {}),
     },
   };
 }

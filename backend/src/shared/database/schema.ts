@@ -17,3 +17,4 @@ export * from "../../modules/play/infrastructure/play.tables";
 export * from "../../modules/business/infrastructure/business.tables";
 export * from "../../modules/play-releases/infrastructure/play-releases.tables";
 export * from "../../modules/social-engine/infrastructure/social-engine.tables";
+export * from "../../modules/leads/infrastructure/leads.tables";

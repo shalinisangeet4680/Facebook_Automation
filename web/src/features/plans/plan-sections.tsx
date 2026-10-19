@@ -1,16 +1,22 @@
 "use client";
 
-import { Globe2, MapPin, Plus, Sparkles, Tag, X } from "lucide-react";
+import { Globe2, MapPin, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import { type TargetingType, useTargetingSearch } from "@/lib/api/queries";
-import type { CampaignPlan, PlanStatus, TargetingOption } from "@/lib/api/types";
-import { Spinner } from "@/features/replyly/ui";
+import type {
+  CampaignPlan,
+  LeadForm,
+  LeadFormCustomQuestion,
+  PlanStatus,
+  TargetingOption,
+} from "@/lib/api/types";
+import { Seg, Spinner } from "@/features/replyly/ui";
 
 import { displaySrc } from "./creative-picker";
-import { CTA_LABELS, STATUS_LABELS } from "./labels";
+import { CTA_LABELS, PREFILL_QUESTIONS, QUESTION_LABELS, STATUS_LABELS } from "./labels";
 
 export const MUTED = "#6C6962";
 
@@ -646,5 +652,318 @@ export function AdPreview({
         </span>
       </div>
     </figure>
+  );
+}
+
+export function defaultLeadForm(plan: CampaignPlan, privacyPolicyUrl: string): LeadForm {
+  return {
+    name: `${plan.name.slice(0, 80)} – Instant form`,
+    locale: "EN_US",
+    intro: { headline: plan.creative.headline.slice(0, 60), description: null },
+    questions: ["FULL_NAME", "PHONE", "CITY"],
+    customQuestions: [],
+    privacyPolicyUrl,
+    thankYou: {
+      title: "Thanks, we’ve got your details",
+      body: "We’ll get in touch with you soon.",
+      button: { type: "website", text: "Visit website", url: plan.creative.linkUrl },
+    },
+  };
+}
+
+const MAX_CUSTOM = 3;
+const fullWidth = { width: "100%", boxSizing: "border-box" } as const;
+
+export function LeadFormEditor({
+  form,
+  locales,
+  onChange,
+  disabled,
+}: {
+  form: LeadForm;
+  locales: { code: string; name: string }[];
+  onChange: (form: LeadForm) => void;
+  disabled: boolean;
+}) {
+  const set = (patch: Partial<LeadForm>) => onChange({ ...form, ...patch });
+  const setCustom = (index: number, patch: Partial<LeadFormCustomQuestion>) =>
+    set({
+      customQuestions: form.customQuestions.map((q, i) => (i === index ? { ...q, ...patch } : q)),
+    });
+  const button = form.thankYou.button;
+  const contactable = form.questions.includes("PHONE") || form.questions.includes("EMAIL");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Field inRow label="Form name" hint="Only you see this, in Meta.">
+          <input
+            className="rp-input"
+            maxLength={100}
+            style={fullWidth}
+            value={form.name}
+            onChange={(e) => set({ name: e.target.value })}
+          />
+        </Field>
+        <Field inRow label="Form language">
+          <select
+            className="rp-select"
+            style={fullWidth}
+            value={form.locale}
+            onChange={(e) => set({ locale: e.target.value })}
+          >
+            {locales.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <Group title="Intro" desc="The first screen people see when they tap the ad.">
+        <Field label="Headline">
+          <input
+            className="rp-input"
+            maxLength={60}
+            style={fullWidth}
+            value={form.intro.headline}
+            onChange={(e) => set({ intro: { ...form.intro, headline: e.target.value } })}
+          />
+        </Field>
+        <Field label="Description" hint="Optional. Say what happens after they send the form.">
+          <textarea
+            className="rp-input rp-textarea"
+            rows={2}
+            maxLength={500}
+            style={{ ...fullWidth, resize: "vertical", lineHeight: 1.5 }}
+            value={form.intro.description ?? ""}
+            onChange={(e) => set({ intro: { ...form.intro, description: e.target.value || null } })}
+          />
+        </Field>
+      </Group>
+      <Group title="Questions" desc="Meta fills these in from the person’s profile.">
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {PREFILL_QUESTIONS.map((q) => {
+            const on = form.questions.includes(q);
+            return (
+              <button
+                key={q}
+                type="button"
+                className="rp-chip"
+                aria-pressed={on}
+                disabled={disabled}
+                style={on ? { borderColor: "#0F6B4A", background: "#F1F5F2" } : undefined}
+                onClick={() =>
+                  set({
+                    questions: on
+                      ? form.questions.filter((x) => x !== q)
+                      : PREFILL_QUESTIONS.filter((x) => x === q || form.questions.includes(x)),
+                  })
+                }
+              >
+                {QUESTION_LABELS[q]}
+              </button>
+            );
+          })}
+        </div>
+        {!contactable ? (
+          <span role="alert" style={{ fontSize: 12, color: "#B42318" }}>
+            Ask for a phone number or an email so you can contact the lead.
+          </span>
+        ) : null}
+      </Group>
+      <Group
+        title="Your own questions"
+        desc={`Up to ${MAX_CUSTOM}. Short questions get more people to finish the form.`}
+      >
+        {form.customQuestions.map((q, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid #EFEDE8",
+            }}
+          >
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                <Field label={`Question ${i + 1}`}>
+                  <input
+                    className="rp-input"
+                    maxLength={80}
+                    style={fullWidth}
+                    value={q.label}
+                    onChange={(e) => setCustom(i, { label: e.target.value })}
+                  />
+                </Field>
+              </div>
+              {disabled ? null : (
+                <button
+                  type="button"
+                  className="rp-btn-light"
+                  aria-label={`Remove question ${i + 1}`}
+                  style={{ padding: "8px 10px" }}
+                  onClick={() =>
+                    set({ customQuestions: form.customQuestions.filter((_, j) => j !== i) })
+                  }
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div style={{ alignSelf: "flex-start" }}>
+              <Seg
+                label={`Answer type for question ${i + 1}`}
+                small
+                value={q.type}
+                onChange={(type) =>
+                  setCustom(i, {
+                    type,
+                    options:
+                      type === "multiple_choice"
+                        ? q.options.length >= 2
+                          ? q.options
+                          : ["Yes", "No"]
+                        : [],
+                  })
+                }
+                options={[
+                  { id: "short_answer", label: "Short answer" },
+                  { id: "multiple_choice", label: "Multiple choice" },
+                ]}
+              />
+            </div>
+            {q.type === "multiple_choice" ? (
+              <Field label="Answers" hint="One per line, 2 to 6 answers.">
+                <textarea
+                  className="rp-input rp-textarea"
+                  rows={3}
+                  style={{ ...fullWidth, resize: "vertical", lineHeight: 1.5 }}
+                  value={q.options.join("\n")}
+                  onChange={(e) =>
+                    setCustom(i, { options: e.target.value.split("\n").slice(0, 6) })
+                  }
+                />
+              </Field>
+            ) : null}
+          </div>
+        ))}
+        {!form.customQuestions.length ? <Empty>No extra questions.</Empty> : null}
+        {disabled || form.customQuestions.length >= MAX_CUSTOM ? null : (
+          <button
+            type="button"
+            className="rp-btn-light"
+            style={{ alignSelf: "flex-start", padding: "6px 10px" }}
+            onClick={() =>
+              set({
+                customQuestions: [
+                  ...form.customQuestions,
+                  { label: "", type: "short_answer", options: [] },
+                ],
+              })
+            }
+          >
+            <Plus size={14} /> Add a question
+          </button>
+        )}
+      </Group>
+      <Field label="Privacy policy link" hint="Required by Meta. Shown at the end of the form.">
+        <input
+          className="rp-input"
+          type="url"
+          placeholder="https://"
+          style={fullWidth}
+          value={form.privacyPolicyUrl}
+          onChange={(e) => set({ privacyPolicyUrl: e.target.value })}
+        />
+      </Field>
+      <Group title="Thank-you screen" desc="Shown after they send the form.">
+        <Field label="Title">
+          <input
+            className="rp-input"
+            maxLength={60}
+            style={fullWidth}
+            value={form.thankYou.title}
+            onChange={(e) => set({ thankYou: { ...form.thankYou, title: e.target.value } })}
+          />
+        </Field>
+        <Field label="Message">
+          <textarea
+            className="rp-input rp-textarea"
+            rows={2}
+            maxLength={500}
+            style={{ ...fullWidth, resize: "vertical", lineHeight: 1.5 }}
+            value={form.thankYou.body}
+            onChange={(e) => set({ thankYou: { ...form.thankYou, body: e.target.value } })}
+          />
+        </Field>
+        <div style={{ alignSelf: "flex-start" }}>
+          <Seg
+            label="Thank-you button"
+            small
+            value={button.type}
+            onChange={(type) =>
+              set({
+                thankYou: {
+                  ...form.thankYou,
+                  button:
+                    type === "call"
+                      ? { type, text: "Call us", phone: button.phone ?? "" }
+                      : { type, text: "Visit website", url: button.url ?? "" },
+                },
+              })
+            }
+            options={[
+              { id: "website", label: "Visit website" },
+              { id: "call", label: "Call business" },
+            ]}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Field inRow label="Button text">
+            <input
+              className="rp-input"
+              maxLength={30}
+              style={fullWidth}
+              value={button.text}
+              onChange={(e) =>
+                set({ thankYou: { ...form.thankYou, button: { ...button, text: e.target.value } } })
+              }
+            />
+          </Field>
+          {button.type === "call" ? (
+            <Field inRow label="Phone number" hint="With country code, like +919876543210.">
+              <input
+                className="rp-input"
+                type="tel"
+                style={fullWidth}
+                value={button.phone ?? ""}
+                onChange={(e) =>
+                  set({
+                    thankYou: { ...form.thankYou, button: { ...button, phone: e.target.value } },
+                  })
+                }
+              />
+            </Field>
+          ) : (
+            <Field inRow label="Website link">
+              <input
+                className="rp-input"
+                type="url"
+                style={fullWidth}
+                value={button.url ?? ""}
+                onChange={(e) =>
+                  set({
+                    thankYou: { ...form.thankYou, button: { ...button, url: e.target.value } },
+                  })
+                }
+              />
+            </Field>
+          )}
+        </div>
+      </Group>
+    </div>
   );
 }

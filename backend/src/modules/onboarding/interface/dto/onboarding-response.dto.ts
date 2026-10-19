@@ -16,5 +16,5 @@ export class OnboardingResponseDto {
   completedCount: number;
   totalCount: number;
   isComplete: boolean;
-  goal: "traffic" | "leads" | "sales" | "awareness" | null;
+  goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
 }

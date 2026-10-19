@@ -21,7 +21,7 @@ export class TrackingTotalsDto {
 }
 
 export class TrackingGoalDto {
-  goal: "traffic" | "leads" | "sales" | "awareness";
+  goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
   ready: boolean;
   needs: string[];
   message: string;

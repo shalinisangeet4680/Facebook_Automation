@@ -17,6 +17,7 @@ export default function robots(): MetadataRoute.Robots {
           "setup",
           "inbox",
           "campaigns",
+          "leads",
           "creatives",
           "profile",
           "reports",

@@ -169,6 +169,13 @@
       "when": 1792395165857,
       "tag": "0023_meta_connection_method",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792396178870,
+      "tag": "0024_lead_form_ads",
+      "breakpoints": true
     }
   ]
 }

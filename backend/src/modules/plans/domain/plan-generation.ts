@@ -4,11 +4,18 @@ import {
   ConversionEvent,
   GOALS,
   Goal,
+  LEAD_FORM_CALLS_TO_ACTION,
 } from "@modules/ads/domain/goals";
+import {
+  LeadFormLocale,
+  MAX_CHOICES,
+  MAX_CUSTOM_QUESTIONS,
+  PrefillQuestion,
+} from "@modules/ads/domain/lead-form";
 import { formatMoney } from "@modules/ads/domain/money";
 
 import { CampaignPlan, parsePlan } from "./plan.schema";
-import { PlanAiInput, PlanAiResult } from "./ports/plan-ai";
+import { PlanAiInput, PlanAiLeadForm, PlanAiResult } from "./ports/plan-ai";
 
 export interface PlanLocations {
   countries: string[];
@@ -24,12 +31,20 @@ export interface PlanPost {
   text?: string | null;
 }
 
+export interface LeadFormContext {
+  questions: PrefillQuestion[];
+  privacyPolicyUrl: string;
+  locale: LeadFormLocale;
+  button: { type: "website"; url: string } | { type: "call"; phone: string };
+}
+
 export interface GenerationContext {
   input: PlanAiInput;
   locations: PlanLocations;
   linkUrl: string;
   imageUrl: string | null;
   post: PlanPost | null;
+  leadForm: LeadFormContext | null;
 }
 
 export interface BuiltPlan {
@@ -41,6 +56,7 @@ export interface BuiltPlan {
 const GOAL_TITLES: Record<Goal, string> = {
   traffic: "Website visits",
   leads: "Leads",
+  instant_leads: "Instant form leads",
   sales: "Sales",
   awareness: "Awareness",
 };
@@ -48,6 +64,7 @@ const GOAL_TITLES: Record<Goal, string> = {
 const DEFAULT_EVENTS: Record<Goal, ConversionEvent | null> = {
   traffic: null,
   leads: "LEAD",
+  instant_leads: null,
   sales: "PURCHASE",
   awareness: null,
 };
@@ -55,6 +72,7 @@ const DEFAULT_EVENTS: Record<Goal, ConversionEvent | null> = {
 const DEFAULT_CTAS: Record<Goal, CallToAction> = {
   traffic: "LEARN_MORE",
   leads: "SIGN_UP",
+  instant_leads: "SIGN_UP",
   sales: "SHOP_NOW",
   awareness: "LEARN_MORE",
 };
@@ -64,6 +82,8 @@ const GOAL_REASONS: Record<Goal, string> = {
     "You want people to visit your website, so Meta will show the ad to people most likely to open the page and let it load.",
   leads:
     "You want enquiries or sign-ups, so Meta will look for people most likely to fill in your form, tracked by your Pixel.",
+  instant_leads:
+    "You want enquiries, so people fill in a short form right inside Facebook or Instagram without leaving the app. Their details are filled in for them, and no website or Pixel is needed.",
   sales:
     "You want purchases, so Meta will look for people most likely to buy on your website, tracked by your Pixel.",
   awareness:
@@ -228,6 +248,7 @@ export function draftPlanCopy(input: PlanAiInput): PlanAiResult {
   const ask: Record<Goal, string> = {
     traffic: "Tap to see more on our website.",
     leads: "Sign up today and we'll get in touch.",
+    instant_leads: "Tap Sign up, leave your number and we'll call you back.",
     sales: "Order online today.",
     awareness: brand
       ? `Say hello to ${brand}.`
@@ -278,6 +299,98 @@ export function draftPlanCopy(input: PlanAiInput): PlanAiResult {
       ),
     },
     expectedResults: expected(input),
+    leadForm: input.leadForm ? draftLeadFormCopy(input, offer, brand) : null,
+  };
+}
+
+function draftLeadFormCopy(
+  input: PlanAiInput,
+  offer: string,
+  brand: string | null,
+): PlanAiLeadForm {
+  const extra = input.leadForm?.extraQuestions ?? false;
+  return {
+    name: cut(`${cut(offer, 60)} – Instant form`, 100),
+    headline: cut(offer, 60),
+    description: cut(
+      `Leave your details and ${brand ?? "our team"} will get in touch with you soon.`,
+      500,
+    ),
+    customQuestions: extra
+      ? [
+          {
+            label: "When is the best time to call you?",
+            type: "multiple_choice",
+            options: ["Morning", "Afternoon", "Evening"],
+          },
+        ]
+      : [],
+    thankYouTitle: "Thanks, we've got your details",
+    thankYouBody: cut(
+      `${brand ?? "Our team"} will contact you soon about ${offer.charAt(0).toLowerCase()}${offer.slice(1)}.`,
+      500,
+    ),
+    buttonText: input.leadForm?.button === "call" ? "Call us" : "Visit website",
+  };
+}
+
+function leadFormOf(
+  ctx: GenerationContext,
+  copy: PlanAiResult,
+  name: string,
+): unknown {
+  if (!ctx.leadForm) return null;
+  const form = copy.leadForm;
+  const fallback = draftLeadFormCopy(
+    ctx.input,
+    sentence(ctx.input.offer),
+    ctx.input.business.page ?? ctx.input.business.name,
+  );
+  const text = (value: string | null | undefined, max: number) =>
+    value?.trim() ? cut(value, max) : null;
+  const buttonText =
+    text(form?.buttonText, 30) ?? text(fallback.buttonText, 30)!;
+  const button =
+    ctx.leadForm.button.type === "call"
+      ? { type: "call", text: buttonText, phone: ctx.leadForm.button.phone }
+      : { type: "website", text: buttonText, url: ctx.leadForm.button.url };
+  const custom = ctx.input.leadForm?.extraQuestions
+    ? (form?.customQuestions ?? [])
+    : [];
+  return {
+    name: text(form?.name, 100) ?? cut(name || fallback.name, 100),
+    locale: ctx.leadForm.locale,
+    intro: {
+      headline: text(form?.headline, 60) ?? fallback.headline,
+      description: form ? text(form.description, 500) : fallback.description,
+    },
+    questions: ctx.leadForm.questions,
+    customQuestions: custom
+      .filter((q) => q.label.trim())
+      .slice(0, MAX_CUSTOM_QUESTIONS)
+      .map((q) => {
+        const options =
+          q.type === "multiple_choice"
+            ? [
+                ...new Set(
+                  q.options
+                    .map((o) => text(o, 40))
+                    .filter((o): o is string => Boolean(o)),
+                ),
+              ].slice(0, MAX_CHOICES)
+            : [];
+        return {
+          label: cut(q.label, 80),
+          type: options.length >= 2 ? q.type : "short_answer",
+          options: options.length >= 2 ? options : [],
+        };
+      }),
+    privacyPolicyUrl: ctx.leadForm.privacyPolicyUrl,
+    thankYou: {
+      title: text(form?.thankYouTitle, 60) ?? fallback.thankYouTitle,
+      body: text(form?.thankYouBody, 500) ?? fallback.thankYouBody,
+      button,
+    },
   };
 }
 
@@ -290,6 +403,13 @@ export function assemblePlan(
   interests: { id: string; name: string }[],
 ): unknown {
   const goal = GOALS[ctx.input.goal];
+  const callToAction =
+    goal.instantForm &&
+    !(LEAD_FORM_CALLS_TO_ACTION as readonly string[]).includes(
+      copy.callToAction,
+    )
+      ? DEFAULT_CTAS[ctx.input.goal]
+      : copy.callToAction;
   const event =
     copy.conversionEvent &&
     (CONVERSION_EVENTS as readonly string[]).includes(copy.conversionEvent)
@@ -324,7 +444,7 @@ export function assemblePlan(
       linkUrl: ctx.linkUrl,
       imageUrl: ctx.post ? null : ctx.imageUrl,
       imageIdea: clean(copy.imageIdea) || null,
-      callToAction: copy.callToAction,
+      callToAction,
       post: ctx.post,
     },
     reasons: {
@@ -334,6 +454,7 @@ export function assemblePlan(
       creative: clean(copy.reasons.creative),
     },
     expectedResults: clean(copy.expectedResults) || null,
+    leadForm: leadFormOf(ctx, copy, clean(copy.name) ?? ""),
   };
 }
 

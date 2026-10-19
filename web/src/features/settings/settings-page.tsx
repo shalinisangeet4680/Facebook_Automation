@@ -760,6 +760,26 @@ function AutomationForm({ settings }: { settings: AutomationSettings }) {
           }
         />
       </SettingRow>
+      <SettingRow
+        label="Notify me about new leads"
+        desc={
+          settings.slackConnected
+            ? `New instant form leads from Meta Ads post to ${settings.slackChannel ?? "your Slack channel"} with the name, phone and campaign.`
+            : "Connect Slack above to get an alert for every new instant form lead."
+        }
+      >
+        <Toggle
+          on={settings.slackConnected && settings.notifyNewLeads}
+          label="Notify me about new leads"
+          disabled={update.isPending || !settings.slackConnected}
+          onChange={() =>
+            save(
+              { notifyNewLeads: !settings.notifyNewLeads },
+              settings.notifyNewLeads ? "Lead alerts off" : "Lead alerts on",
+            )
+          }
+        />
+      </SettingRow>
     </div>
   );
 }

@@ -17,7 +17,7 @@ export const PRODUCTS: Product[] = [
     subdomains: ["ads", "metaads"],
     home: "/setup",
     landing: "/meta-ads",
-    paths: ["/setup", "/inbox", "/campaigns", "/creatives", "/profile", "/reports"],
+    paths: ["/setup", "/inbox", "/campaigns", "/leads", "/creatives", "/profile", "/reports"],
   },
   {
     id: "play-reviews",

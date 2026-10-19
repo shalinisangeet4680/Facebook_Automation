@@ -126,3 +126,17 @@ describe("goalFit", () => {
     expect(goalFit("sales", false, []).fix).toContain("Choose one");
   });
 });
+
+describe("instant form leads", () => {
+  it("fits without a Pixel", () => {
+    const report = buildTrackingReport(input({ dataset: null }));
+    expect(fit(report, "instant_leads")).toMatchObject({
+      ready: true,
+      needs: [],
+      fix: null,
+    });
+    expect(fit(report, "instant_leads").message).toContain("no Pixel");
+    expect(fit(report, "leads").ready).toBe(false);
+    expect(goalFit("instant_leads", false, []).ready).toBe(true);
+  });
+});

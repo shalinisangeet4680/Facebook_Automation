@@ -33,6 +33,10 @@ export class UpdateAutomationSettingsDto {
   @IsOptional()
   @IsBoolean()
   agentsCanPost?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyNewLeads?: boolean;
 }
 
 export class AutomationSettingsDto {
@@ -47,4 +51,5 @@ export class AutomationSettingsDto {
   slackConnected: boolean;
   slackChannel: string | null;
   agentsCanPost: boolean;
+  notifyNewLeads: boolean;
 }
