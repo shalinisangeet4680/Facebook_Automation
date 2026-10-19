@@ -98,25 +98,23 @@ export function ConnectMeta() {
 
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <PageHead
-        title={summary ? "Meta account" : "Connect your Meta business"}
-        sub={
-          summary
-            ? connection.data?.method === "facebook_login"
-              ? "Your workspace can read and manage the assets you chose when you signed in with Facebook."
-              : "Your workspace can read and manage the assets you assigned to the system user."
-            : facebook.available
+      {summary ? null : (
+        <PageHead
+          title="Connect your Meta business"
+          sub={
+            facebook.available
               ? "Sign in with Facebook and choose what we can manage. It takes about a minute."
               : "Follow the guide to create a system user token in Meta, then paste it here. It takes about five minutes."
-        }
-        actions={
-          connected && replacing ? (
-            <button type="button" className="rp-btn-light" onClick={() => setReplacing(false)}>
-              Cancel
-            </button>
-          ) : null
-        }
-      />
+          }
+          actions={
+            connected && replacing ? (
+              <button type="button" className="rp-btn-light" onClick={() => setReplacing(false)}>
+                Cancel
+              </button>
+            ) : null
+          }
+        />
+      )}
       {signInError ? (
         <Banner
           tone="error"
