@@ -18,9 +18,11 @@ test("shows suggestions from a check and applies one", async ({ page }, info) =>
   await page.getByRole("button", { name: "Check now" }).click();
   const heading = page.getByRole("heading", { level: 3, name: /more budget/ });
   await expect(heading).toBeVisible();
-  await expect(page.getByText("₹960", { exact: false }).first()).toBeVisible();
+  const apply = page.getByRole("button", { name: /^Set budget to ₹[\d,]+$/ });
+  const target = (await apply.textContent())!.replace("Set budget to ", "");
+  await expect(page.getByText(`by 20% (to ${target})`)).toBeVisible();
   await page.screenshot({ path: info.outputPath("inbox.png"), fullPage: true });
-  await page.getByRole("button", { name: /Set budget to/ }).click();
+  await apply.click();
   await expect(page.getByText("Done", { exact: true })).toBeVisible();
   await expect(heading).toHaveCount(0);
 });

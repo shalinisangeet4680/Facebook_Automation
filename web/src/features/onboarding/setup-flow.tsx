@@ -140,6 +140,11 @@ function Flow({ view, requested }: { view: Onboarding; requested: string | null 
   const ids = view.steps.map((s) => s.id);
   const reachable = view.currentStep ? ids.indexOf(view.currentStep) : ids.length - 1;
   const [chosen, setChosen] = useState<string | null>(requested);
+  const [lastRequested, setLastRequested] = useState(requested);
+  if (requested !== lastRequested) {
+    setLastRequested(requested);
+    setChosen(requested);
+  }
   const wanted = chosen ? ids.indexOf(chosen) : -1;
   const index = wanted !== -1 && wanted <= reachable ? wanted : reachable;
   const step = view.steps[index]!;

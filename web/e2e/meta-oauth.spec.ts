@@ -39,7 +39,10 @@ test("connects Meta Ads with Continue with Facebook", async ({ page }) => {
     await page.getByRole("button", { name: "Continue with Facebook" }).click();
     await expect(page).toHaveURL(/\/setup\/start/);
     await expect(
-      page.getByRole("heading", { level: 2, name: "Choose your accounts" }),
+      page.getByRole("button", { name: "Step 2: Choose your accounts (done, go back)" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Tell us about your business" }),
     ).toBeVisible();
   });
 

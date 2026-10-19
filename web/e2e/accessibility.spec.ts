@@ -37,6 +37,7 @@ for (const theme of ["light", "dark"] as const) {
         "/setup/accounts",
         "/claude",
         "/campaigns",
+        "/leads",
         "/store",
       ]) {
         test(path, async ({ page }) => {

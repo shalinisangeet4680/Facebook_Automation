@@ -262,73 +262,76 @@ export class PlanService {
 
   async createInMeta(actor: AdsActor, id: string): Promise<PlanView> {
     let createdForm: TrackFormInput | null = null;
-    const view = await this.plans.transaction(async (tx) => {
-      const row = await this.plans.find(actor.workspaceId, id, tx, true);
-      if (!row) throw new NotFoundError("This plan doesn't exist.");
-      this.expect(
-        row.status,
-        "draft",
-        "This plan was already created in Meta.",
-      );
-      const plan = await this.validate(row.plan, actor.workspaceId);
-      if (
-        !plan.creative.imageUrl &&
-        !plan.creative.videoUrl &&
-        !plan.creative.post
-      ) {
-        throw new ValidationError(
-          "Add an image or a video to the ad before creating it in Meta.",
+    const failure: { message?: string } = {};
+    const view = await this.plans
+      .transaction(async (tx) => {
+        const row = await this.plans.find(actor.workspaceId, id, tx, true);
+        if (!row) throw new NotFoundError("This plan doesn't exist.");
+        this.expect(
+          row.status,
+          "draft",
+          "This plan was already created in Meta.",
         );
-      }
-      let result;
-      try {
-        result = await this.ads.createDraft(actor, draftInputFor(plan));
-      } catch (err) {
-        await this.plans.update(
+        const plan = await this.validate(row.plan, actor.workspaceId);
+        if (
+          !plan.creative.imageUrl &&
+          !plan.creative.videoUrl &&
+          !plan.creative.post
+        ) {
+          throw new ValidationError(
+            "Add an image or a video to the ad before creating it in Meta.",
+          );
+        }
+        let result;
+        try {
+          result = await this.ads.createDraft(actor, draftInputFor(plan));
+        } catch (err) {
+          failure.message =
+            err instanceof Error ? err.message : "Meta rejected the plan.";
+          throw err;
+        }
+        const meta: PlanMeta = {
+          campaignId: result.campaignId,
+          adSetId: result.adSetId,
+          creativeId: result.creativeId,
+          adId: result.adId,
+          adsManagerUrl: result.adsManagerUrl,
+          adAccountId: result.adAccountId,
+          ads: result.ads,
+          ...(result.leadFormId ? { leadFormId: result.leadFormId } : {}),
+        };
+        if (result.leadFormId && plan.leadForm)
+          createdForm = {
+            formId: result.leadFormId,
+            pageId: result.pageId,
+            name: plan.leadForm.name,
+            planId: row.id,
+            questions: formQuestions(plan.leadForm),
+          };
+        await this.record(actor, "plan.created_in_meta", row.id, {
+          campaignId: meta.campaignId,
+          adAccountId: result.adAccountId,
+          ads: result.ads.length,
+          ...(meta.leadFormId ? { leadFormId: meta.leadFormId } : {}),
+        });
+        return this.plans.update(
           row.id,
           {
-            error:
-              err instanceof Error ? err.message : "Meta rejected the plan.",
+            status: "created",
+            meta: meta as unknown as Record<string, unknown>,
+            adAccountId: result.adAccountId,
+            error: null,
           },
           tx,
         );
+      })
+      .catch(async (err: unknown) => {
+        if (failure.message !== undefined)
+          await this.plans
+            .update(id, { error: failure.message })
+            .catch(() => undefined);
         throw err;
-      }
-      const meta: PlanMeta = {
-        campaignId: result.campaignId,
-        adSetId: result.adSetId,
-        creativeId: result.creativeId,
-        adId: result.adId,
-        adsManagerUrl: result.adsManagerUrl,
-        adAccountId: result.adAccountId,
-        ads: result.ads,
-        ...(result.leadFormId ? { leadFormId: result.leadFormId } : {}),
-      };
-      if (result.leadFormId && plan.leadForm)
-        createdForm = {
-          formId: result.leadFormId,
-          pageId: result.pageId,
-          name: plan.leadForm.name,
-          planId: row.id,
-          questions: formQuestions(plan.leadForm),
-        };
-      await this.record(actor, "plan.created_in_meta", row.id, {
-        campaignId: meta.campaignId,
-        adAccountId: result.adAccountId,
-        ads: result.ads.length,
-        ...(meta.leadFormId ? { leadFormId: meta.leadFormId } : {}),
       });
-      return this.plans.update(
-        row.id,
-        {
-          status: "created",
-          meta: meta as unknown as Record<string, unknown>,
-          adAccountId: result.adAccountId,
-          error: null,
-        },
-        tx,
-      );
-    });
     if (createdForm) await this.trackForm(actor.workspaceId, createdForm);
     return this.view(actor.workspaceId, view);
   }

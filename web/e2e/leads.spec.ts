@@ -80,7 +80,7 @@ test("syncs, filters and follows up on leads", async ({ page }) => {
     .getByRole("button", { name: /Notes and details/ })
     .click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Notes").fill("Called, wants a demo on Monday");
+  await dialog.getByLabel("Notes").fill(`Called, wants a demo on Monday (${Date.now()})`);
   await dialog.getByRole("button", { name: "Save notes" }).click();
   await expect(page.getByText("Notes saved")).toBeVisible();
 

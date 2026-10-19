@@ -1,9 +1,12 @@
 import { NestFastifyApplication } from "@nestjs/platform-fastify";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import Redis from "ioredis";
 
 import { otpChallenges } from "@modules/auth/infrastructure/auth.tables";
 import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
+import { InboxService } from "@modules/inbox/application/inbox.service";
+import { Finding } from "@modules/inbox/domain/rules";
+import { suggestions } from "@modules/inbox/infrastructure/inbox.tables";
 import { resetMockAds } from "@modules/meta/infrastructure/mock-meta.ads";
 import { DATABASE, Database } from "@shared/database/database";
 
@@ -155,5 +158,146 @@ describe("Inbox", () => {
     await settings(5000);
     const run = await call(app, "POST", "/api/v1/inbox/refresh", { headers });
     expect(run.body.open).toBe(0);
+  });
+
+  describe("refresh with fixed findings", () => {
+    let service: InboxService;
+    let workspaceId = "";
+    let userId = "";
+    let found: Finding[] = [];
+    const finding = (rule: string, entityId: string): Finding => ({
+      rule,
+      severity: "warning",
+      entityType: "ad",
+      entityId,
+      entityName: `Ad ${entityId}`,
+      title: `${rule} on ${entityId}`,
+      body: "Check this ad.",
+      evidence: {},
+      action: { type: "pause", id: entityId },
+    });
+    const rows = (fingerprint: string) =>
+      db
+        .select()
+        .from(suggestions)
+        .where(
+          and(
+            eq(suggestions.workspaceId, workspaceId),
+            eq(suggestions.fingerprint, fingerprint),
+          ),
+        );
+    const actor = () => ({ userId, workspaceId, via: "app" });
+
+    beforeAll(async () => {
+      service = app.get(InboxService);
+      const user = await db.query.users.findFirst({
+        where: eq(users.phone, E164),
+      });
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.ownerId, user!.id),
+      });
+      workspaceId = workspace!.id;
+      userId = user!.id;
+      vi.spyOn(service, "findings").mockImplementation(() =>
+        Promise.resolve(found),
+      );
+    });
+
+    beforeEach(async () => {
+      await db
+        .delete(suggestions)
+        .where(eq(suggestions.workspaceId, workspaceId));
+    });
+
+    afterAll(() => vi.restoreAllMocks());
+
+    it("adds a repeated finding only once", async () => {
+      found = [finding("fatigue", "ad1"), finding("fatigue", "ad2")];
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 2,
+        open: 2,
+      });
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 0,
+        open: 2,
+      });
+      expect(await rows("fatigue:ad1")).toHaveLength(1);
+    });
+
+    it("expires open suggestions that are no longer found", async () => {
+      found = [finding("fatigue", "ad1"), finding("expensive", "ad2")];
+      await service.refresh(workspaceId);
+      found = [finding("expensive", "ad2")];
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 0,
+        open: 1,
+      });
+      const [expired] = await rows("fatigue:ad1");
+      expect(expired).toMatchObject({ status: "expired" });
+      expect(expired!.resolvedAt).toBeInstanceOf(Date);
+      found = [];
+      expect((await service.refresh(workspaceId)).open).toBe(0);
+    });
+
+    it("keeps a snoozed suggestion hidden until the snooze ends", async () => {
+      found = [finding("fatigue", "ad1")];
+      await service.refresh(workspaceId);
+      const [row] = await rows("fatigue:ad1");
+      await service.snooze(actor(), row!.id);
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 0,
+        open: 0,
+      });
+      await db
+        .update(suggestions)
+        .set({ snoozedUntil: new Date(Date.now() - 60_000) })
+        .where(eq(suggestions.id, row!.id));
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 0,
+        open: 1,
+      });
+      const after = await rows("fatigue:ad1");
+      expect(after).toHaveLength(1);
+      expect(after[0]).toMatchObject({ status: "open", snoozedUntil: null });
+    });
+
+    it("stays quiet after dismissal and brings an applied one back after three days", async () => {
+      found = [finding("fatigue", "ad1"), finding("no_results", "ad2")];
+      await service.refresh(workspaceId);
+      const [dismissed] = await rows("fatigue:ad1");
+      const [applied] = await rows("no_results:ad2");
+      await service.dismiss(actor(), dismissed!.id);
+      await db
+        .update(suggestions)
+        .set({ status: "applied", resolvedAt: new Date() })
+        .where(eq(suggestions.id, applied!.id));
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 0,
+        open: 0,
+      });
+      await db
+        .update(suggestions)
+        .set({ resolvedAt: new Date(Date.now() - 4 * 86_400_000) })
+        .where(eq(suggestions.workspaceId, workspaceId));
+      expect(await service.refresh(workspaceId)).toEqual({
+        created: 1,
+        open: 1,
+      });
+      expect(await rows("no_results:ad2")).toHaveLength(2);
+      expect(await rows("fatigue:ad1")).toHaveLength(1);
+    });
+
+    it("expires open and snoozed suggestions when the ad account changes", async () => {
+      found = [finding("fatigue", "ad1"), finding("expensive", "ad2")];
+      await service.refresh(workspaceId);
+      const [row] = await rows("fatigue:ad1");
+      await service.snooze(actor(), row!.id);
+      await service.onAdAccountSwitched({ workspaceId, userId });
+      const all = await db
+        .select()
+        .from(suggestions)
+        .where(eq(suggestions.workspaceId, workspaceId));
+      expect(all.map((r) => r.status)).toEqual(["expired", "expired"]);
+    });
   });
 });

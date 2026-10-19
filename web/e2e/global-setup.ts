@@ -8,9 +8,10 @@ function resetLocalState() {
   if (process.env.CI) return;
   const phones = [API_PHONE, ...Object.values(JOURNEY_PHONES)].map((p) => `'+91${p}'`).join(",");
   try {
-    execSync(`redis-cli -n 2 --scan --pattern "throttle:*" | xargs redis-cli -n 2 del`, {
-      stdio: "ignore",
-    });
+    for (const pattern of ["throttle:*", "ads:*", "reports:*", "social:*"])
+      execSync(`redis-cli -n 2 --scan --pattern "${pattern}" | xargs redis-cli -n 2 del`, {
+        stdio: "ignore",
+      });
     execSync(
       `psql -d ${process.env.E2E_DATABASE ?? "adpilot_e2e"} -qc "delete from otp_challenges where phone in (${phones}); delete from suggestions"`,
       {

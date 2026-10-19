@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import { IsBoolean, IsObject } from "class-validator";
 
 import { PlanTargetingDto } from "@modules/ads/interface/dto/audiences.dto";
@@ -166,6 +167,7 @@ export class ReplacePlanDto {
 }
 
 export class LaunchPlanDto {
+  @Transform(({ obj }) => (obj as { confirm?: unknown }).confirm)
   @IsBoolean()
   confirm: boolean;
 }
