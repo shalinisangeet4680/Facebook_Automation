@@ -214,8 +214,10 @@ test("duplicates a pre-built template and edits the copy", async ({ page }) => {
 test("filters the dashboard by app and period, and shows MCP access", async ({ page }) => {
   await page.goto("/reviews");
   await expect(page.getByText("What reviewers talk about")).toBeVisible();
-  await page.getByRole("button", { name: "30d" }).click();
-  await expect(page.getByText("Reply rate · 30d")).toBeVisible();
+  await expect(async () => {
+    await page.getByRole("button", { name: "30d" }).click();
+    await expect(page.getByText("Reply rate · 30d")).toBeVisible({ timeout: 2000 });
+  }).toPass();
   await expect(page.getByRole("img", { name: "Reviews vs. replies · 30 days" })).toBeVisible();
   await page.getByRole("button", { name: "All", exact: true }).click();
   await expect(page.getByText("Reply rate · all time")).toBeVisible();

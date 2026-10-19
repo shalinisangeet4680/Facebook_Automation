@@ -139,6 +139,7 @@ jobs:
       PLAY_MOCK: "true"
       AI_MOCK: "true"
       AUTH_GOOGLE_MOCK: "true"
+      META_ADS_LOGIN_CONFIG_ID: mock-ads-login-config
       APP_URL: http://localhost:3200
       OTP_TEST_NUMBERS: 9000000007:123456,9000000008:123456,9000000009:123456
       WEB_ORIGINS: http://localhost:3200
