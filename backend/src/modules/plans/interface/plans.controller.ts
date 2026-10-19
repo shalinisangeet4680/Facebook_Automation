@@ -18,7 +18,12 @@ import { ValidationError } from "@shared/errors/domain-error";
 import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
+import { PlanGeneratorService } from "../application/plan-generator.service";
 import { PlanService } from "../application/plan.service";
+import {
+  GeneratedCampaignPlanDto,
+  GenerateCampaignPlanDto,
+} from "./dto/generate-plan.dto";
 import {
   LaunchPlanDto,
   PlanDetailResponseDto,
@@ -37,7 +42,10 @@ const actor = (ctx: TenantContext): AdsActor => ({
 @ApiDefaultResponse({ type: ErrorResponseDto })
 @Controller("campaign-plans")
 export class PlansController {
-  constructor(private readonly plans: PlanService) {}
+  constructor(
+    private readonly plans: PlanService,
+    private readonly generator: PlanGeneratorService,
+  ) {}
 
   @Get()
   list(@CurrentUser() ctx: TenantContext): Promise<PlanListResponseDto> {
@@ -51,6 +59,43 @@ export class PlansController {
     @Body() body: ReplacePlanDto,
   ): Promise<PlanResponseDto> {
     return this.plans.propose(actor(ctx), body.plan);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("generate")
+  generate(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: GenerateCampaignPlanDto,
+  ): Promise<GeneratedCampaignPlanDto> {
+    return this.generator.generate(actor(ctx), {
+      goal: body.goal,
+      dailyBudget: body.dailyBudget,
+      locations: {
+        countries: (body.locations.countries ?? []).map((c) => c.toUpperCase()),
+        regions: (body.locations.regions ?? []).map((r) => ({
+          key: r.key,
+          name: r.name,
+        })),
+        cities: (body.locations.cities ?? []).map((c) => ({
+          key: c.key,
+          name: c.name,
+          radiusKm: c.radiusKm ?? null,
+        })),
+      },
+      ageMin: body.ageMin,
+      ageMax: body.ageMax,
+      audienceNotes: body.audienceNotes,
+      offer: body.offer,
+      landingUrl: body.landingUrl,
+      creative: body.creative
+        ? {
+            creativeId: body.creative.creativeId,
+            imageUrl: body.creative.imageUrl ?? null,
+            post: body.creative.post ?? null,
+          }
+        : undefined,
+      language: body.language,
+    });
   }
 
   @Get(":id")

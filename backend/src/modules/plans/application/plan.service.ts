@@ -58,7 +58,11 @@ export class PlanService {
     return `${appUrl(this.config)}/campaigns/plans/${id}`;
   }
 
-  async propose(actor: AdsActor, input: unknown): Promise<PlanView> {
+  async propose(
+    actor: AdsActor,
+    input: unknown,
+    details: Record<string, unknown> = {},
+  ): Promise<PlanView> {
     const plan = await this.validate(input, actor.workspaceId);
     const row = await this.plans.insert({
       workspaceId: actor.workspaceId,
@@ -66,7 +70,10 @@ export class PlanService {
       source: actor.via,
       plan: plan as unknown as Record<string, unknown>,
     });
-    await this.record(actor, "plan.proposed", row.id, { name: plan.name });
+    await this.record(actor, "plan.proposed", row.id, {
+      name: plan.name,
+      ...details,
+    });
     return toView(row);
   }
 

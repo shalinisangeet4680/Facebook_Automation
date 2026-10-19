@@ -7,6 +7,7 @@ import type {
   AssetSelection,
   AutomationSettingsUpdate,
   AuthorizationQuery,
+  CampaignBrief,
   CampaignPlan,
   Connection,
   Job,
@@ -231,6 +232,15 @@ export function usePlan(id: string) {
   return useQuery({
     queryKey: keys.plan(id),
     queryFn: () => unwrap(api.GET("/api/v1/campaign-plans/{id}", { params: { path: { id } } })),
+  });
+}
+
+export function useGeneratePlan() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CampaignBrief) =>
+      unwrap(api.POST("/api/v1/campaign-plans/generate", { body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.plans, exact: true }),
   });
 }
 

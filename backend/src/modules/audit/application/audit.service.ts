@@ -27,6 +27,15 @@ export class AuditService {
     }
   }
 
+  count(
+    workspaceId: string,
+    action: string,
+    since: Date,
+    match: Record<string, unknown> = {},
+  ): Promise<number> {
+    return this.audit.countSince(workspaceId, action, since, match);
+  }
+
   async list(
     workspaceId: string,
     limit = DEFAULT_PAGE_SIZE,

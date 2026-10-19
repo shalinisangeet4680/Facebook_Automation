@@ -199,10 +199,12 @@ export function LocationsEditor({
   targeting,
   onChange,
   disabled,
+  emptyText = "Whole of India (no locations chosen).",
 }: {
   targeting: Targeting;
   onChange: (next: Targeting) => void;
   disabled: boolean;
+  emptyText?: string;
 }) {
   const empty =
     !targeting.cities.length && !targeting.regions.length && !targeting.countries.length;
@@ -264,7 +266,7 @@ export function LocationsEditor({
             {code}
           </Chip>
         ))}
-        {empty ? <Empty>Whole of India (no locations chosen).</Empty> : null}
+        {empty ? <Empty>{emptyText}</Empty> : null}
       </Chips>
       {disabled ? null : (
         <Search

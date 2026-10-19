@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, Copy, Sparkles } from "lucide-react";
+import { Check, ChevronRight, Copy, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -51,9 +51,10 @@ function PromptCard() {
       <div
         style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 0 }}
       >
-        <h2 style={{ fontSize: 15, fontWeight: 600 }}>Plan a campaign with Claude</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 600 }}>Or plan it with Claude</h2>
         <span style={{ fontSize: 13, color: "#55534E" }}>
-          In Claude with the TreeVook connector on, paste this. The plan appears here for review.
+          Prefer to chat it through? In Claude with the TreeVook connector on, paste this. The plan
+          appears here for review.
         </span>
         <p
           style={{
@@ -117,11 +118,25 @@ function Plans() {
           No plans yet
         </span>
         <span style={{ fontSize: 13, color: MUTED, maxWidth: 420 }}>
-          Ask Claude to plan a campaign. It will show up here for you to review.
+          Start a new campaign here, or ask Claude to plan one. It will show up here for you to
+          review.
         </span>
-        <Link href="/claude" className="rp-btn-light" style={{ marginTop: 8 }}>
-          Set up Claude
-        </Link>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 8,
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <Link href="/campaigns/new" className="rp-btn">
+            <Plus size={14} /> New campaign
+          </Link>
+          <Link href="/claude" className="rp-btn-light">
+            Set up Claude
+          </Link>
+        </div>
       </div>
     );
   return (
@@ -162,7 +177,12 @@ export function PlansList() {
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <PageHead
         title="Campaigns"
-        sub="Claude proposes every setting with its reasons. You review, adjust and launch here."
+        sub="Answer a few questions and AI drafts every setting with its reasons. You review, adjust and launch here."
+        actions={
+          <Link href="/campaigns/new" className="rp-btn">
+            <Plus size={14} /> New campaign
+          </Link>
+        }
       />
       <PromptCard />
       <Section title="Plans">

@@ -644,6 +644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campaign-plans/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PlansController_generate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-plans/{id}": {
         parameters: {
             query?: never;
@@ -3340,6 +3356,59 @@ export interface components {
             error: string | null;
             createdAt: string;
             updatedAt: string;
+        };
+        BriefRegionDto: {
+            key: string;
+            name: string;
+        };
+        BriefCityDto: {
+            key: string;
+            name: string;
+            radiusKm?: number | null;
+        };
+        BriefLocationsDto: {
+            countries?: string[];
+            regions?: components["schemas"]["BriefRegionDto"][];
+            cities?: components["schemas"]["BriefCityDto"][];
+        };
+        BriefPostDto: {
+            /** @enum {string} */
+            platform: "facebook" | "instagram";
+            id: string;
+            permalink?: string | null;
+            imageUrl?: string | null;
+            text?: string | null;
+        };
+        BriefCreativeDto: {
+            /** Format: uuid */
+            creativeId?: string;
+            /** Format: uri */
+            imageUrl?: string | null;
+            post?: components["schemas"]["BriefPostDto"] | null;
+        };
+        GenerateCampaignPlanDto: {
+            /** @enum {string} */
+            goal: "traffic" | "leads" | "sales" | "awareness";
+            dailyBudget: number;
+            locations: components["schemas"]["BriefLocationsDto"];
+            ageMin?: number;
+            ageMax?: number;
+            audienceNotes?: string;
+            offer: string;
+            /** Format: uri */
+            landingUrl?: string;
+            creative?: components["schemas"]["BriefCreativeDto"];
+            language?: string;
+        };
+        GeneratedCampaignPlanDto: {
+            id: string;
+            name: string;
+            dailyBudget: number;
+            requestedDailyBudget: number;
+            budgetClamped: boolean;
+            currency: string;
+            ai: boolean;
+            usedTemplate: boolean;
         };
         GoalOptionDto: {
             name: string;
@@ -6998,6 +7067,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    PlansController_generate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCampaignPlanDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeneratedCampaignPlanDto"];
                 };
             };
             default: {

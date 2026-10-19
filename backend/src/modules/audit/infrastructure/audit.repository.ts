@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, lt, sql } from "drizzle-orm";
 
 import { DATABASE, Database } from "@shared/database/database";
 
@@ -19,6 +19,26 @@ export class AuditRepository {
       target: entry.target ?? null,
       data: entry.data ?? {},
     });
+  }
+
+  async countSince(
+    workspaceId: string,
+    action: string,
+    since: Date,
+    match: Record<string, unknown>,
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(auditEvents)
+      .where(
+        and(
+          eq(auditEvents.workspaceId, workspaceId),
+          eq(auditEvents.action, action),
+          gte(auditEvents.createdAt, since),
+          sql`${auditEvents.data} @> ${JSON.stringify(match)}::jsonb`,
+        ),
+      );
+    return row?.n ?? 0;
   }
 
   list(
