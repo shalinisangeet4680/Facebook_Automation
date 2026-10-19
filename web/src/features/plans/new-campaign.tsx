@@ -55,7 +55,11 @@ const ALL_STEPS: { id: StepId; title: string; sub: string }[] = [
     title: "Lead form",
     sub: "Choose what the instant form asks. AI writes the intro and thank-you screen.",
   },
-  { id: "image", title: "Add an image", sub: "Pick what the ad shows, or skip and add it later." },
+  {
+    id: "image",
+    title: "Add an image or video",
+    sub: "Pick what the ad shows, or skip and add it later.",
+  },
 ];
 
 const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six"];
@@ -85,7 +89,9 @@ const EMPTY: Draft = {
   offer: "",
   landingUrl: "",
   language: "",
-  visual: { imageUrl: null, post: null },
+  visual: { imageUrl: null, videoUrl: null, post: null },
+  audience: null,
+  variants: true,
   leadForm: {
     questions: ["FULL_NAME", "PHONE", "CITY"],
     privacyPolicyUrl: "",
@@ -136,9 +142,13 @@ function toBrief(draft: Draft): CampaignBrief {
             text: post.text ?? null,
           },
         }
-      : visual.imageUrl
-        ? { imageUrl: visual.imageUrl }
-        : undefined,
+      : visual.videoUrl
+        ? { videoUrl: visual.videoUrl }
+        : visual.imageUrl
+          ? { imageUrl: visual.imageUrl }
+          : undefined,
+    audienceId: draft.audience?.id,
+    variants: draft.variants && !post,
     leadForm:
       draft.goal === "instant_leads"
         ? {
@@ -276,7 +286,7 @@ function Builder({ initial }: { initial: Draft }) {
                   update({
                     goal,
                     ...(goal === "instant_leads" && draft.visual.post
-                      ? { visual: { imageUrl: null, post: null } }
+                      ? { visual: { imageUrl: null, videoUrl: null, post: null } }
                       : {}),
                   })
                 }
@@ -324,6 +334,8 @@ function Builder({ initial }: { initial: Draft }) {
                 visual={draft.visual}
                 imagesOnly={draft.goal === "instant_leads"}
                 onChange={(visual) => update({ visual })}
+                variants={draft.variants}
+                onVariants={(variants) => update({ variants })}
               />
               <TrackingGoalWarning goal={draft.goal} />
             </div>

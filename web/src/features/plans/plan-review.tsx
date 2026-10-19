@@ -6,6 +6,7 @@ import {
   ClipboardList,
   ExternalLink,
   Image as ImageIcon,
+  Layers,
   Megaphone,
   Rocket,
   Target,
@@ -31,6 +32,7 @@ import type { CampaignPlan, PlanDetail } from "@/lib/api/types";
 import { RpDialogClose, RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
 import { Banner, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
+import { CustomAudiencesEditor, SaveAudienceButton, SavedAudiencePicker } from "./audiences";
 import { CreativePicker } from "./creative-picker";
 import { CTA_LABELS, EVENT_LABELS, GOAL_LABELS, money, privacyFrom, sourceLabel } from "./labels";
 import {
@@ -46,6 +48,7 @@ import {
   StatusPill,
   WhoEditor,
 } from "./plan-sections";
+import { VariantsEditor } from "./variants-editor";
 
 const full: CSSProperties = { width: "100%" };
 
@@ -168,7 +171,9 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
   const [draft, setDraft] = useState<CampaignPlan>(detail.plan);
   const [launchOpen, setLaunchOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const hasVisual = Boolean(draft.creative.imageUrl || draft.creative.post);
+  const hasVisual = Boolean(
+    draft.creative.imageUrl || draft.creative.videoUrl || draft.creative.post,
+  );
   const save = useSavePlan(detail.id);
   const create = useCreatePlanInMeta(detail.id);
   const launch = useLaunchPlan(detail.id);
@@ -217,7 +222,13 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
   const set = <K extends keyof CampaignPlan>(key: K, value: CampaignPlan[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
   const setCreative = (patch: Partial<CampaignPlan["creative"]>) =>
-    setDraft((d) => ({ ...d, creative: { ...d.creative, ...patch } }));
+    setDraft((d) => ({
+      ...d,
+      creative: { ...d.creative, ...patch },
+      variants: patch.post ? (d.variants ?? []).map((v) => ({ ...v, enabled: false })) : d.variants,
+    }));
+  const versions =
+    1 + (draft.creative.post ? 0 : (draft.variants ?? []).filter((v) => v.enabled).length);
 
   const onSave = async () => {
     try {
@@ -327,10 +338,23 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 ? "Meta is delivering your ads. Ask Claude how it's doing any time."
                 : "Check it in Ads Manager if you like, then launch when you're ready."}
             </span>
+            {detail.adAccount ? (
+              <span style={{ fontSize: 12.5, color: MUTED }}>
+                In ad account {detail.adAccount.name} ({detail.adAccount.currency})
+                {detail.meta?.ads && detail.meta.ads.length > 1
+                  ? ` · ${detail.meta.ads.length} versions`
+                  : ""}
+              </span>
+            ) : null}
           </div>
           {detail.meta?.leadFormId ? (
             <Link href={`/leads?campaignId=${detail.meta.campaignId}`} className="rp-btn-light">
               <ClipboardList size={14} /> View leads
+            </Link>
+          ) : null}
+          {detail.meta ? (
+            <Link href={`/campaigns/${detail.meta.campaignId}`} className="rp-btn-light">
+              View results
             </Link>
           ) : null}
           {detail.meta ? (
@@ -394,6 +418,14 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
           </PlanSection>
 
           <PlanSection title="Audience" icon={<Users size={18} />} reason={draft.reasons.audience}>
+            {editable ? (
+              <SavedAudiencePicker
+                onPick={(a) => {
+                  set("targeting", a.targeting);
+                  toast(`Using “${a.name}”`);
+                }}
+              />
+            ) : null}
             <Group title="Locations">
               <LocationsEditor
                 targeting={draft.targeting}
@@ -461,6 +493,17 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 disabled={!editable}
               />
             </Group>
+            <Group
+              title="Custom audiences"
+              desc="Include or leave out people from your Meta custom audiences, like website visitors or customers."
+            >
+              <CustomAudiencesEditor
+                targeting={draft.targeting}
+                onChange={(t) => set("targeting", t)}
+                disabled={!editable}
+              />
+            </Group>
+            {editable ? <SaveAudienceButton targeting={draft.targeting} /> : null}
           </PlanSection>
 
           <PlanSection title="Budget" icon={<Wallet size={18} />} reason={draft.reasons.budget}>
@@ -517,10 +560,12 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                       ? ". Its own text and image are used."
                       : ". Its image and caption are used, with the link and button below."}
                   </>
+                ) : draft.creative.videoUrl ? (
+                  "Using a video from your library. Meta makes the thumbnail unless you add an image link below."
                 ) : draft.creative.imageUrl ? (
                   "Using an image from your library or link."
                 ) : (
-                  "No image yet. Pick one from your library or use a post."
+                  "No image or video yet. Pick one from your library or use a post."
                 )}
               </p>
               {editable ? (
@@ -541,7 +586,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                     style={{ padding: "6px 10px" }}
                     onClick={() => setPickerOpen(true)}
                   >
-                    {instant ? "Choose image" : "Choose image or post"}
+                    {instant ? "Choose image or video" : "Choose image, video or post"}
                   </button>
                 </div>
               ) : null}
@@ -562,51 +607,6 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 onChange={(e) => setCreative({ primaryText: e.target.value })}
               />
             </Field>
-            {draft.creative.alternatives.length && editable ? (
-              <Group title="Other versions from Claude">
-                {draft.creative.alternatives.map((alt, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      padding: 12,
-                      borderRadius: 10,
-                      border: "1px solid #EFEDE8",
-                    }}
-                  >
-                    <p
-                      style={{
-                        flex: "1 1 180px",
-                        minWidth: 0,
-                        fontSize: 13,
-                        lineHeight: 1.5,
-                        whiteSpace: "pre-line",
-                      }}
-                    >
-                      {alt}
-                    </p>
-                    <button
-                      type="button"
-                      className="rp-btn-light"
-                      style={{ padding: "6px 10px" }}
-                      onClick={() =>
-                        setCreative({
-                          primaryText: alt,
-                          alternatives: draft.creative.alternatives.map((a, j) =>
-                            j === i ? draft.creative.primaryText : a,
-                          ),
-                        })
-                      }
-                    >
-                      Use this
-                    </button>
-                  </div>
-                ))}
-              </Group>
-            ) : null}
             <Field label="Headline">
               <input
                 className="rp-input"
@@ -646,7 +646,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
               </Field>
             </div>
             <Field
-              label="Image link"
+              label={draft.creative.videoUrl ? "Thumbnail image link" : "Image link"}
               hint={
                 draft.creative.imageIdea ? (
                   <span style={{ display: "inline-flex", alignItems: "flex-start", gap: 4 }}>
@@ -666,6 +666,18 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 onChange={(e) => setCreative({ imageUrl: e.target.value || null })}
               />
             </Field>
+          </PlanSection>
+          <PlanSection
+            title="Versions to test"
+            icon={<Layers size={18} />}
+            reason="Meta shows every version to the same audience and splits the budget between them, so you learn which message works best. The campaign page marks the winner so far, and TreeVook suggests pausing a version that's clearly worse."
+          >
+            <VariantsEditor
+              plan={draft}
+              instant={instant}
+              disabled={!editable}
+              onChange={(variants) => set("variants", variants)}
+            />
           </PlanSection>
           {instant && draft.leadForm ? (
             <PlanSection
@@ -730,7 +742,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 className="rp-btn"
                 disabled={busy || Boolean(budgetError) || !hasVisual}
                 onClick={() => void onCreate()}
-                title={!hasVisual ? "Choose an image or post first" : undefined}
+                title={!hasVisual ? "Choose an image, video or post first" : undefined}
               >
                 {create.isPending ? <Spinner /> : null}
                 Create in Meta (paused)
@@ -778,6 +790,7 @@ function PlanEditor({ detail }: { detail: PlanDetail }) {
                 "Budget",
                 `${money(draft.dailyBudget, options.currency)} a day (about ${monthly} a month)`,
               ],
+              ...(versions > 1 ? [["Ads", `${versions} versions in one ad set`]] : []),
             ].map(([k, v], i) => (
               <div
                 key={k}

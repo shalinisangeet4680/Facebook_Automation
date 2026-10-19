@@ -13,6 +13,6 @@ import { LeadsController } from "./interface/leads.controller";
   imports: [MetaModule, EngineModule],
   controllers: [LeadsController],
   providers: [LeadsService, LeadSyncService, LeadsRepository, LeadScheduler],
-  exports: [LeadSyncService, LeadsService],
+  exports: [LeadSyncService, LeadsService, LeadScheduler],
 })
 export class LeadsModule {}

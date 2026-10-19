@@ -71,12 +71,14 @@ export class PlansController {
       goal: body.goal,
       dailyBudget: body.dailyBudget,
       locations: {
-        countries: (body.locations.countries ?? []).map((c) => c.toUpperCase()),
-        regions: (body.locations.regions ?? []).map((r) => ({
+        countries: (body.locations?.countries ?? []).map((c) =>
+          c.toUpperCase(),
+        ),
+        regions: (body.locations?.regions ?? []).map((r) => ({
           key: r.key,
           name: r.name,
         })),
-        cities: (body.locations.cities ?? []).map((c) => ({
+        cities: (body.locations?.cities ?? []).map((c) => ({
           key: c.key,
           name: c.name,
           radiusKm: c.radiusKm ?? null,
@@ -91,9 +93,12 @@ export class PlansController {
         ? {
             creativeId: body.creative.creativeId,
             imageUrl: body.creative.imageUrl ?? null,
+            videoUrl: body.creative.videoUrl ?? null,
             post: body.creative.post ?? null,
           }
         : undefined,
+      audienceId: body.audienceId,
+      variants: body.variants,
       language: body.language,
       leadForm: body.leadForm
         ? {

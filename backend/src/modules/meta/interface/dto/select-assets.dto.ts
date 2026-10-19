@@ -21,3 +21,9 @@ export class SelectAssetsDto {
   @Length(1, 64)
   datasetId?: string;
 }
+
+export class SwitchAdAccountDto {
+  @IsString()
+  @Length(1, 64)
+  adAccountId: string;
+}

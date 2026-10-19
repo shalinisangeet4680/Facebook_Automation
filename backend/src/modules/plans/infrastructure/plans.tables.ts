@@ -28,6 +28,7 @@ export const campaignPlans = pgTable(
     status: campaignPlanStatus("status").notNull().default("draft"),
     plan: jsonb("plan").$type<Record<string, unknown>>().notNull(),
     meta: jsonb("meta").$type<Record<string, unknown> | null>(),
+    adAccountId: text("ad_account_id"),
     error: text("error"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

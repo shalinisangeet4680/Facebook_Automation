@@ -41,6 +41,41 @@ const MAX_AD_ACCOUNTS_FOR_DATASETS = 10;
 
 export type MetaActor = Pick<TenantContext, "workspaceId" | "userId">;
 
+export interface AdAccountSwitch {
+  adAccount: { id: string; name: string; currency: string };
+  changed: boolean;
+  dataset: "kept" | "switched" | "cleared";
+  needsReview: boolean;
+  connection: ConnectionView;
+}
+
+export function datasetBelongs(
+  dataset: Pick<MetaAssetRow, "data">,
+  adAccountId: string,
+): boolean {
+  const ids = dataset.data.adAccountIds;
+  if (Array.isArray(ids)) return ids.includes(adAccountId);
+  const single = dataset.data.adAccountId;
+  return typeof single !== "string" || single === adAccountId;
+}
+
+export function datasetFor(
+  rows: Pick<MetaAssetRow, "kind" | "externalId" | "isPrimary" | "data">[],
+  adAccountId: string,
+):
+  | { action: "keep" }
+  | { action: "select"; datasetId: string }
+  | { action: "clear" } {
+  const datasets = rows.filter((r) => r.kind === "dataset");
+  const current = datasets.find((d) => d.isPrimary);
+  if (current && datasetBelongs(current, adAccountId))
+    return { action: "keep" };
+  const fitting = datasets.filter((d) => datasetBelongs(d, adAccountId));
+  if (fitting.length === 1)
+    return { action: "select", datasetId: fitting[0]!.externalId };
+  return current ? { action: "clear" } : { action: "keep" };
+}
+
 export interface AssetSelection {
   adAccountId?: string;
   pageId?: string;
@@ -166,6 +201,16 @@ export class MetaConnectionService {
   ): Promise<ConnectionView> {
     if (!(await this.connections.find(ctx.workspaceId)))
       throw metaNotConnected();
+    const rows = selection.adAccountId
+      ? await this.assets.list(ctx.workspaceId)
+      : [];
+    const before = rows.find(
+      (r) => r.kind === "ad_account" && r.isPrimary,
+    )?.externalId;
+    const dataset =
+      selection.adAccountId && !selection.datasetId
+        ? datasetFor(rows, selection.adAccountId)
+        : null;
     const wanted: [MetaAssetKind, string | undefined][] = [
       ["ad_account", selection.adAccountId],
       ["page", selection.pageId],
@@ -187,6 +232,15 @@ export class MetaConnectionService {
           );
         }
       }
+      if (dataset?.action === "select")
+        await this.assets.setPrimary(
+          ctx.workspaceId,
+          "dataset",
+          dataset.datasetId,
+          tx,
+        );
+      if (dataset?.action === "clear")
+        await this.assets.clearPrimary(ctx.workspaceId, "dataset", tx);
     });
     await this.audit.record({
       workspaceId: ctx.workspaceId,
@@ -199,7 +253,88 @@ export class MetaConnectionService {
       workspaceId: ctx.workspaceId,
       userId: ctx.userId,
     } satisfies MetaConnectedEvent);
+    if (selection.adAccountId && before !== selection.adAccountId)
+      await this.events.emitAsync(META_EVENTS.AD_ACCOUNT_SWITCHED, {
+        workspaceId: ctx.workspaceId,
+        userId: ctx.userId,
+      } satisfies MetaConnectedEvent);
     return this.buildView(ctx.workspaceId);
+  }
+
+  async switchAdAccount(
+    ctx: TenantContext,
+    adAccountId: string,
+  ): Promise<AdAccountSwitch> {
+    if (!(await this.connections.find(ctx.workspaceId)))
+      throw metaNotConnected();
+    const rows = await this.assets.list(ctx.workspaceId);
+    const target = rows.find(
+      (r) => r.kind === "ad_account" && r.externalId === adAccountId,
+    );
+    if (!target)
+      throw new NotFoundError(
+        "That ad account isn't available in your connected account.",
+      );
+    const previous = rows.find((r) => r.kind === "ad_account" && r.isPrimary);
+    const plan = datasetFor(rows, adAccountId);
+    await this.db.transaction(async (tx) => {
+      await this.assets.setPrimary(
+        ctx.workspaceId,
+        "ad_account",
+        adAccountId,
+        tx,
+      );
+      if (plan.action === "select")
+        await this.assets.setPrimary(
+          ctx.workspaceId,
+          "dataset",
+          plan.datasetId,
+          tx,
+        );
+      if (plan.action === "clear")
+        await this.assets.clearPrimary(ctx.workspaceId, "dataset", tx);
+    });
+    const changed = previous?.externalId !== adAccountId;
+    await this.audit.record({
+      workspaceId: ctx.workspaceId,
+      actor: "user",
+      actorId: ctx.userId,
+      action: "meta.ad_account_switched",
+      target: adAccountId,
+      data: {
+        from: previous?.externalId ?? null,
+        to: adAccountId,
+        dataset: plan.action,
+      },
+    });
+    if (changed) {
+      await this.events.emitAsync(META_EVENTS.AD_ACCOUNT_SWITCHED, {
+        workspaceId: ctx.workspaceId,
+        userId: ctx.userId,
+      } satisfies MetaConnectedEvent);
+      this.events.emit(META_EVENTS.ASSETS_SELECTED, {
+        workspaceId: ctx.workspaceId,
+        userId: ctx.userId,
+      } satisfies MetaConnectedEvent);
+    }
+    const connection = await this.buildView(ctx.workspaceId);
+    const currency = target.data.currency;
+    return {
+      adAccount: {
+        id: target.externalId,
+        name: target.name,
+        currency: typeof currency === "string" ? currency : "INR",
+      },
+      changed,
+      dataset:
+        plan.action === "keep"
+          ? "kept"
+          : plan.action === "select"
+            ? "switched"
+            : "cleared",
+      needsReview: plan.action === "clear",
+      connection,
+    };
   }
 
   async disconnect(ctx: TenantContext): Promise<void> {
@@ -294,6 +429,11 @@ export class MetaConnectionService {
           .map((a) => this.graph.datasets(token, a.id)),
       )
     ).flat();
+    const datasetAccounts = new Map<string, string[]>();
+    for (const d of datasets)
+      datasetAccounts.set(d.id, [
+        ...new Set([...(datasetAccounts.get(d.id) ?? []), d.adAccountId]),
+      ]);
     const uniqueDatasets = [
       ...new Map(datasets.map((d) => [d.id, d])).values(),
     ];
@@ -347,6 +487,7 @@ export class MetaConnectionService {
       ...uniqueDatasets.map((d) =>
         asset("dataset", d.id, d.name, {
           adAccountId: d.adAccountId,
+          adAccountIds: datasetAccounts.get(d.id) ?? [d.adAccountId],
           lastFiredTime: d.lastFiredTime,
           isUnavailable: d.isUnavailable,
         }),

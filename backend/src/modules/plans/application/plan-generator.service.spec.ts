@@ -1,4 +1,5 @@
 import { AdsService } from "@modules/ads/application/ads.service";
+import { AudiencesService } from "@modules/ads/application/audiences.service";
 import { AuditService } from "@modules/audit/application/audit.service";
 import { CreativesService } from "@modules/creatives/application/creatives.service";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
@@ -82,6 +83,7 @@ function setup(ai: PlanAi) {
     workspaceAi,
     {} as AuditService,
     ai,
+    {} as AudiencesService,
   );
   return { service, proposed };
 }
@@ -247,6 +249,7 @@ describe("PlanGeneratorService", () => {
       } as unknown as WorkspaceAiService,
       {} as AuditService,
       { write: () => Promise.reject(new Error()) },
+      {} as AudiencesService,
     );
     await expect(
       noSite.generate(actor, { ...request, goal: "instant_leads" }),
@@ -264,6 +267,6 @@ describe("PlanGeneratorService", () => {
         goal: "instant_leads",
         creative: { post: { platform: "facebook", id: "1_2" } },
       }),
-    ).rejects.toThrow("image, not an existing post");
+    ).rejects.toThrow("image or video, not an existing post");
   });
 });

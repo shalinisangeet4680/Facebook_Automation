@@ -88,6 +88,19 @@ export class MetaAssetRepository {
     return true;
   }
 
+  async clearPrimary(
+    workspaceId: string,
+    kind: MetaAssetKind,
+    tx: Executor = this.db,
+  ): Promise<void> {
+    await tx
+      .update(metaAssets)
+      .set({ isPrimary: false })
+      .where(
+        and(eq(metaAssets.workspaceId, workspaceId), eq(metaAssets.kind, kind)),
+      );
+  }
+
   async autoSelectSingles(
     workspaceId: string,
     tx: Executor = this.db,

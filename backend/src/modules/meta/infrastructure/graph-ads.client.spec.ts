@@ -70,6 +70,7 @@ describe("GraphAdsClient", () => {
       adSetId: "s1",
       creativeId: "cr1",
       adId: "a1",
+      ads: [{ label: "", adId: "a1", creativeId: "cr1" }],
     });
     const bodies = fetchMock.mock.calls.map(
       ([, init]) => init?.body as URLSearchParams,
@@ -259,6 +260,267 @@ describe("GraphAdsClient", () => {
     });
   });
 
+  describe("video ads", () => {
+    const urlOf = (i: number) => fetchMock.mock.calls[i]![0] as string;
+    const bodyOf = (i: number) =>
+      fetchMock.mock.calls[i]![1]?.body as URLSearchParams;
+    const video = {
+      ...draft.creative,
+      imageUrl: "https://cdn.example.com/thumb.jpg",
+      videoId: "v1",
+    };
+
+    it("uploads from the public url, waits until Meta has processed it and reads the thumbnail", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ id: "v1" }))
+        .mockResolvedValueOnce(json({ status: { video_status: "processing" } }))
+        .mockResolvedValueOnce(json({ status: { video_status: "processing" } }))
+        .mockResolvedValueOnce(json({ status: { video_status: "ready" } }))
+        .mockResolvedValueOnce(
+          json({
+            picture: "https://cdn.example.com/small.jpg",
+            thumbnails: {
+              data: [
+                { uri: "https://cdn.example.com/1.jpg", is_preferred: false },
+                { uri: "https://cdn.example.com/2.jpg", is_preferred: true },
+              ],
+            },
+          }),
+        );
+      const result = await client.uploadVideo(
+        "tok",
+        "act_1",
+        "https://app.example.com/media/clip.mp4",
+        "Clinic tour",
+      );
+      expect(result).toEqual({
+        videoId: "v1",
+        thumbnailUrl: "https://cdn.example.com/2.jpg",
+      });
+      expect(urlOf(0)).toContain("/act_1/advideos");
+      expect(bodyOf(0).get("file_url")).toBe(
+        "https://app.example.com/media/clip.mp4",
+      );
+      expect(urlOf(1)).toContain("/v1?fields=status");
+      expect(urlOf(4)).toContain("/v1?fields=picture%2Cthumbnails");
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+    });
+
+    it("fails with Meta's processing error and gives up after the timeout", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ id: "v1" }))
+        .mockResolvedValueOnce(json({ status: { video_status: "error" } }));
+      await expect(
+        client.uploadVideo("tok", "act_1", "https://x.example/a.mp4", "A"),
+      ).rejects.toMatchObject({
+        code: "META_REJECTED",
+        message: expect.stringContaining("couldn't process this video"),
+      });
+
+      fetchMock.mockReset();
+      fetchMock.mockImplementation((url) =>
+        Promise.resolve(
+          (url as string).includes("advideos")
+            ? json({ id: "v2" })
+            : json({ status: { video_status: "processing" } }),
+        ),
+      );
+      await expect(
+        client.uploadVideo("tok", "act_1", "https://x.example/a.mp4", "A"),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("still processing"),
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(41);
+    });
+
+    it("builds video_data with the thumbnail, text and button", async () => {
+      fetchMock.mockImplementation(() => Promise.resolve(json({ id: "x1" })));
+      await client.createDraft("tok", { ...draft, creative: video });
+      const spec = JSON.parse(bodyOf(2).get("object_story_spec")!);
+      expect(spec).toEqual({
+        page_id: "p1",
+        video_data: {
+          video_id: "v1",
+          message: "Hello",
+          title: "Head",
+          image_url: "https://cdn.example.com/thumb.jpg",
+          call_to_action: {
+            type: "LEARN_MORE",
+            value: { link: "https://example.com/" },
+          },
+        },
+      });
+    });
+
+    it("points a video lead ad's button at the instant form", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: "page-tok" }))
+        .mockResolvedValueOnce(json({ id: "f1" }))
+        .mockImplementation(() => Promise.resolve(json({ id: "x1" })));
+      await client.createDraft("tok", {
+        ...draft,
+        creative: { ...video, callToAction: "SIGN_UP" },
+        leadForm: {
+          pageId: "p1",
+          name: "Form",
+          locale: "EN_US",
+          intro: { headline: "Hi", description: null },
+          questions: ["FULL_NAME", "PHONE"],
+          customQuestions: [],
+          privacyPolicyUrl: "https://example.com/privacy",
+          thankYou: {
+            title: "Thanks",
+            body: "Soon",
+            button: { type: "website", text: "Visit", url: "https://e.com/" },
+          },
+        },
+      });
+      const spec = JSON.parse(bodyOf(4).get("object_story_spec")!);
+      expect(spec.video_data.call_to_action).toEqual({
+        type: "SIGN_UP",
+        value: { lead_gen_form_id: "f1" },
+      });
+      expect(spec.link_data).toBeUndefined();
+    });
+
+    it("keeps the video when a video ad's text is edited", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ id: "cr9" }))
+        .mockResolvedValueOnce(json({ success: true }));
+      await client.replaceCreative("tok", {
+        adAccountId: "act_1",
+        adId: "a1",
+        name: "Ad – edited",
+        creative: { ...video, message: "New text" },
+      });
+      const spec = JSON.parse(bodyOf(0).get("object_story_spec")!);
+      expect(spec.video_data).toMatchObject({
+        video_id: "v1",
+        message: "New text",
+      });
+    });
+
+    it("reads a video ad's creative back", () => {
+      const ad = toAd({
+        id: "a1",
+        name: "Video",
+        adset_id: "s1",
+        status: "ACTIVE",
+        effective_status: "ACTIVE",
+        creative: {
+          id: "cr1",
+          thumbnail_url: "https://cdn.example.com/t.jpg",
+          object_story_spec: {
+            page_id: "p1",
+            video_data: {
+              video_id: "v1",
+              message: "Watch this",
+              title: "Tour",
+              image_url: "https://cdn.example.com/t.jpg",
+              call_to_action: {
+                type: "SIGN_UP",
+                value: { lead_gen_form_id: "f1" },
+              },
+            },
+          },
+        },
+      });
+      expect(ad.creative).toMatchObject({
+        kind: "video",
+        videoId: "v1",
+        body: "Watch this",
+        title: "Tour",
+        callToAction: "SIGN_UP",
+        leadFormId: "f1",
+        imageUrl: "https://cdn.example.com/t.jpg",
+      });
+    });
+  });
+
+  describe("ad variants", () => {
+    const variants = [
+      {
+        label: "B",
+        creative: { ...draft.creative, message: "Second", headline: "Two" },
+      },
+      {
+        label: "C",
+        creative: { ...draft.creative, message: "Third", headline: "Three" },
+      },
+    ];
+
+    it("creates one paused ad per version in the same ad set", async () => {
+      let n = 0;
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(json({ id: `id${++n}` })),
+      );
+      const result = await client.createDraft("tok", { ...draft, variants });
+      expect(result.ads).toEqual([
+        { label: "A", creativeId: "id3", adId: "id4" },
+        { label: "B", creativeId: "id5", adId: "id6" },
+        { label: "C", creativeId: "id7", adId: "id8" },
+      ]);
+      expect(result).toMatchObject({ adId: "id4", creativeId: "id3" });
+      const bodies = fetchMock.mock.calls.map(
+        ([, init]) => init?.body as URLSearchParams,
+      );
+      for (const i of [3, 5, 7]) {
+        expect(bodies[i]!.get("adset_id")).toBe("id2");
+        expect(bodies[i]!.get("status")).toBe("PAUSED");
+      }
+      expect(bodies[7]!.get("name")).toBe("Test – Version C");
+      expect(
+        JSON.parse(bodies[4]!.get("object_story_spec")!).link_data,
+      ).toMatchObject({ message: "Second", name: "Two" });
+    });
+
+    it("deletes the whole campaign when a later version is rejected", async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ id: "c1" }))
+        .mockResolvedValueOnce(json({ id: "s1" }))
+        .mockResolvedValueOnce(json({ id: "cr1" }))
+        .mockResolvedValueOnce(json({ id: "a1" }))
+        .mockResolvedValueOnce(json({ id: "cr2" }))
+        .mockResolvedValueOnce(
+          json({ error: { code: 100, message: "Text too long" } }, 400),
+        )
+        .mockResolvedValueOnce(json({ success: true }));
+      await expect(
+        client.createDraft("tok", { ...draft, variants }),
+      ).rejects.toMatchObject({ code: "META_REJECTED" });
+      const last = fetchMock.mock.calls[6]!;
+      expect(last[0] as string).toContain("/c1");
+      expect(last[1]?.method).toBe("DELETE");
+      expect(fetchMock).toHaveBeenCalledTimes(7);
+    });
+  });
+
+  it("lists the ad account's custom audiences", async () => {
+    fetchMock.mockResolvedValueOnce(
+      json({
+        data: [
+          {
+            id: "238",
+            name: "Visitors",
+            subtype: "WEBSITE",
+            approximate_count_lower_bound: 1000,
+          },
+        ],
+      }),
+    );
+    expect(await client.customAudiences("tok", "act_1")).toEqual([
+      {
+        id: "238",
+        name: "Visitors",
+        subtype: "WEBSITE",
+        approximateCount: 1000,
+      },
+    ]);
+    expect(fetchMock.mock.calls[0]![0] as string).toContain(
+      "/act_1/customaudiences",
+    );
+  });
+
   it("tells link ads apart from ads that run on an existing post", () => {
     const base = {
       id: "a1",
@@ -369,6 +631,7 @@ describe("GraphAdsClient", () => {
         adSetId: "s1",
         creativeId: "cr1",
         adId: "a1",
+        ads: [{ label: "", adId: "a1", creativeId: "cr1" }],
         leadFormId: "f1",
       });
       expect(urlOf(0)).toContain("/p1?fields=access_token");

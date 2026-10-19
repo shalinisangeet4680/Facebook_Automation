@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, ImageIcon, Pencil } from "lucide-react";
+import { ExternalLink, ImageIcon, Pencil, Trophy } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -8,9 +8,15 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { ApiError, errorMessage } from "@/lib/api/errors";
 import { useAdCampaign } from "@/lib/api/queries";
-import type { AdMetrics, AdRow, CampaignDetail, ReportPreset } from "@/lib/api/types";
+import type {
+  AdMetrics,
+  AdRow,
+  CampaignDetail,
+  ReportPreset,
+  VariantComparison,
+} from "@/lib/api/types";
 import { CTA_LABELS } from "@/features/plans/labels";
-import { displaySrc } from "@/features/plans/creative-picker";
+import { PlayBadge, displaySrc } from "@/features/plans/creative-picker";
 import { Banner, Seg, Section, Skel } from "@/features/replyly/ui";
 
 import { BudgetDialog, DeliveryPill, EmptyCard, StatusSwitch } from "./controls";
@@ -166,6 +172,10 @@ function Header({
             <span aria-hidden>·</span>
             <span>
               {c.adSetCount} ad set{c.adSetCount === 1 ? "" : "s"}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {data.adAccount.name} ({data.currency})
             </span>
           </span>
         </div>
@@ -346,15 +356,35 @@ function AdSets({ data }: { data: CampaignDetail }) {
   );
 }
 
-function AdCard({ ad, data }: { ad: AdRow; data: CampaignDetail }) {
+const BASIS: Record<string, string> = {
+  cost_per_result: "Lowest cost per result",
+  ctr: "Most clicks so far",
+};
+
+function AdCard({
+  ad,
+  data,
+  winner,
+}: {
+  ad: AdRow;
+  data: CampaignDetail;
+  winner?: VariantComparison | null;
+}) {
   const [editing, setEditing] = useState(false);
   const c = ad.creative;
   const image = displaySrc(c.thumbnailUrl ?? c.imageUrl);
   const m = ad.metrics;
+  const video = c.kind === "video";
   return (
     <li
       className="rp-card"
-      style={{ overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}
+      style={{
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        ...(winner ? { borderColor: "#0F6B4A", boxShadow: "0 0 0 1px #0F6B4A" } : {}),
+      }}
     >
       <span
         style={{
@@ -367,6 +397,27 @@ function AdCard({ ad, data }: { ad: AdRow; data: CampaignDetail }) {
           color: MUTED,
         }}
       >
+        {winner ? (
+          <span
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              zIndex: 1,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "3px 9px",
+              borderRadius: 999,
+              background: "#0F6B4A",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            <Trophy size={12} aria-hidden /> Winner so far
+          </span>
+        ) : null}
         {image ? (
           <Image
             unoptimized
@@ -379,6 +430,7 @@ function AdCard({ ad, data }: { ad: AdRow; data: CampaignDetail }) {
         ) : (
           <ImageIcon size={22} aria-hidden />
         )}
+        {video ? <PlayBadge size={44} /> : null}
       </span>
       <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
         <div
@@ -391,9 +443,13 @@ function AdCard({ ad, data }: { ad: AdRow; data: CampaignDetail }) {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <span style={{ fontWeight: 600, overflowWrap: "anywhere" }}>{ad.name}</span>
-            <span>
+            <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <DeliveryPill status={ad.effectiveStatus} />
+              {video ? <span style={{ fontSize: 12, color: MUTED }}>Video</span> : null}
             </span>
+            {winner?.basis ? (
+              <span style={{ fontSize: 12, color: "#0F6B4A" }}>{BASIS[winner.basis]}</span>
+            ) : null}
           </div>
           <StatusSwitch
             level="ad"
@@ -452,7 +508,7 @@ function AdCard({ ad, data }: { ad: AdRow; data: CampaignDetail }) {
           <span style={{ fontSize: 12.5, color: MUTED }}>
             Created from a post; edit it on Facebook/Instagram.
           </span>
-        ) : c.kind === "other" ? (
+        ) : c.kind === "other" || !c.editable ? (
           <span style={{ fontSize: 12.5, color: MUTED }}>
             This ad format can be edited in Ads Manager.
           </span>
@@ -478,7 +534,11 @@ function Ads({ data }: { data: CampaignDetail }) {
     return <EmptyCard title="No ads" text="This campaign doesn’t have any ads yet." />;
   const names = new Map(data.adSets.map((s) => [s.id, s.name]));
   const groups = data.adSets
-    .map((s) => ({ id: s.id, ads: data.ads.filter((a) => a.adSetId === s.id) }))
+    .map((s) => ({
+      id: s.id,
+      ads: data.ads.filter((a) => a.adSetId === s.id),
+      comparison: data.comparisons.find((c) => c.adSetId === s.id) ?? null,
+    }))
     .filter((g) => g.ads.length);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -486,6 +546,40 @@ function Ads({ data }: { data: CampaignDetail }) {
         <div key={g.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {groups.length > 1 ? (
             <span style={{ fontSize: 12.5, color: MUTED }}>In {names.get(g.id)}</span>
+          ) : null}
+          {g.comparison ? (
+            <div
+              role="status"
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
+                padding: "10px 12px",
+                borderRadius: 10,
+                background: g.comparison.winnerId ? "#F1F5F2" : "#FAF9F7",
+                border: "1px solid #EFEDE8",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              <Trophy
+                size={14}
+                color={g.comparison.winnerId ? "#0F6B4A" : MUTED}
+                style={{ marginTop: 3, flexShrink: 0 }}
+                aria-hidden
+              />
+              <span>
+                <span style={{ fontWeight: 600 }}>
+                  Comparing {g.ads.length} versions side by side.
+                </span>{" "}
+                {g.comparison.winnerId
+                  ? `“${g.ads.find((a) => a.id === g.comparison!.winnerId)?.name ?? "One version"}” is winning so far.`
+                  : null}{" "}
+                {g.comparison.note ? (
+                  <span style={{ color: MUTED }}>{g.comparison.note}</span>
+                ) : null}
+              </span>
+            </div>
           ) : null}
           <ul
             style={{
@@ -498,7 +592,12 @@ function Ads({ data }: { data: CampaignDetail }) {
             }}
           >
             {g.ads.map((ad) => (
-              <AdCard key={ad.id} ad={ad} data={data} />
+              <AdCard
+                key={ad.id}
+                ad={ad}
+                data={data}
+                winner={g.comparison?.winnerId === ad.id ? g.comparison : null}
+              />
             ))}
           </ul>
         </div>
@@ -572,7 +671,7 @@ function Body({ id }: { id: string }) {
       </Section>
       <Section
         title="Ads"
-        desc="What people see. Edits create a new version that Meta reviews again."
+        desc="What people see. Ads in the same ad set are compared side by side. Edits create a new version that Meta reviews again."
       >
         <Ads data={data} />
       </Section>

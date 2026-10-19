@@ -1,7 +1,9 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 
 import { AdsService } from "@modules/ads/application/ads.service";
+import { AudiencesService } from "@modules/ads/application/audiences.service";
 import { AdsActor } from "@modules/ads/domain/ads.types";
+import { PlanTargeting } from "@modules/ads/domain/audience";
 import { GOALS, Goal } from "@modules/ads/domain/goals";
 import {
   DEFAULT_PREFILL_QUESTIONS,
@@ -46,8 +48,11 @@ export interface GeneratePlanInput {
   creative?: {
     creativeId?: string;
     imageUrl?: string | null;
+    videoUrl?: string | null;
     post?: PlanPost | null;
   };
+  audienceId?: string;
+  variants?: boolean;
   language?: string;
   leadForm?: {
     questions?: PrefillQuestion[];
@@ -83,6 +88,7 @@ export class PlanGeneratorService {
     private readonly workspaceAi: WorkspaceAiService,
     audit: AuditService,
     @Inject(PLAN_AI) private readonly ai: PlanAi,
+    private readonly audiences: AudiencesService,
   ) {
     workspaceAi.registerDraftCounter("plans", (workspaceId, since) =>
       audit.count(workspaceId, QUOTA_ACTION, since, { ai: true }),
@@ -91,10 +97,14 @@ export class PlanGeneratorService {
 
   async generate(
     actor: AdsActor,
-    request: GeneratePlanInput,
+    brief: GeneratePlanInput,
   ): Promise<GeneratedPlan> {
-    this.check(request);
     const ws = actor.workspaceId;
+    const audience = brief.audienceId
+      ? (await this.audiences.get(ws, brief.audienceId)).targeting
+      : null;
+    const request = audience ? this.withAudience(brief, audience) : brief;
+    this.check(request);
     const account = await this.ads.account(ws);
     const [targets, profile, context, visual] = await Promise.all([
       this.settings.targets(ws),
@@ -137,7 +147,7 @@ export class PlanGeneratorService {
       locations: locationNames(request.locations),
       ageMin: request.ageMin ?? null,
       ageMax: request.ageMax ?? null,
-      hasVisual: Boolean(visual.imageUrl || visual.post),
+      hasVisual: Boolean(visual.imageUrl || visual.videoUrl || visual.post),
       business: {
         name: account.business?.name ?? null,
         page: account.page?.name ?? null,
@@ -163,12 +173,15 @@ export class PlanGeneratorService {
       locations: request.locations,
       linkUrl,
       imageUrl: visual.imageUrl,
+      videoUrl: visual.videoUrl,
       post: visual.post,
       leadForm,
+      variants: request.variants ?? true,
+      audience,
     };
 
     const { copy, ai } = await this.write(ws, input);
-    const interests = await this.interests(ws, copy.interests);
+    const interests = audience ? [] : await this.interests(ws, copy.interests);
     const built = buildPlan(ctx, copy, interests);
     if (built.usedTemplate)
       this.logger.warn(
@@ -180,6 +193,8 @@ export class PlanGeneratorService {
       ai,
       usedTemplate: built.usedTemplate,
       budgetClamped: budget.clamped,
+      ...(brief.audienceId ? { audienceId: brief.audienceId } : {}),
+      variants: built.plan.variants.length,
     });
     return {
       id: view.id,
@@ -190,6 +205,22 @@ export class PlanGeneratorService {
       currency: account.currency,
       ai,
       usedTemplate: built.usedTemplate,
+    };
+  }
+
+  private withAudience(
+    request: GeneratePlanInput,
+    t: PlanTargeting,
+  ): GeneratePlanInput {
+    return {
+      ...request,
+      locations: {
+        countries: t.countries,
+        regions: t.regions,
+        cities: t.cities,
+      },
+      ageMin: t.ageMin,
+      ageMax: t.ageMax,
     };
   }
 
@@ -210,11 +241,17 @@ export class PlanGeneratorService {
       throw new ValidationError(
         "Add the web page people should visit for this goal.",
       );
-    if (request.creative?.imageUrl && request.creative.post)
-      throw new ValidationError("Choose either an image or a post, not both.");
+    const c = request.creative;
+    if (
+      [c?.imageUrl, c?.videoUrl, c?.post, c?.creativeId].filter(Boolean)
+        .length > 1
+    )
+      throw new ValidationError(
+        "Choose one image, video or post for the ad, not several.",
+      );
     if (GOALS[request.goal].instantForm && request.creative?.post)
       throw new ValidationError(
-        "Instant form ads need an image, not an existing post.",
+        "Instant form ads need an image or video, not an existing post.",
       );
     const questions = request.leadForm?.questions;
     if (
@@ -262,21 +299,30 @@ export class PlanGeneratorService {
   private async visual(
     workspaceId: string,
     creative: GeneratePlanInput["creative"],
-  ): Promise<{ imageUrl: string | null; post: PlanPost | null }> {
-    if (creative?.post) return { imageUrl: null, post: creative.post };
+  ): Promise<{
+    imageUrl: string | null;
+    videoUrl: string | null;
+    post: PlanPost | null;
+  }> {
+    if (creative?.post)
+      return { imageUrl: null, videoUrl: null, post: creative.post };
     if (creative?.creativeId) {
       const view = this.creatives.view(
         await this.creatives.get(workspaceId, creative.creativeId),
       );
-      if (view.kind !== "image")
-        throw new ValidationError("Choose an image, not a video.");
       if (!view.url.startsWith("https://"))
         throw new ValidationError(
-          "This image isn't on a public https address yet, so Meta can't use it.",
+          `This ${view.kind} isn't on a public https address yet, so Meta can't use it.`,
         );
-      return { imageUrl: view.url, post: null };
+      return view.kind === "video"
+        ? { imageUrl: null, videoUrl: view.url, post: null }
+        : { imageUrl: view.url, videoUrl: null, post: null };
     }
-    return { imageUrl: creative?.imageUrl ?? null, post: null };
+    return {
+      imageUrl: creative?.imageUrl ?? null,
+      videoUrl: creative?.videoUrl ?? null,
+      post: null,
+    };
   }
 
   private async write(

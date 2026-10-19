@@ -8,17 +8,23 @@ import {
   Goal,
   LEAD_FORM_CALLS_TO_ACTION,
 } from "@modules/ads/domain/goals";
+import { targetingSchema } from "@modules/ads/domain/audience";
 import { leadFormSchema } from "@modules/ads/domain/lead-form";
 
-const named = z.object({
-  id: z.string().min(1).max(40),
-  name: z.string().min(1).max(200),
-});
 const reason = z.string().trim().min(1).max(1200);
-const keyed = z.object({
-  key: z.string().min(1).max(40),
-  name: z.string().min(1).max(200),
+const https = z.string().url().startsWith("https://");
+
+export const MAX_EXTRA_VARIANTS = 2;
+
+export const variantSchema = z.object({
+  enabled: z.boolean().default(true),
+  primaryText: z.string().trim().min(1).max(2000),
+  headline: z.string().trim().min(1).max(255),
+  imageUrl: https.nullable().optional(),
+  videoUrl: https.nullable().optional(),
 });
+
+export type PlanVariant = z.infer<typeof variantSchema>;
 
 export const planSchema = z
   .object({
@@ -27,33 +33,7 @@ export const planSchema = z
     goal: z.enum(GOAL_NAMES as [string, ...string[]]),
     conversionEvent: z.enum(CONVERSION_EVENTS).nullable().optional(),
     dailyBudget: z.number().positive().max(10_000_000),
-    targeting: z.object({
-      countries: z.array(z.string().length(2)).max(25).default([]),
-      regions: z.array(keyed).max(50).default([]),
-      cities: z
-        .array(
-          keyed.extend({
-            radiusKm: z.number().min(10).max(80).nullable().optional(),
-          }),
-        )
-        .max(250)
-        .default([]),
-      ageMin: z.number().int().min(18).max(65),
-      ageMax: z.number().int().min(18).max(65),
-      genders: z.enum(["all", "male", "female"]).default("all"),
-      interests: z
-        .array(
-          z.object({
-            id: z.string().min(1).max(40),
-            name: z.string().min(1).max(200),
-          }),
-        )
-        .max(25)
-        .default([]),
-      workPositions: z.array(named).max(25).default([]),
-      industries: z.array(named).max(25).default([]),
-      behaviors: z.array(named).max(25).default([]),
-    }),
+    targeting: targetingSchema,
     creative: z.object({
       primaryText: z.string().trim().min(1).max(2000),
       alternatives: z
@@ -63,7 +43,8 @@ export const planSchema = z
       headline: z.string().trim().min(1).max(255),
       description: z.string().trim().max(255).nullable().optional(),
       linkUrl: z.string().url().startsWith("https://"),
-      imageUrl: z.string().url().startsWith("https://").nullable().optional(),
+      imageUrl: https.nullable().optional(),
+      videoUrl: https.nullable().optional(),
       imageIdea: z.string().trim().max(500).nullable().optional(),
       callToAction: z.enum(CALLS_TO_ACTION),
       post: z
@@ -85,14 +66,30 @@ export const planSchema = z
     }),
     expectedResults: z.string().trim().max(500).nullable().optional(),
     leadForm: leadFormSchema.nullable().optional(),
+    variants: z.array(variantSchema).max(MAX_EXTRA_VARIANTS).default([]),
   })
   .superRefine((p, ctx) => {
-    if (p.targeting.ageMin > p.targeting.ageMax)
+    if (p.creative.post && p.creative.videoUrl)
       ctx.addIssue({
         code: "custom",
-        message: "ageMin must be less than or equal to ageMax",
-        path: ["targeting", "ageMin"],
+        message: "Choose either a video or an existing post, not both",
+        path: ["creative", "videoUrl"],
       });
+    if (p.creative.post && p.variants.some((v) => v.enabled))
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Ads made from an existing post can't be tested in versions. Turn the versions off or use an image or video",
+        path: ["variants"],
+      });
+    p.variants.forEach((v, i) => {
+      if (v.imageUrl && v.videoUrl)
+        ctx.addIssue({
+          code: "custom",
+          message: "Choose either an image or a video for this version",
+          path: ["variants", i, "videoUrl"],
+        });
+    });
     if (!GOALS[p.goal as Goal].instantForm) return;
     if (!p.leadForm)
       ctx.addIssue({
@@ -104,7 +101,7 @@ export const planSchema = z
       ctx.addIssue({
         code: "custom",
         message:
-          "Instant form ads need an image, not an existing post. Remove the post and add an image",
+          "Instant form ads need an image or a video, not an existing post. Remove the post and add an image or video",
         path: ["creative", "post"],
       });
     if (

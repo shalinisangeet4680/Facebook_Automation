@@ -8,6 +8,8 @@ import { useInbox, useLeadSummary, useMe, useMetaConnection } from "@/lib/api/qu
 import { ProductShell } from "@/features/replyly/shell";
 import { cx } from "@/features/replyly/ui";
 
+import { AdAccountSwitcher } from "./account-switcher";
+
 const NAV = [
   ["overview", "Overview", "/setup"],
   ["campaigns", "Campaigns", "/campaigns"],
@@ -117,6 +119,7 @@ function Footer() {
               ? `Meta connected${connection?.systemUser ? ` · ${connection.systemUser.name}` : ""}`
               : "Not connected"}
         </span>
+        {connected ? <AdAccountSwitcher /> : null}
       </div>
     </div>
   );

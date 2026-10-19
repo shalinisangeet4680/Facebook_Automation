@@ -15,6 +15,7 @@ import {
 import type { Suggestion } from "@/lib/api/types";
 import { Banner, PageHead, Section, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
+import { AdAccountSwitcher } from "./account-switcher";
 import { useMetaConnected } from "./shell";
 import { TrackingCard } from "./tracking";
 
@@ -40,6 +41,8 @@ const EVIDENCE_LABELS: Record<string, string> = {
   monthSpend: "Spent this month",
   projected: "Projected",
   monthlyBudget: "Monthly budget",
+  winnerCostPerResult: "Winner's cost per result",
+  winnerCtr: "Winner's CTR %",
 };
 
 const MONEY_KEYS = new Set([
@@ -50,6 +53,7 @@ const MONEY_KEYS = new Set([
   "monthSpend",
   "projected",
   "monthlyBudget",
+  "winnerCostPerResult",
 ]);
 
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
@@ -446,7 +450,14 @@ export function OverviewPage() {
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <PageHead
         title="Overview"
-        sub="Your ads at a glance and what needs you today. Nothing spends until you approve."
+        sub={
+          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span>
+              Your ads at a glance and what needs you today. Nothing spends until you approve.
+            </span>
+            {connected ? <AdAccountSwitcher inline /> : null}
+          </span>
+        }
         actions={
           connected ? (
             <button

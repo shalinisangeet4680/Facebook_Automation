@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Heart, MessageCircle } from "lucide-react";
+import { Check, Heart, MessageCircle, Play } from "lucide-react";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
@@ -24,6 +24,53 @@ export function displaySrc(url: string | null | undefined): string | null {
   }
 }
 
+export function PlayBadge({ size = 36 }: { size?: number }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: size,
+        height: size,
+        borderRadius: 999,
+        background: "rgba(25,25,23,.72)",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+      }}
+    >
+      <Play size={Math.round(size * 0.42)} fill="currentColor" style={{ marginLeft: 2 }} />
+    </span>
+  );
+}
+
+export function VideoFill({ src }: { src: string }) {
+  return (
+    <>
+      <video
+        src={src}
+        muted
+        playsInline
+        preload="metadata"
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
+      />
+      <PlayBadge />
+    </>
+  );
+}
+
 export function CreativePicker({
   open,
   onOpenChange,
@@ -33,7 +80,7 @@ export function CreativePicker({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  creative: Pick<Creative, "imageUrl" | "post">;
+  creative: Pick<Creative, "imageUrl" | "post" | "videoUrl">;
   onPick: (patch: Partial<Creative>) => void;
   imagesOnly?: boolean;
 }) {
@@ -54,11 +101,11 @@ export function CreativePicker({
     <RpDialogRoot open={open} onOpenChange={onOpenChange}>
       <RpDialogContent
         width={760}
-        title={imagesOnly ? "Choose an image" : "Choose what the ad shows"}
+        title={imagesOnly ? "Choose an image or video" : "Choose what the ad shows"}
         description={
           imagesOnly
-            ? "Pick an image from your library. Upload new ones in Creatives."
-            : "Use an image from your library, or run the ad on a post that's already on your Page or Instagram so it keeps its likes and comments."
+            ? "Pick an image or an MP4 video from your library. Upload new ones in Creatives."
+            : "Use an image or video from your library, or run the ad on a post that's already on your Page or Instagram so it keeps its likes and comments."
         }
       >
         {imagesOnly ? null : (
@@ -68,7 +115,7 @@ export function CreativePicker({
               value={tab}
               onChange={setTab}
               options={[
-                { id: "images", label: "Your images" },
+                { id: "images", label: "Images and videos" },
                 { id: "facebook", label: "Facebook posts" },
                 { id: "instagram", label: "Instagram posts" },
               ]}
@@ -80,20 +127,31 @@ export function CreativePicker({
           creatives.isPending ? (
             <Loading />
           ) : !creatives.data?.data.length ? (
-            <Note>No images yet. Upload one in Creatives or ask Claude to design one.</Note>
+            <Note>
+              No images or videos yet. Upload one in Creatives or ask Claude to design an image.
+            </Note>
           ) : (
             <Grid>
-              {creatives.data.data
-                .filter((c) => c.kind !== "video")
-                .map((c) => (
+              {creatives.data.data.map((c) =>
+                c.kind === "video" ? (
+                  <Option
+                    key={c.id}
+                    label={c.name}
+                    image={null}
+                    video={displaySrc(c.url)}
+                    selected={!creative.post && creative.videoUrl === c.url}
+                    onSelect={() => pick({ videoUrl: c.url, imageUrl: null, post: null })}
+                  />
+                ) : (
                   <Option
                     key={c.id}
                     label={c.name}
                     image={displaySrc(c.url)}
-                    selected={!creative.post && creative.imageUrl === c.url}
-                    onSelect={() => pick({ imageUrl: c.url, post: null })}
+                    selected={!creative.post && !creative.videoUrl && creative.imageUrl === c.url}
+                    onSelect={() => pick({ imageUrl: c.url, videoUrl: null, post: null })}
                   />
-                ))}
+                ),
+              )}
             </Grid>
           )
         ) : library.isPending ? (
@@ -118,6 +176,7 @@ export function CreativePicker({
                 onSelect={() =>
                   pick({
                     imageUrl: null,
+                    videoUrl: null,
                     post: {
                       platform: post.platform,
                       id: post.id,
@@ -174,12 +233,14 @@ function Loading() {
 function Option({
   label,
   image,
+  video,
   stats,
   selected,
   onSelect,
 }: {
   label: string;
   image: string | null;
+  video?: string | null;
   stats?: { likes: number | null; comments: number | null };
   selected: boolean;
   onSelect: () => void;
@@ -213,7 +274,9 @@ function Option({
             background: "#F4F2EE",
           }}
         >
-          {image ? (
+          {video ? (
+            <VideoFill src={video} />
+          ) : image ? (
             <Image
               unoptimized
               fill
@@ -238,6 +301,7 @@ function Option({
           >
             {label}
           </span>
+          {video ? <span style={{ fontSize: 11.5, color: MUTED }}>Video</span> : null}
           {stats ? (
             <span style={{ display: "flex", gap: 12, fontSize: 11.5, color: MUTED }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>

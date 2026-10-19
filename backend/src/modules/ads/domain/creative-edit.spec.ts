@@ -21,6 +21,69 @@ const current: AdCreativeSummary = {
 const fallback = { pageId: "p-fallback", instagramId: null };
 
 describe("editCreative", () => {
+  describe("video ads", () => {
+    const video: AdCreativeSummary = {
+      ...current,
+      kind: "video",
+      videoId: "v1",
+      imageUrl: "https://cdn.example.com/thumb.jpg",
+      leadFormId: "f1",
+      callToAction: "SIGN_UP",
+    };
+
+    it("keeps the video when only the text changes", () => {
+      const result = editCreative(video, { primaryText: "Watch" }, fallback);
+      expect(result).toMatchObject({
+        ok: true,
+        changed: ["primaryText"],
+        creative: {
+          videoId: "v1",
+          message: "Watch",
+          imageUrl: "https://cdn.example.com/thumb.jpg",
+          leadFormId: "f1",
+        },
+      });
+    });
+
+    it("switches to a new video with its own thumbnail", () => {
+      const result = editCreative(
+        current,
+        {
+          video: {
+            videoId: "v2",
+            thumbnailUrl: "https://cdn.example.com/v2.jpg",
+          },
+        },
+        fallback,
+      );
+      expect(result).toMatchObject({
+        ok: true,
+        changed: ["video"],
+        creative: {
+          videoId: "v2",
+          imageUrl: "https://cdn.example.com/v2.jpg",
+          imageHash: null,
+        },
+      });
+    });
+
+    it("needs the video id and a thumbnail", () => {
+      expect(
+        editCreative(
+          { ...video, videoId: null },
+          { primaryText: "x" },
+          fallback,
+        ).ok,
+      ).toBe(false);
+      const noThumb = editCreative(
+        { ...current, imageUrl: null },
+        { video: { videoId: "v2", thumbnailUrl: null } },
+        fallback,
+      );
+      expect(!noThumb.ok && noThumb.message).toContain("thumbnail");
+    });
+  });
+
   it("keeps what wasn't edited and builds a full link creative", () => {
     const result = editCreative(
       current,

@@ -1,31 +1,6 @@
 import { IsBoolean, IsObject } from "class-validator";
 
-export class KeyedOptionDto {
-  key: string;
-  name: string;
-}
-
-export class CityOptionDto extends KeyedOptionDto {
-  radiusKm?: number | null;
-}
-
-export class InterestOptionDto {
-  id: string;
-  name: string;
-}
-
-export class PlanTargetingDto {
-  countries: string[];
-  regions: KeyedOptionDto[];
-  cities: CityOptionDto[];
-  ageMin: number;
-  ageMax: number;
-  genders: "all" | "male" | "female";
-  interests: InterestOptionDto[];
-  workPositions: InterestOptionDto[];
-  industries: InterestOptionDto[];
-  behaviors: InterestOptionDto[];
-}
+import { PlanTargetingDto } from "@modules/ads/interface/dto/audiences.dto";
 
 export class PlanPostDto {
   platform: "facebook" | "instagram";
@@ -42,9 +17,18 @@ export class PlanCreativeDto {
   description?: string | null;
   linkUrl: string;
   imageUrl?: string | null;
+  videoUrl?: string | null;
   imageIdea?: string | null;
   callToAction: string;
   post?: PlanPostDto | null;
+}
+
+export class PlanVariantDto {
+  enabled: boolean;
+  primaryText: string;
+  headline: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
 }
 
 export class PlanReasonsDto {
@@ -99,6 +83,19 @@ export class CampaignPlanDto {
   reasons: PlanReasonsDto;
   expectedResults?: string | null;
   leadForm?: LeadFormDto | null;
+  variants?: PlanVariantDto[];
+}
+
+export class PlanAdMetaDto {
+  label: string;
+  adId: string;
+  creativeId: string;
+}
+
+export class PlanAdAccountDto {
+  id: string;
+  name: string;
+  currency: string;
 }
 
 export class PlanMetaDto {
@@ -108,6 +105,8 @@ export class PlanMetaDto {
   adId: string;
   adsManagerUrl: string;
   leadFormId?: string | null;
+  adAccountId?: string | null;
+  ads?: PlanAdMetaDto[];
 }
 
 export class PlanResponseDto {
@@ -116,6 +115,7 @@ export class PlanResponseDto {
   source: string;
   plan: CampaignPlanDto;
   meta: PlanMetaDto | null;
+  adAccount: PlanAdAccountDto | null;
   error: string | null;
   createdAt: string;
   updatedAt: string;

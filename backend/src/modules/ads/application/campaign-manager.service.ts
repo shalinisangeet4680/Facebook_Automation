@@ -27,6 +27,7 @@ import { CreativeEdit } from "../domain/creative-edit";
 import { resultFor } from "../domain/goals";
 import { toMajor } from "../domain/money";
 import { summarizeTargeting } from "../domain/targeting-summary";
+import { pickWinner } from "../domain/variants";
 import { AdsService, Workspace } from "./ads.service";
 
 export const MAX_LISTED_CAMPAIGNS = 100;
@@ -141,6 +142,7 @@ export class CampaignManagerService {
       );
     return {
       currency: ws.currency,
+      adAccount: { id: ws.adAccount.externalId, name: ws.adAccount.name },
       preset,
       period,
       canManage,
@@ -180,8 +182,35 @@ export class CampaignManagerService {
       detail.campaign.dailyBudget !== null ||
       detail.campaign.lifetimeBudget !== null;
     const money = (v: number | null) => toMajor(v, ws.currency);
+    const shownAds = detail.ads.filter((a) => visible(a.status));
+    const comparisons = sets
+      .map((s) => {
+        const group = shownAds.filter((a) => a.adSetId === s.id);
+        if (group.length < 2) return null;
+        const pick = pickWinner(
+          group.map((a) => {
+            const m = metrics(ads.get(a.id));
+            return {
+              id: a.id,
+              spend: m.spend,
+              results: m.results,
+              impressions: m.impressions,
+              linkClicks: m.linkClicks,
+            };
+          }),
+        );
+        return {
+          adSetId: s.id,
+          adIds: group.map((a) => a.id),
+          winnerId: pick.winnerId,
+          basis: pick.basis,
+          note: pick.note,
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
     return {
       currency: ws.currency,
+      adAccount: { id: ws.adAccount.externalId, name: ws.adAccount.name },
       preset,
       period,
       canManage,
@@ -215,32 +244,33 @@ export class CampaignManagerService {
         targeting: summarizeTargeting(s.targeting),
         metrics: metrics(setRows.get(s.id)),
       })),
-      ads: detail.ads
-        .filter((a) => visible(a.status))
-        .map((a) => {
-          const c = a.creative;
-          return {
-            id: a.id,
-            name: a.name,
-            adSetId: a.adSetId,
-            status: a.status,
-            effectiveStatus: a.effectiveStatus,
-            creative: {
-              id: c?.id ?? null,
-              kind: c?.kind ?? ("other" as const),
-              editable: c?.kind === "link",
-              primaryText: c?.body ?? null,
-              headline: c?.title ?? null,
-              description: c?.description ?? null,
-              callToAction: c?.callToAction ?? null,
-              link: c?.linkUrl ?? null,
-              imageUrl: c?.imageUrl ?? null,
-              thumbnailUrl: c?.thumbnailUrl ?? c?.imageUrl ?? null,
-              leadFormId: c?.leadFormId ?? null,
-            },
-            metrics: metrics(ads.get(a.id)),
-          };
-        }),
+      comparisons,
+      ads: shownAds.map((a) => {
+        const c = a.creative;
+        return {
+          id: a.id,
+          name: a.name,
+          adSetId: a.adSetId,
+          status: a.status,
+          effectiveStatus: a.effectiveStatus,
+          creative: {
+            id: c?.id ?? null,
+            kind: c?.kind ?? ("other" as const),
+            editable:
+              c?.kind === "link" || (c?.kind === "video" && Boolean(c.videoId)),
+            videoId: c?.videoId ?? null,
+            primaryText: c?.body ?? null,
+            headline: c?.title ?? null,
+            description: c?.description ?? null,
+            callToAction: c?.callToAction ?? null,
+            link: c?.linkUrl ?? null,
+            imageUrl: c?.imageUrl ?? null,
+            thumbnailUrl: c?.thumbnailUrl ?? c?.imageUrl ?? null,
+            leadFormId: c?.leadFormId ?? null,
+          },
+          metrics: metrics(ads.get(a.id)),
+        };
+      }),
     };
   }
 
@@ -273,21 +303,22 @@ export class CampaignManagerService {
     const { creativeId, ...rest } = edit;
     if (creativeId && rest.imageUrl) {
       throw new ValidationError(
-        "Choose either an image from your library or an image link, not both.",
+        "Choose either an image or video from your library or an image link, not both.",
       );
     }
     let imageUrl = rest.imageUrl;
+    let videoUrl: string | undefined;
     if (creativeId) {
       const view = this.creatives.view(
         await this.creatives.get(ctx.workspaceId, creativeId),
       );
-      if (view.kind !== "image")
-        throw new ValidationError("Choose an image, not a video.");
-      imageUrl = view.url;
+      if (view.kind === "video") videoUrl = view.url;
+      else imageUrl = view.url;
     }
     return this.ads.updateAdCreative(this.actor(ctx), id, {
       ...rest,
       imageUrl,
+      videoUrl,
     });
   }
 

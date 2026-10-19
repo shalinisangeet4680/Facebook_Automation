@@ -184,6 +184,14 @@ function AssetOption({
   );
 }
 
+function datasetFits(dataset: Asset, adAccountId: string | undefined): boolean {
+  if (!adAccountId) return true;
+  const ids = dataset.details.adAccountIds;
+  if (Array.isArray(ids)) return ids.includes(adAccountId);
+  const single = dataset.details.adAccountId;
+  return typeof single !== "string" || single === adAccountId;
+}
+
 function AccountsForm({ assets }: { assets: Asset[] }) {
   const router = useRouter();
   const toast = useToast();
@@ -199,11 +207,29 @@ function AccountsForm({ assets }: { assets: Asset[] }) {
     ),
   );
   const missingRequired = SECTIONS.filter((s) => s.required && !selection[s.field]);
+  const chooseAdAccount = (adAccountId: string) =>
+    setSelection((s) => {
+      const current = assets.find((a) => a.kind === "dataset" && a.externalId === s.datasetId);
+      if (!current || datasetFits(current, adAccountId)) return { ...s, adAccountId };
+      const fitting = assets.filter((a) => a.kind === "dataset" && datasetFits(a, adAccountId));
+      return {
+        ...s,
+        adAccountId,
+        datasetId: fitting.length === 1 ? fitting[0]!.externalId : undefined,
+      };
+    });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {SECTIONS.map((section) => {
-        const options = assets.filter((a) => a.kind === section.kind);
+        const options = assets.filter(
+          (a) =>
+            a.kind === section.kind &&
+            (section.kind !== "dataset" || datasetFits(a, selection.adAccountId)),
+        );
+        const hidden =
+          section.kind === "dataset" &&
+          assets.some((a) => a.kind === "dataset" && !datasetFits(a, selection.adAccountId));
         const Icon = section.icon;
         return (
           <section key={section.kind} className="rp-card" style={{ overflow: "hidden" }}>
@@ -263,11 +289,17 @@ function AccountsForm({ assets }: { assets: Asset[] }) {
                       now={now}
                       checked={selection[section.field] === asset.externalId}
                       onSelect={() =>
-                        setSelection((s) => ({ ...s, [section.field]: asset.externalId }))
+                        section.kind === "ad_account"
+                          ? chooseAdAccount(asset.externalId)
+                          : setSelection((s) => ({ ...s, [section.field]: asset.externalId }))
                       }
                     />
                   ))}
                 </div>
+              ) : hidden ? (
+                <span style={{ fontSize: 13, color: MUTED }}>
+                  The selected ad account has no dataset yet. You can add one later.
+                </span>
               ) : (
                 <span style={{ fontSize: 13, color: MUTED }}>
                   No {ASSET_LABELS[section.kind].one.toLowerCase()} was found. Assign one to the
@@ -295,7 +327,7 @@ function AccountsForm({ assets }: { assets: Asset[] }) {
         <span style={{ fontSize: 13, color: MUTED, flex: "1 1 220px" }}>
           {missingRequired.length
             ? `Choose a ${missingRequired.map((s) => s.title.toLowerCase()).join(" and a ")} to continue.`
-            : "You can change these at any time."}
+            : "You can change these at any time. Datasets are shown for the selected ad account."}
         </span>
         <button
           type="button"

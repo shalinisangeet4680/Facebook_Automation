@@ -12,6 +12,7 @@ export interface CreativeEdit {
   callToAction?: string;
   link?: string;
   imageUrl?: string;
+  video?: { videoId: string; thumbnailUrl: string | null };
 }
 
 export type CreativeEditResult =
@@ -38,11 +39,11 @@ export function editCreative(
         "This ad was created from an existing Facebook or Instagram post, so its text and image can't be changed here. Edit the post on Facebook or Instagram, or create a new ad.",
     };
   }
-  if (current.kind !== "link") {
+  if (current.kind !== "link" && current.kind !== "video") {
     return {
       ok: false,
       message:
-        "Only single-image link ads can be edited here. Edit this ad in Meta Ads Manager.",
+        "Only single-image and video ads can be edited here. Edit this ad in Meta Ads Manager.",
     };
   }
   const pageId = current.pageId ?? fallback.pageId;
@@ -89,10 +90,27 @@ export function editCreative(
         "This image isn't on a public https address, so Meta can't use it.",
     };
   }
-  const imageHash = newImage ? null : current.imageHash;
-  const imageUrl = newImage ?? (imageHash ? null : current.imageUrl);
+  const newVideo = edit.video ?? null;
+  const videoId =
+    newVideo?.videoId ??
+    (current.kind === "video" ? (current.videoId ?? null) : null);
+  if (current.kind === "video" && !videoId) {
+    return {
+      ok: false,
+      message:
+        "Meta didn't return this ad's video, so it can't be edited here. Edit it in Meta Ads Manager.",
+    };
+  }
+  const freshImage = newImage ?? (newVideo ? newVideo.thumbnailUrl : null);
+  const imageHash = freshImage || newVideo ? null : current.imageHash;
+  const imageUrl = freshImage ?? (imageHash ? null : current.imageUrl);
   if (!imageHash && !imageUrl) {
-    return { ok: false, message: "Add an image for this ad." };
+    return {
+      ok: false,
+      message: videoId
+        ? "Add a thumbnail image for this video."
+        : "Add an image for this ad.",
+    };
   }
 
   const changed = [
@@ -101,6 +119,7 @@ export function editCreative(
     description !== clean(current.description) && "description",
     callToAction !== clean(current.callToAction) && "callToAction",
     link !== clean(current.linkUrl) && "link",
+    newVideo && newVideo.videoId !== current.videoId && "video",
     newImage && newImage !== current.imageUrl && "image",
   ].filter((v): v is string => Boolean(v));
   if (!changed.length) {
@@ -121,6 +140,7 @@ export function editCreative(
       callToAction,
       existingPost: null,
       ...(current.leadFormId ? { leadFormId: current.leadFormId } : {}),
+      ...(videoId ? { videoId } : {}),
     },
   };
 }

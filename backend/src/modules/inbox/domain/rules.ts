@@ -1,3 +1,5 @@
+import { pickWinner } from "@modules/ads/domain/variants";
+
 export interface Metrics {
   spend: number;
   results: number;
@@ -25,6 +27,11 @@ export interface AdSetInput {
   days: number;
 }
 
+export interface VariantGroupInput {
+  adSetId: string;
+  ads: { id: string; label: string }[];
+}
+
 export interface RuleInput {
   currency: string;
   targetCostPerResult: number | null;
@@ -37,6 +44,7 @@ export interface RuleInput {
   monthSpend: number;
   dayOfMonth: number;
   daysInMonth: number;
+  variantGroups?: VariantGroupInput[];
 }
 
 export type Severity = "critical" | "warning" | "opportunity";
@@ -99,7 +107,62 @@ export function evaluate(input: RuleInput): Finding[] {
       return other !== null && a.current.results >= 2 && other <= own * 0.8;
     });
 
+  const losers = new Set<string>();
+  for (const group of input.variantGroups ?? []) {
+    const members = group.ads
+      .map((v) => ({
+        label: v.label,
+        ad: activeAds.find((a) => a.id === v.id),
+      }))
+      .filter((m): m is { label: string; ad: AdInput } => Boolean(m.ad));
+    if (members.length < 2) continue;
+    const pick = pickWinner(
+      members.map(({ ad }) => ({ id: ad.id, ...ad.current })),
+    );
+    const winner = members.find((m) => m.ad.id === pick.winnerId);
+    if (!winner) continue;
+    const best = winner.ad.current;
+    const bestCpr = cpr(best);
+    for (const { label, ad } of members) {
+      if (ad.id === winner.ad.id) continue;
+      const m = ad.current;
+      const own = cpr(m);
+      const worse =
+        pick.basis === "cost_per_result" && bestCpr !== null
+          ? (own !== null && m.results >= 3 && own >= 1.5 * bestCpr) ||
+            (m.results === 0 && m.spend >= 2 * bestCpr)
+          : m.impressions >= 2000 &&
+            best.impressions >= 2000 &&
+            ctr(m) <= 0.6 * ctr(best);
+      if (!worse) continue;
+      losers.add(ad.id);
+      findings.push({
+        rule: "variant_loser",
+        severity: "warning",
+        entityType: "ad",
+        entityId: ad.id,
+        entityName: ad.name,
+        title: `Variant ${label} is clearly worse — pause it`,
+        body:
+          pick.basis === "cost_per_result"
+            ? `Variant ${winner.label} gets results at ${money(bestCpr!)} each, while variant ${label} ${own === null ? `spent ${money(m.spend)} without a result` : `pays ${money(own)}`}. Pausing variant ${label} moves its budget to the version that works.`
+            : `People click variant ${winner.label} ${(ctr(best) / Math.max(ctr(m), 0.01)).toFixed(1)}× as often as variant ${label}. Pausing variant ${label} moves its budget to the version people prefer.`,
+        evidence: {
+          currency: input.currency,
+          spend: round(m.spend),
+          results: m.results,
+          costPerResult: own === null ? null : round(own),
+          winnerCostPerResult: bestCpr === null ? null : round(bestCpr),
+          ctr: round(ctr(m)),
+          winnerCtr: round(ctr(best)),
+        },
+        action: { type: "pause", id: ad.id },
+      });
+    }
+  }
+
   for (const ad of activeAds) {
+    if (losers.has(ad.id)) continue;
     const m = ad.current;
     const adCpr = cpr(m);
     const threshold = ref ?? 0;

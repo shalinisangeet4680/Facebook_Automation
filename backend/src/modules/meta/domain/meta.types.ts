@@ -49,6 +49,7 @@ export const META_EVENTS = {
   CONNECTED: "meta.connected",
   DISCONNECTED: "meta.disconnected",
   ASSETS_SELECTED: "meta.assets_selected",
+  AD_ACCOUNT_SWITCHED: "meta.ad_account_switched",
 } as const;
 
 export interface MetaConnectedEvent {

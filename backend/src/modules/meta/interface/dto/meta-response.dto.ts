@@ -69,3 +69,17 @@ export class MetaOAuthStatusDto {
 export class MetaOAuthUrlDto {
   url: string;
 }
+
+export class SwitchedAdAccountDto {
+  id: string;
+  name: string;
+  currency: string;
+}
+
+export class AdAccountSwitchDto {
+  adAccount: SwitchedAdAccountDto;
+  changed: boolean;
+  dataset: "kept" | "switched" | "cleared";
+  needsReview: boolean;
+  connection: ConnectionResponseDto;
+}

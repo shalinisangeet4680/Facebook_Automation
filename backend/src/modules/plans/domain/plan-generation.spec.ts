@@ -257,3 +257,94 @@ describe("instant form plans", () => {
     expect(built.plan.leadForm?.customQuestions).toEqual([]);
   });
 });
+
+describe("ad variants", () => {
+  it("drafts two more versions with their own text and headline", () => {
+    const plan = templatePlan(context());
+    expect(plan.variants).toHaveLength(2);
+    for (const v of plan.variants) {
+      expect(v.enabled).toBe(true);
+      expect(v.primaryText).not.toBe(plan.creative.primaryText);
+      expect(v.headline.length).toBeGreaterThan(0);
+    }
+    expect(plan.creative.alternatives).toEqual([]);
+  });
+
+  it("turns AI alternatives into versions and drops copies of the main text", () => {
+    const copy = draftPlanCopy(input());
+    const built = buildPlan(
+      context(),
+      {
+        ...copy,
+        variants: undefined,
+        alternatives: [copy.primaryText, "Book a free skin check this week."],
+      },
+      [],
+    );
+    expect(built.plan.variants).toEqual([
+      {
+        enabled: true,
+        primaryText: "Book a free skin check this week.",
+        headline: copy.headline,
+        imageUrl: null,
+        videoUrl: null,
+      },
+    ]);
+  });
+
+  it("skips versions when the owner turns them off or runs a post", () => {
+    expect(templatePlan({ ...context(), variants: false }).variants).toEqual(
+      [],
+    );
+    const post = templatePlan({
+      ...context({ goal: "traffic" }),
+      post: { platform: "facebook", id: "1_2" },
+    });
+    expect(post.variants).toEqual([]);
+  });
+
+  it("uses a saved audience instead of the brief's targeting", () => {
+    const audience = {
+      countries: [],
+      regions: [],
+      cities: [{ key: "1035707", name: "Gaya", radiusKm: 10 }],
+      ageMin: 30,
+      ageMax: 50,
+      genders: "female" as const,
+      interests: [{ id: "6003397425735", name: "Health care" }],
+      workPositions: [],
+      industries: [],
+      behaviors: [],
+      customAudiences: [],
+      excludedCustomAudiences: [],
+    };
+    const plan = templatePlan({ ...context(), audience });
+    expect(plan.targeting).toEqual(audience);
+  });
+
+  it("carries a video into the plan and rejects a video with a post", () => {
+    const plan = templatePlan({
+      ...context(),
+      videoUrl: "https://cdn.example.com/clip.mp4",
+    });
+    expect(plan.creative.videoUrl).toBe("https://cdn.example.com/clip.mp4");
+    const both = parsePlan({
+      ...plan,
+      variants: [],
+      creative: {
+        ...plan.creative,
+        post: { platform: "facebook", id: "1_2" },
+      },
+    });
+    expect(!both.ok && both.message).toContain("video or an existing post");
+    const postVariants = parsePlan({
+      ...plan,
+      creative: {
+        ...plan.creative,
+        videoUrl: null,
+        post: { platform: "facebook", id: "1_2" },
+      },
+    });
+    expect(!postVariants.ok && postVariants.message).toContain("versions");
+  });
+});

@@ -63,20 +63,36 @@ export class MockMetaGraph implements MetaGraph {
         },
       ]);
     }
-    return Promise.resolve([
-      {
-        id: "act_1201000000000001",
-        accountId: "1201000000000001",
-        name: "Arogya System Ads",
-        currency: "INR",
-        timezone: "Asia/Kolkata",
-        status: 1,
-        amountSpent: "0",
-        spendCap: "3000000",
-        businessId: "1101000000000001",
-        businessName: "Arogya System",
-      },
-    ]);
+    const main: GraphAdAccount = {
+      id: "act_1201000000000001",
+      accountId: "1201000000000001",
+      name: "Arogya System Ads",
+      currency: "INR",
+      timezone: "Asia/Kolkata",
+      status: 1,
+      amountSpent: "0",
+      spendCap: "3000000",
+      businessId: "1101000000000001",
+      businessName: "Arogya System",
+    };
+    if (token.includes("multiaccount")) {
+      return Promise.resolve([
+        main,
+        {
+          id: "act_1201000000000002",
+          accountId: "1201000000000002",
+          name: "Arogya Clinics Delhi",
+          currency: "USD",
+          timezone: "Asia/Kolkata",
+          status: 1,
+          amountSpent: "0",
+          spendCap: null,
+          businessId: "1101000000000001",
+          businessName: "Arogya System",
+        },
+      ]);
+    }
+    return Promise.resolve([main]);
   }
 
   pages(token: string): Promise<GraphPage[]> {
@@ -99,6 +115,16 @@ export class MockMetaGraph implements MetaGraph {
   datasets(token: string, adAccountId: string): Promise<GraphDataset[]> {
     if (token.includes("nopixel")) return Promise.resolve([]);
     const quiet = token.includes("quietpixel");
+    if (adAccountId === "act_1201000000000002")
+      return Promise.resolve([
+        {
+          id: "2519233968487299",
+          name: "Arogya Clinics Website",
+          adAccountId,
+          lastFiredTime: new Date().toISOString(),
+          isUnavailable: false,
+        },
+      ]);
     return Promise.resolve([
       {
         id: "2519233968487265",

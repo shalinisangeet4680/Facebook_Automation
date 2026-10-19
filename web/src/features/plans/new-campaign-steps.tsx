@@ -16,7 +16,8 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import type { CampaignPlan } from "@/lib/api/types";
 import { Seg, Skel, Toggle } from "@/features/replyly/ui";
 
-import { CreativePicker, displaySrc } from "./creative-picker";
+import { SaveAudienceButton, SavedAudiencePicker } from "./audiences";
+import { CreativePicker, VideoFill, displaySrc } from "./creative-picker";
 import { PREFILL_QUESTIONS, QUESTION_LABELS, money } from "./labels";
 import { Field, Group, LocationsEditor, MUTED } from "./plan-sections";
 
@@ -45,8 +46,10 @@ export interface Draft {
   offer: string;
   landingUrl: string;
   language: string;
-  visual: Pick<Creative, "imageUrl" | "post">;
+  visual: Pick<Creative, "imageUrl" | "post" | "videoUrl">;
   leadForm: LeadFormDraft;
+  audience: { id: string; name: string } | null;
+  variants: boolean;
 }
 
 export interface Limits {
@@ -342,12 +345,68 @@ export function AudienceStep({
   errors: Errors;
   onChange: (patch: Partial<Draft>) => void;
 }) {
+  const ageNumber = (value: string, fallback: number) => (value ? Number(value) : fallback);
+  const current = {
+    ...draft.targeting,
+    ageMin: ageNumber(draft.ageMin, 18),
+    ageMax: ageNumber(draft.ageMax, 65),
+  };
+  const hasPlace = Boolean(
+    draft.targeting.cities.length ||
+    draft.targeting.regions.length ||
+    draft.targeting.countries.length,
+  );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {draft.audience ? (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            padding: "10px 12px",
+            borderRadius: 10,
+            background: "#F1F5F2",
+            color: "#0F3D2C",
+            fontSize: 13,
+          }}
+        >
+          <span style={{ flex: "1 1 220px", minWidth: 0 }}>
+            Using your saved audience <span style={{ fontWeight: 600 }}>{draft.audience.name}</span>
+            . Its interests and other settings are used too.
+          </span>
+          <button
+            type="button"
+            className="rp-btn-light"
+            style={{ padding: "4px 10px" }}
+            onClick={() => onChange({ audience: null })}
+          >
+            Stop using it
+          </button>
+        </div>
+      ) : (
+        <SavedAudiencePicker
+          onPick={(a) =>
+            onChange({
+              audience: { id: a.id, name: a.name },
+              targeting: {
+                ...draft.targeting,
+                countries: a.targeting.countries,
+                regions: a.targeting.regions,
+                cities: a.targeting.cities,
+              },
+              ageMin: String(a.targeting.ageMin),
+              ageMax: String(a.targeting.ageMax),
+            })
+          }
+        />
+      )}
       <Group title="Where are your customers?" desc="Search for the cities or states you serve.">
         <LocationsEditor
           targeting={draft.targeting}
-          onChange={(targeting) => onChange({ targeting })}
+          onChange={(targeting) => onChange({ targeting, audience: null })}
           disabled={false}
           emptyText="No places added yet."
         />
@@ -365,7 +424,7 @@ export function AudienceStep({
               placeholder="18"
               style={full}
               value={draft.ageMin}
-              onChange={(e) => onChange({ ageMin: e.target.value })}
+              onChange={(e) => onChange({ ageMin: e.target.value, audience: null })}
             />
           </Field>
           <Field inRow label="Oldest age">
@@ -378,7 +437,7 @@ export function AudienceStep({
               placeholder="65"
               style={full}
               value={draft.ageMax}
-              onChange={(e) => onChange({ ageMax: e.target.value })}
+              onChange={(e) => onChange({ ageMax: e.target.value, audience: null })}
             />
           </Field>
         </div>
@@ -401,6 +460,9 @@ export function AudienceStep({
           onChange={(e) => onChange({ audienceNotes: e.target.value })}
         />
       </Field>
+      {draft.audience ? null : (
+        <SaveAudienceButton targeting={current} disabled={!hasPlace || Boolean(errors.ages)} />
+      )}
     </div>
   );
 }
@@ -591,14 +653,19 @@ export function CreativeStep({
   visual,
   onChange,
   imagesOnly,
+  variants,
+  onVariants,
 }: {
   visual: Draft["visual"];
   onChange: (visual: Draft["visual"]) => void;
   imagesOnly?: boolean;
+  variants: boolean;
+  onVariants: (on: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const video = visual.post ? null : displaySrc(visual.videoUrl);
   const src = displaySrc(visual.post?.imageUrl ?? visual.imageUrl);
-  const chosen = Boolean(visual.post || visual.imageUrl);
+  const chosen = Boolean(visual.post || visual.imageUrl || visual.videoUrl);
   const creative = {
     primaryText: "",
     alternatives: [],
@@ -606,6 +673,7 @@ export function CreativeStep({
     linkUrl: "",
     callToAction: "LEARN_MORE",
     imageUrl: visual.imageUrl ?? null,
+    videoUrl: visual.videoUrl ?? null,
     post: visual.post ?? null,
   } as Creative;
   return (
@@ -620,8 +688,8 @@ export function CreativeStep({
           lineHeight: 1.5,
         }}
       >
-        This step is optional. AI will write the ad text, and you can add an image later on the
-        review screen.
+        This step is optional. AI will write the ad text, and you can add an image or video later on
+        the review screen.
       </p>
       {chosen ? (
         <div
@@ -646,7 +714,9 @@ export function CreativeStep({
               flexShrink: 0,
             }}
           >
-            {src ? (
+            {video ? (
+              <VideoFill src={video} />
+            ) : src ? (
               <Image
                 unoptimized
                 fill
@@ -660,7 +730,9 @@ export function CreativeStep({
           <span style={{ flex: "1 1 160px", minWidth: 0, fontSize: 13 }}>
             {visual.post
               ? `Using your existing ${visual.post.platform === "instagram" ? "Instagram" : "Facebook"} post`
-              : "Using an image from your library"}
+              : video
+                ? "Using a video from your library"
+                : "Using an image from your library"}
           </span>
           <span style={{ display: "flex", gap: 8 }}>
             <button type="button" className="rp-btn-light" onClick={() => setOpen(true)}>
@@ -669,8 +741,8 @@ export function CreativeStep({
             <button
               type="button"
               className="rp-btn-light"
-              aria-label="Remove image"
-              onClick={() => onChange({ imageUrl: null, post: null })}
+              aria-label={video ? "Remove video" : "Remove image"}
+              onClick={() => onChange({ imageUrl: null, videoUrl: null, post: null })}
             >
               <X size={14} />
             </button>
@@ -680,19 +752,53 @@ export function CreativeStep({
         <button type="button" className="rp-drop" onClick={() => setOpen(true)}>
           <ImageIcon size={20} color={MUTED} aria-hidden />
           <span style={{ fontWeight: 500 }}>
-            {imagesOnly ? "Choose an image" : "Choose image or post"}
+            {imagesOnly ? "Choose an image or video" : "Choose an image, video or post"}
           </span>
           <span style={{ fontSize: 12.5, color: MUTED }}>
-            From your library, your Facebook Page or Instagram
+            {imagesOnly
+              ? "From your library of images and MP4 videos"
+              : "From your library, your Facebook Page or Instagram"}
           </span>
         </button>
       )}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid #EFEDE8",
+        }}
+      >
+        <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontWeight: 500, fontSize: 13.5 }}>Test 3 versions of your ad</span>
+          <span style={{ fontSize: 12.5, color: MUTED }}>
+            {visual.post
+              ? "Not available for an existing post, which always runs as it is."
+              : "AI writes two more versions with a different message and headline. Meta shows all three and you keep the one that works best."}
+          </span>
+        </span>
+        <Toggle
+          on={variants && !visual.post}
+          disabled={Boolean(visual.post)}
+          label="Test 3 versions of your ad"
+          onChange={() => onVariants(!variants)}
+        />
+      </div>
       <CreativePicker
         open={open}
         onOpenChange={setOpen}
         creative={creative}
         imagesOnly={imagesOnly}
-        onPick={(patch) => onChange({ imageUrl: patch.imageUrl ?? null, post: patch.post ?? null })}
+        onPick={(patch) =>
+          onChange({
+            imageUrl: patch.imageUrl ?? null,
+            videoUrl: patch.videoUrl ?? null,
+            post: patch.post ?? null,
+          })
+        }
       />
     </div>
   );

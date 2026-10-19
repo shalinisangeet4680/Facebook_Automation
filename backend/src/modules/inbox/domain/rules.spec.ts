@@ -187,4 +187,118 @@ describe("inbox rules", () => {
       rules(base({ monthlyBudget: 1_000, monthSpend: 900, dayOfMonth: 2 })),
     ).toEqual([]);
   });
+
+  describe("variant losers", () => {
+    const group = {
+      adSetId: "s1",
+      ads: [
+        { id: "a1", label: "A" },
+        { id: "a2", label: "B" },
+        { id: "a3", label: "C" },
+      ],
+    };
+
+    it("suggests pausing a version that costs far more per result than the winner", () => {
+      const found = evaluate(
+        base({
+          targetCostPerResult: null,
+          variantGroups: [group],
+          ads: [
+            ad("a1", { spend: 1000, results: 10 }),
+            ad("a2", { spend: 1000, results: 4 }),
+            ad("a3", { spend: 1000, results: 8 }),
+          ],
+        }),
+      );
+      const loser = found.find((f) => f.rule === "variant_loser")!;
+      expect(loser).toMatchObject({
+        entityId: "a2",
+        title: "Variant B is clearly worse — pause it",
+        action: { type: "pause", id: "a2" },
+        evidence: { costPerResult: 250, winnerCostPerResult: 100 },
+      });
+      expect(found.filter((f) => f.entityId === "a2")).toHaveLength(1);
+      expect(found.some((f) => f.entityId === "a3")).toBe(false);
+    });
+
+    it("flags a version that spent twice the winner's cost without a result", () => {
+      expect(
+        rules(
+          base({
+            targetCostPerResult: null,
+            variantGroups: [group],
+            ads: [
+              ad("a1", { spend: 600, results: 6 }),
+              ad("a2", { spend: 250, results: 0 }),
+            ],
+          }),
+        ),
+      ).toEqual(["variant_loser:a2"]);
+    });
+
+    it("uses click-through rate before there are enough results", () => {
+      const found = evaluate(
+        base({
+          targetCostPerResult: null,
+          variantGroups: [group],
+          ads: [
+            ad("a1", {
+              spend: 100,
+              results: 1,
+              impressions: 5000,
+              linkClicks: 100,
+            }),
+            ad("a2", {
+              spend: 100,
+              results: 1,
+              impressions: 5000,
+              linkClicks: 40,
+            }),
+          ],
+        }),
+      );
+      expect(found.map((f) => `${f.rule}:${f.entityId}`)).toEqual([
+        "variant_loser:a2",
+      ]);
+      expect(found[0]!.body).toContain("2.5×");
+    });
+
+    it("waits for enough data and ignores ads that aren't versions or are paused", () => {
+      expect(
+        rules(
+          base({
+            targetCostPerResult: null,
+            variantGroups: [group],
+            ads: [
+              ad("a1", { spend: 50, results: 1, impressions: 800 }),
+              ad("a2", { spend: 50, results: 0, impressions: 700 }),
+            ],
+          }),
+        ),
+      ).toEqual([]);
+      expect(
+        rules(
+          base({
+            targetCostPerResult: null,
+            ads: [
+              ad("a1", { spend: 1000, results: 10 }),
+              ad("a2", { spend: 1000, results: 4 }),
+            ],
+          }),
+        ),
+      ).not.toContain("variant_loser:a2");
+      expect(
+        rules(
+          base({
+            targetCostPerResult: null,
+            variantGroups: [group],
+            ads: [
+              ad("a1", { spend: 1000, results: 10 }),
+              ad("a2", { spend: 1000, results: 4 }, { active: false }),
+            ],
+          }),
+        ),
+      ).toEqual([]);
+    });
+  });
 });

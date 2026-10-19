@@ -8,13 +8,17 @@ import {
   AdObject,
   AdObjectType,
   AdStatus,
+  CreativeInput,
+  CustomAudienceSummary,
+  DraftAdResult,
   META_ADS,
   MetaAds,
   TargetingSearchType,
+  UploadedVideo,
 } from "@modules/meta/domain/ports/meta-ads";
 import { todayIn } from "@modules/reports/domain/periods";
 import { CacheService } from "@shared/cache/cache.service";
-import { CodedError } from "@shared/errors/domain-error";
+import { CodedError, ValidationError } from "@shared/errors/domain-error";
 import { ErrorCode } from "@shared/errors/error-codes";
 import { CryptoService } from "@shared/security/crypto.service";
 
@@ -22,6 +26,7 @@ import {
   AdsActor,
   ConfirmationRequired,
   DraftInput,
+  DraftVariantInput,
   PerformanceInput,
   TargetingInput,
 } from "../domain/ads.types";
@@ -52,6 +57,7 @@ import {
 const DAY_SECONDS = 86_400;
 const TRACKING_CACHE_SECONDS = 60;
 const DRAFT_DEDUPE_SECONDS = 600;
+const AUDIENCES_CACHE_SECONDS = 300;
 
 export interface DraftResult {
   status: "created_paused";
@@ -59,6 +65,8 @@ export interface DraftResult {
   adSetId: string;
   creativeId: string;
   adId: string;
+  ads: DraftAdResult[];
+  adAccountId: string;
   leadFormId?: string;
   pageId: string;
   dailyBudget: number;
@@ -355,21 +363,96 @@ export class AdsService {
         "No Instagram account is connected, so an Instagram post can't be used.",
       );
     }
-    if (!post && !input.creative.imageUrl && !input.creative.imageHash) {
+    if (
+      !post &&
+      !input.creative.imageUrl &&
+      !input.creative.imageHash &&
+      !input.creative.videoUrl
+    ) {
       throw rejected(
         ErrorCode.VALIDATION,
-        "Add an image: pass image_url (a public https link) or image_hash.",
+        "Add an image or a video: pass image_url (a public https link), image_hash or a video link.",
       );
     }
+    const variants = input.variants ?? [];
+    if (post && variants.length)
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "Ads made from an existing post can't be tested in versions.",
+      );
+    if (post && input.creative.videoUrl)
+      throw rejected(
+        ErrorCode.VALIDATION,
+        "Choose either a video or an existing post, not both.",
+      );
 
-    const dedupeKey = `ads:draft:${actor.workspaceId}:${this.crypto.hash(JSON.stringify(input))}`;
+    const account = ws.adAccount.externalId;
+    const dedupeKey = `ads:draft:${actor.workspaceId}:${this.crypto.hash(JSON.stringify({ account, input }))}`;
     const previous = await this.cache.get<DraftResult>(dedupeKey);
     if (previous) return { ...previous, duplicate: true };
+
+    const videos = new Map<string, Promise<UploadedVideo>>();
+    const upload = (url: string) => {
+      if (!videos.has(url))
+        videos.set(
+          url,
+          this.ads.uploadVideo(ws.token, account, url, input.name),
+        );
+      return videos.get(url)!;
+    };
+    const base = {
+      pageId: ws.page.externalId,
+      instagramId: ws.instagram?.externalId ?? null,
+      description: input.creative.description ?? null,
+      link: input.creative.linkUrl,
+      callToAction: input.creative.callToAction,
+    };
+    const creativeFor = async (c: {
+      primaryText: string;
+      headline: string;
+      imageUrl?: string;
+      imageHash?: string;
+      videoUrl?: string;
+    }): Promise<CreativeInput> => {
+      const video = c.videoUrl ? await upload(c.videoUrl) : null;
+      const imageUrl = c.imageUrl ?? video?.thumbnailUrl ?? null;
+      if (video && !imageUrl && !c.imageHash)
+        throw rejected(
+          ErrorCode.META_REJECTED,
+          "Meta didn't make a thumbnail for this video. Add an image to use as its thumbnail.",
+        );
+      return {
+        ...base,
+        message: c.primaryText,
+        headline: c.headline,
+        imageUrl,
+        imageHash: c.imageHash ?? null,
+        existingPost: post,
+        videoId: video?.videoId ?? null,
+      };
+    };
+    const main = await creativeFor(input.creative);
+    const extra = await Promise.all(
+      variants.map(async (v: DraftVariantInput) => ({
+        label: v.label,
+        creative: await creativeFor({
+          primaryText: v.primaryText,
+          headline: v.headline,
+          ...(v.imageUrl || v.videoUrl
+            ? { imageUrl: v.imageUrl, videoUrl: v.videoUrl }
+            : {
+                imageUrl: input.creative.imageUrl,
+                imageHash: input.creative.imageHash,
+                videoUrl: input.creative.videoUrl,
+              }),
+        }),
+      })),
+    );
 
     const event =
       input.conversionEvent ?? (input.goal === "sales" ? "PURCHASE" : "LEAD");
     const result = await this.ads.createDraft(ws.token, {
-      adAccountId: ws.adAccount.externalId,
+      adAccountId: account,
       name: input.name,
       objective: goal.objective,
       dailyBudget: toMinor(input.dailyBudget, ws.currency),
@@ -384,18 +467,8 @@ export class AdsService {
             : null,
         targeting: this.targeting(input.targeting),
       },
-      creative: {
-        pageId: ws.page.externalId,
-        instagramId: ws.instagram?.externalId ?? null,
-        message: input.creative.primaryText,
-        headline: input.creative.headline,
-        description: input.creative.description ?? null,
-        link: input.creative.linkUrl,
-        imageUrl: input.creative.imageUrl ?? null,
-        imageHash: input.creative.imageHash ?? null,
-        existingPost: post,
-        callToAction: input.creative.callToAction,
-      },
+      creative: main,
+      ...(extra.length ? { variants: extra } : {}),
       leadForm: leadForm
         ? {
             pageId: ws.page.externalId,
@@ -427,6 +500,7 @@ export class AdsService {
     const response: DraftResult = {
       status: "created_paused",
       ...result,
+      adAccountId: account,
       pageId: ws.page.externalId,
       dailyBudget: input.dailyBudget,
       currency: ws.currency,
@@ -452,7 +526,7 @@ export class AdsService {
     if (input.creative.post)
       throw rejected(
         ErrorCode.VALIDATION,
-        "Instant form ads need an image, not an existing post.",
+        "Instant form ads need an image or a video, not an existing post.",
       );
     if (
       !(LEAD_FORM_CALLS_TO_ACTION as readonly string[]).includes(
@@ -563,14 +637,43 @@ export class AdsService {
     };
   }
 
-  async updateAdCreative(actor: AdsActor, adId: string, edit: CreativeEdit) {
+  async updateAdCreative(
+    actor: AdsActor,
+    adId: string,
+    edit: Omit<CreativeEdit, "video"> & { videoUrl?: string },
+  ) {
     const ws = await this.workspace(actor.workspaceId);
     await this.owned(ws, adId, "ad");
     const ad = await this.ads.ad(ws.token, adId);
-    const result = editCreative(ad.creative, edit, {
-      pageId: ws.page?.externalId ?? null,
-      instagramId: ws.instagram?.externalId ?? null,
-    });
+    const { videoUrl, ...rest } = edit;
+    if (videoUrl && !videoUrl.startsWith("https://"))
+      throw new ValidationError(
+        "This video isn't on a public https address yet, so Meta can't use it.",
+      );
+    if (
+      videoUrl &&
+      ad.creative?.kind !== "link" &&
+      ad.creative?.kind !== "video"
+    )
+      throw new ValidationError(
+        "Only single-image and video ads can be edited here. Edit this ad in Meta Ads Manager.",
+      );
+    const video = videoUrl
+      ? await this.ads.uploadVideo(
+          ws.token,
+          ws.adAccount.externalId,
+          videoUrl,
+          ad.name,
+        )
+      : undefined;
+    const result = editCreative(
+      ad.creative,
+      { ...rest, video },
+      {
+        pageId: ws.page?.externalId ?? null,
+        instagramId: ws.instagram?.externalId ?? null,
+      },
+    );
     if (!result.ok) {
       throw new CodedError(ErrorCode.VALIDATION, 400, result.message);
     }
@@ -592,8 +695,8 @@ export class AdsService {
     return { id: adId, name: ad.name, creativeId, changed: result.changed };
   }
 
-  async launchNow(actor: AdsActor, campaignId: string) {
-    const ws = await this.workspace(actor.workspaceId);
+  async launchNow(actor: AdsActor, campaignId: string, adAccountId?: string) {
+    const ws = await this.workspace(actor.workspaceId, adAccountId);
     const object = await this.owned(ws, campaignId);
     const children = await this.pausedChildren(ws, object);
     const targets = [
@@ -778,20 +881,43 @@ export class AdsService {
     };
   }
 
-  account(workspaceId: string): Promise<Workspace> {
-    return this.workspace(workspaceId);
+  account(workspaceId: string, adAccountId?: string): Promise<Workspace> {
+    return this.workspace(workspaceId, adAccountId);
   }
 
-  private async workspace(workspaceId: string): Promise<Workspace> {
+  async customAudiences(
+    workspaceId: string,
+  ): Promise<{ data: CustomAudienceSummary[] }> {
+    const ws = await this.workspace(workspaceId);
+    const key = `ads:audiences:${workspaceId}:${ws.adAccount.externalId}`;
+    const cached = await this.cache.get<{ data: CustomAudienceSummary[] }>(key);
+    if (cached) return cached;
+    const result = {
+      data: await this.ads.customAudiences(ws.token, ws.adAccount.externalId),
+    };
+    await this.cache.set(key, result, AUDIENCES_CACHE_SECONDS);
+    return result;
+  }
+
+  private async workspace(
+    workspaceId: string,
+    adAccountId?: string,
+  ): Promise<Workspace> {
     const token = await this.connections.accessToken(workspaceId);
     const { data } = await this.connections.listAssets(workspaceId);
     const primary = (kind: AssetView["kind"]) =>
       data.find((a) => a.kind === kind && a.isPrimary) ?? null;
-    const adAccount = primary("ad_account");
+    const adAccount = adAccountId
+      ? (data.find(
+          (a) => a.kind === "ad_account" && a.externalId === adAccountId,
+        ) ?? null)
+      : primary("ad_account");
     if (!adAccount) {
       throw rejected(
         ErrorCode.META_ASSETS_MISSING,
-        "Select an ad account in Setup first.",
+        adAccountId
+          ? "The ad account this was created in is no longer connected. Reconnect it in Setup."
+          : "Select an ad account in Setup first.",
       );
     }
     return {
@@ -1074,6 +1200,12 @@ export class AdsService {
     if (named(input.behaviors))
       flexible.push({ behaviors: named(input.behaviors) });
     if (flexible.length) out.flexible_spec = flexible;
+    if (input.customAudiences?.length)
+      out.custom_audiences = input.customAudiences.map((a) => ({ id: a.id }));
+    if (input.excludedCustomAudiences?.length)
+      out.excluded_custom_audiences = input.excludedCustomAudiences.map(
+        (a) => ({ id: a.id }),
+      );
     return out;
   }
 

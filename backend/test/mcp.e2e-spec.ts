@@ -388,6 +388,7 @@ describe("Claude connector (OAuth + MCP)", () => {
       "list_play_apps",
       "list_play_releases",
       "list_play_reviews",
+      "list_saved_audiences",
       "list_social_accounts",
       "list_social_calendar",
       "list_social_comments",
@@ -1506,7 +1507,8 @@ describe("Claude connector (OAuth + MCP)", () => {
     const names = (list.body.result.tools as { name: string }[]).map(
       (t) => t.name,
     );
-    expect(names).toHaveLength(33);
+    expect(names).toHaveLength(34);
+    expect(names).toContain("list_saved_audiences");
     expect(names).toContain("find_business_on_google");
     expect(names).not.toContain("create_business_profile");
     expect(names).toContain("list_business_reviews");

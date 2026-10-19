@@ -24,6 +24,13 @@ export type AuthorizationQuery = Omit<
 >;
 export type ConnectedApp = Schemas["ConnectedAppDto"];
 export type CampaignPlan = Schemas["CampaignPlanDto"];
+export type PlanVariant = Schemas["PlanVariantDto"];
+export type PlanTargeting = Schemas["PlanTargetingDto"];
+export type SavedAudience = Schemas["SavedAudienceDto"];
+export type SaveAudience = Schemas["SaveAudienceDto"];
+export type CustomAudience = Schemas["CustomAudienceDto"];
+export type AdAccountSwitch = Schemas["AdAccountSwitchDto"];
+export type VariantComparison = Schemas["VariantComparisonDto"];
 export type PlanDetail = Schemas["PlanDetailResponseDto"];
 export type PlanSummary = Schemas["PlanSummaryDto"];
 export type PlanStatus = PlanSummary["status"];

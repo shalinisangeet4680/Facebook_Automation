@@ -12,6 +12,7 @@ import {
   MAX_CUSTOM_QUESTIONS,
   PrefillQuestion,
 } from "@modules/ads/domain/lead-form";
+import { PlanTargeting } from "@modules/ads/domain/audience";
 import { formatMoney } from "@modules/ads/domain/money";
 
 import { CampaignPlan, parsePlan } from "./plan.schema";
@@ -43,8 +44,11 @@ export interface GenerationContext {
   locations: PlanLocations;
   linkUrl: string;
   imageUrl: string | null;
+  videoUrl?: string | null;
   post: PlanPost | null;
   leadForm: LeadFormContext | null;
+  variants?: boolean;
+  audience?: PlanTargeting | null;
 }
 
 export interface BuiltPlan {
@@ -272,12 +276,22 @@ export function draftPlanCopy(input: PlanAiInput): PlanAiResult {
     genders: gendersFrom(notes),
     interests: interestHints(notes),
     primaryText: cut(`${offer}. ${ask[input.goal]}`, 2000),
-    alternatives: [
-      cut(`${offer}${brand ? ` from ${brand}` : ""}. ${ask[input.goal]}`, 2000),
-      cut(
-        `Looking for ${offer.charAt(0).toLowerCase()}${offer.slice(1)} in ${places}? ${ask[input.goal]}`,
-        2000,
-      ),
+    alternatives: [],
+    variants: [
+      {
+        primaryText: cut(
+          `${offer}${brand ? ` from ${brand}` : ""}. ${ask[input.goal]}`,
+          2000,
+        ),
+        headline: cut(brand ? `${brand}: ${offer}` : `${offer} today`, 40),
+      },
+      {
+        primaryText: cut(
+          `Looking for ${offer.charAt(0).toLowerCase()}${offer.slice(1)} in ${places}? ${ask[input.goal]}`,
+          2000,
+        ),
+        headline: cut(`${offer} in ${places}`, 40),
+      },
     ],
     headline: cut(offer, 40),
     description: brand ? cut(brand, 255) : null,
@@ -294,7 +308,7 @@ export function draftPlanCopy(input: PlanAiInput): PlanAiResult {
       ),
       budget: cut(budgetReason(input), 1200),
       creative: cut(
-        `The ad leads with your offer in plain words and ends with one clear next step, so people know exactly what to do.${input.hasVisual ? "" : " Add an image or an existing post before creating it in Meta."}`,
+        `The ad leads with your offer in plain words and ends with one clear next step, so people know exactly what to do.${input.hasVisual ? "" : " Add an image, a video or an existing post before creating it in Meta."}`,
         1200,
       ),
     },
@@ -397,6 +411,26 @@ function leadFormOf(
 const clean = (text: string | null | undefined) =>
   typeof text === "string" ? squash(text) : text;
 
+function variantsOf(ctx: GenerationContext, copy: PlanAiResult): unknown[] {
+  if (ctx.variants === false || ctx.post) return [];
+  const drafted = copy.variants?.length
+    ? copy.variants
+    : copy.alternatives.map((primaryText) => ({
+        primaryText,
+        headline: copy.headline,
+      }));
+  return drafted
+    .map((v) => ({
+      enabled: true,
+      primaryText: v.primaryText?.trim() ?? "",
+      headline: clean(v.headline) || clean(copy.headline),
+      imageUrl: null,
+      videoUrl: null,
+    }))
+    .filter((v) => v.primaryText && v.primaryText !== copy.primaryText.trim())
+    .slice(0, 2);
+}
+
 export function assemblePlan(
   ctx: GenerationContext,
   copy: PlanAiResult,
@@ -421,7 +455,7 @@ export function assemblePlan(
     goal: ctx.input.goal,
     conversionEvent: goal.needsPixel ? event : null,
     dailyBudget: ctx.input.dailyBudget,
-    targeting: {
+    targeting: ctx.audience ?? {
       countries: ctx.locations.countries,
       regions: ctx.locations.regions,
       cities: ctx.locations.cities,
@@ -435,14 +469,12 @@ export function assemblePlan(
     },
     creative: {
       primaryText: copy.primaryText.trim(),
-      alternatives: copy.alternatives
-        .map((a) => a.trim())
-        .filter(Boolean)
-        .slice(0, 5),
+      alternatives: [],
       headline: clean(copy.headline),
       description: clean(copy.description) || null,
       linkUrl: ctx.linkUrl,
       imageUrl: ctx.post ? null : ctx.imageUrl,
+      videoUrl: ctx.post ? null : (ctx.videoUrl ?? null),
       imageIdea: clean(copy.imageIdea) || null,
       callToAction,
       post: ctx.post,
@@ -455,6 +487,7 @@ export function assemblePlan(
     },
     expectedResults: clean(copy.expectedResults) || null,
     leadForm: leadFormOf(ctx, copy, clean(copy.name) ?? ""),
+    variants: variantsOf(ctx, copy),
   };
 }
 

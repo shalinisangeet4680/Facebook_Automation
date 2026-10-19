@@ -5,10 +5,10 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
-import { useUpdateAd } from "@/lib/api/queries";
+import { useCreatives, useUpdateAd } from "@/lib/api/queries";
 import type { AdCreativeUpdate, AdRow } from "@/lib/api/types";
 import { CTA_LABELS } from "@/features/plans/labels";
-import { CreativePicker, displaySrc } from "@/features/plans/creative-picker";
+import { CreativePicker, PlayBadge, VideoFill, displaySrc } from "@/features/plans/creative-picker";
 import { Field } from "@/features/plans/plan-sections";
 import { RpDialogClose, RpDialogContent, RpDialogRoot } from "@/features/replyly/dialog";
 import { Banner, Spinner, useToast } from "@/features/replyly/ui";
@@ -22,6 +22,7 @@ interface Draft {
   callToAction: string;
   link: string;
   imageUrl: string | null;
+  videoUrl: string | null;
 }
 
 type Errors = Partial<Record<keyof Draft, string>>;
@@ -42,7 +43,11 @@ function validate(d: Draft): Errors {
   return errors;
 }
 
-function changes(initial: Draft, d: Draft): AdCreativeUpdate {
+function changes(
+  initial: Draft,
+  d: Draft,
+  creativeIdOf: (url: string) => string | undefined,
+): AdCreativeUpdate {
   const body: AdCreativeUpdate = {};
   if (d.primaryText.trim() !== initial.primaryText.trim()) body.primaryText = d.primaryText.trim();
   if (d.headline.trim() !== initial.headline.trim()) body.headline = d.headline.trim();
@@ -51,7 +56,10 @@ function changes(initial: Draft, d: Draft): AdCreativeUpdate {
   if (d.callToAction !== initial.callToAction)
     body.callToAction = d.callToAction as AdCreativeUpdate["callToAction"];
   if (d.link.trim() !== initial.link.trim()) body.link = d.link.trim();
-  if (d.imageUrl && d.imageUrl !== initial.imageUrl) body.imageUrl = d.imageUrl;
+  if (d.videoUrl && d.videoUrl !== initial.videoUrl) {
+    const id = creativeIdOf(d.videoUrl);
+    if (id) body.creativeId = id;
+  } else if (d.imageUrl && d.imageUrl !== initial.imageUrl) body.imageUrl = d.imageUrl;
   return body;
 }
 
@@ -66,6 +74,7 @@ export function EditAdDialog({
 }) {
   const toast = useToast();
   const update = useUpdateAd();
+  const library = useCreatives();
   const c = ad.creative;
   const [initial] = useState<Draft>(() => ({
     primaryText: c.primaryText ?? "",
@@ -74,15 +83,18 @@ export function EditAdDialog({
     callToAction: c.callToAction ?? "LEARN_MORE",
     link: c.link ?? "",
     imageUrl: c.imageUrl,
+    videoUrl: null,
   }));
   const [draft, setDraft] = useState<Draft>(initial);
   const [tried, setTried] = useState(false);
   const [picking, setPicking] = useState(false);
   const errors = tried ? validate(draft) : {};
-  const body = changes(initial, draft);
+  const body = changes(initial, draft, (url) => library.data?.data.find((x) => x.url === url)?.id);
   const dirty = Object.keys(body).length > 0;
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const image = displaySrc(draft.imageUrl);
+  const newVideo = displaySrc(draft.videoUrl);
+  const isVideo = Boolean(newVideo) || c.kind === "video";
 
   const submit = () => {
     setTried(true);
@@ -130,7 +142,9 @@ export function EditAdDialog({
                   color: MUTED,
                 }}
               >
-                {image ? (
+                {newVideo ? (
+                  <VideoFill src={newVideo} />
+                ) : image ? (
                   <Image
                     unoptimized
                     fill
@@ -142,10 +156,16 @@ export function EditAdDialog({
                 ) : (
                   <ImageIcon size={18} aria-hidden />
                 )}
+                {isVideo && !newVideo ? <PlayBadge size={26} /> : null}
               </span>
               <button type="button" className="rp-btn-light" onClick={() => setPicking(true)}>
-                Change image
+                Change image or video
               </button>
+              {c.kind === "video" && !newVideo ? (
+                <span style={{ fontSize: 12, color: MUTED, flex: "1 1 160px" }}>
+                  Text edits keep the same video.
+                </span>
+              ) : null}
             </div>
             <Field label="Primary text" error={errors.primaryText}>
               <textarea
@@ -224,9 +244,10 @@ export function EditAdDialog({
         imagesOnly
         open={open && picking}
         onOpenChange={setPicking}
-        creative={{ imageUrl: draft.imageUrl, post: null }}
+        creative={{ imageUrl: draft.imageUrl, videoUrl: draft.videoUrl, post: null }}
         onPick={(patch) => {
-          if (patch.imageUrl) set({ imageUrl: patch.imageUrl });
+          if (patch.videoUrl) set({ videoUrl: patch.videoUrl });
+          else if (patch.imageUrl) set({ imageUrl: patch.imageUrl, videoUrl: null });
         }}
       />
     </>

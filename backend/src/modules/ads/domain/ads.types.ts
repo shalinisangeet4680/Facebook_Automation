@@ -28,6 +28,16 @@ export interface TargetingInput {
   workPositions?: { id: string; name?: string }[];
   industries?: { id: string; name?: string }[];
   behaviors?: { id: string; name?: string }[];
+  customAudiences?: { id: string }[];
+  excludedCustomAudiences?: { id: string }[];
+}
+
+export interface DraftVariantInput {
+  label: string;
+  primaryText: string;
+  headline: string;
+  imageUrl?: string;
+  videoUrl?: string;
 }
 
 export interface DraftInput {
@@ -43,9 +53,11 @@ export interface DraftInput {
     linkUrl: string;
     imageUrl?: string;
     imageHash?: string;
+    videoUrl?: string;
     callToAction: CallToAction;
     post?: { platform: "facebook" | "instagram"; id: string };
   };
+  variants?: DraftVariantInput[];
   leadForm?: LeadFormSpec;
 }
 

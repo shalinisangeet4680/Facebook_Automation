@@ -12,6 +12,7 @@ import {
   CampaignSummary,
   CreativeInput,
   CreativeReplaceInput,
+  CustomAudienceSummary,
   InsightQuery,
   InsightRow,
   LeadFormInput,
@@ -22,6 +23,7 @@ import {
   PixelEventCount,
   TargetingOption,
   TargetingSearchType,
+  UploadedVideo,
 } from "../domain/ports/meta-ads";
 import { metaRejected } from "../domain/meta.errors";
 import { GraphApiClient, GraphParams } from "./graph-api.client";
@@ -31,10 +33,12 @@ const CAMPAIGN_FIELDS =
 const ADSET_FIELDS =
   "id,name,campaign_id,status,effective_status,optimization_goal,billing_event,daily_budget,lifetime_budget,targeting,promoted_object";
 const AD_FIELDS =
-  "id,name,adset_id,status,effective_status,creative{id,title,body,object_story_id,object_story_spec,source_instagram_media_id,image_url,image_hash,thumbnail_url,call_to_action_type}";
+  "id,name,adset_id,status,effective_status,creative{id,title,body,object_story_id,object_story_spec,source_instagram_media_id,image_url,image_hash,thumbnail_url,video_id,call_to_action_type}";
 const LEAD_FIELDS =
   "id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id";
 const LEAD_FORM_FIELDS = "id,name,status,locale,created_time,questions";
+const VIDEO_POLL_MS = 3_000;
+const VIDEO_POLL_ATTEMPTS = 40;
 const INSIGHT_FIELDS =
   "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,account_id,account_name,objective,spend,impressions,reach,frequency,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,cpm,actions,date_start,date_stop";
 
@@ -89,6 +93,7 @@ export interface RawAd {
     image_url?: string;
     image_hash?: string;
     thumbnail_url?: string;
+    video_id?: string;
     call_to_action_type?: string;
     object_story_id?: string;
     source_instagram_media_id?: string;
@@ -102,6 +107,18 @@ export interface RawAd {
         name?: string;
         description?: string;
         picture?: string;
+        image_hash?: string;
+        call_to_action?: {
+          type?: string;
+          value?: { link?: string; lead_gen_form_id?: string };
+        };
+      };
+      video_data?: {
+        video_id?: string;
+        message?: string;
+        title?: string;
+        link_description?: string;
+        image_url?: string;
         image_hash?: string;
         call_to_action?: {
           type?: string;
@@ -147,7 +164,10 @@ export function toAd(r: RawAd): AdSummary {
   const c = r.creative;
   const spec = c?.object_story_spec;
   const link = spec?.link_data;
+  const video = spec?.video_data;
   const postId = c?.object_story_id ?? c?.source_instagram_media_id ?? null;
+  const cta = link?.call_to_action ?? video?.call_to_action;
+  const kind = postId ? "post" : video ? "video" : link ? "link" : "other";
   return {
     id: r.id,
     name: r.name,
@@ -157,21 +177,32 @@ export function toAd(r: RawAd): AdSummary {
     creative: c
       ? {
           id: c.id,
-          kind: postId ? "post" : link ? "link" : "other",
-          title: link?.name ?? c.title ?? null,
-          body: link?.message ?? c.body ?? null,
-          description: link?.description ?? null,
-          linkUrl: link?.link ?? link?.call_to_action?.value?.link ?? null,
-          imageUrl: link?.picture ?? c.image_url ?? c.thumbnail_url ?? null,
-          imageHash: link?.image_hash ?? c.image_hash ?? null,
-          thumbnailUrl: c.thumbnail_url ?? c.image_url ?? link?.picture ?? null,
-          callToAction:
-            link?.call_to_action?.type ?? c.call_to_action_type ?? null,
+          kind,
+          title: link?.name ?? video?.title ?? c.title ?? null,
+          body: link?.message ?? video?.message ?? c.body ?? null,
+          description: link?.description ?? video?.link_description ?? null,
+          linkUrl: link?.link ?? cta?.value?.link ?? null,
+          imageUrl:
+            link?.picture ??
+            video?.image_url ??
+            c.image_url ??
+            c.thumbnail_url ??
+            null,
+          imageHash:
+            link?.image_hash ?? video?.image_hash ?? c.image_hash ?? null,
+          thumbnailUrl:
+            c.thumbnail_url ??
+            video?.image_url ??
+            c.image_url ??
+            link?.picture ??
+            null,
+          callToAction: cta?.type ?? c.call_to_action_type ?? null,
           pageId: spec?.page_id ?? null,
           instagramId:
             spec?.instagram_user_id ?? spec?.instagram_actor_id ?? null,
           postId,
-          leadFormId: link?.call_to_action?.value?.lead_gen_form_id ?? null,
+          leadFormId: cta?.value?.lead_gen_form_id ?? null,
+          videoId: video?.video_id ?? c.video_id ?? null,
         }
       : null,
   };
@@ -544,25 +575,40 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
             : {}),
         },
       );
-      const c = form
-        ? { ...input.creative, leadFormId: form.id }
-        : input.creative;
-      const creative = await this.post<{ id: string }>(
-        token,
-        `/${account}/adcreatives`,
-        { name: `${input.name} – Creative`, ...this.creativeSpec(c) },
-      );
-      const ad = await this.post<{ id: string }>(token, `/${account}/ads`, {
-        name: `${input.name} – Ad`,
-        adset_id: adSet.id,
-        creative: { creative_id: creative.id },
-        status: "PAUSED",
-      });
+      const entries = [
+        { label: "", creative: input.creative },
+        ...(input.variants ?? []),
+      ];
+      const many = entries.length > 1;
+      const ads: CampaignDraftResult["ads"] = [];
+      for (const [i, entry] of entries.entries()) {
+        const label = many ? entry.label || String.fromCharCode(65 + i) : "";
+        const suffix = many ? `Version ${label}` : "";
+        const c = form
+          ? { ...entry.creative, leadFormId: form.id }
+          : entry.creative;
+        const creative = await this.post<{ id: string }>(
+          token,
+          `/${account}/adcreatives`,
+          {
+            name: `${input.name} – ${suffix || "Creative"}`,
+            ...this.creativeSpec(c),
+          },
+        );
+        const ad = await this.post<{ id: string }>(token, `/${account}/ads`, {
+          name: `${input.name} – ${suffix || "Ad"}`,
+          adset_id: adSet.id,
+          creative: { creative_id: creative.id },
+          status: "PAUSED",
+        });
+        ads.push({ label, adId: ad.id, creativeId: creative.id });
+      }
       return {
         campaignId: campaign.id,
         adSetId: adSet.id,
-        creativeId: creative.id,
-        adId: ad.id,
+        creativeId: ads[0]!.creativeId,
+        adId: ads[0]!.adId,
+        ads,
         ...(form ? { leadFormId: form.id } : {}),
       };
     } catch (err) {
@@ -576,6 +622,74 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
         }).catch(() => undefined);
       throw err;
     }
+  }
+
+  async uploadVideo(
+    token: string,
+    adAccountId: string,
+    fileUrl: string,
+    name: string,
+  ): Promise<UploadedVideo> {
+    const created = await this.post<{ id: string }>(
+      token,
+      `/${adAccountId}/advideos`,
+      { file_url: fileUrl, name: name.slice(0, 100) },
+    );
+    let ready = false;
+    for (let attempt = 0; attempt < VIDEO_POLL_ATTEMPTS; attempt++) {
+      const res = await this.get<{ status?: { video_status?: string } }>(
+        token,
+        `/${created.id}`,
+        { fields: "status" },
+      );
+      const status = res.status?.video_status;
+      if (status === "ready") {
+        ready = true;
+        break;
+      }
+      if (status === "error")
+        throw metaRejected(
+          "Meta couldn't process this video. Use a standard MP4 (H.264) of at least 3 seconds and try again.",
+        );
+      await this.wait(VIDEO_POLL_MS);
+    }
+    if (!ready)
+      throw metaRejected(
+        "Meta is still processing this video. Try again in a few minutes.",
+      );
+    const media = await this.get<{
+      picture?: string;
+      thumbnails?: { data?: { uri?: string; is_preferred?: boolean }[] };
+    }>(token, `/${created.id}`, { fields: "picture,thumbnails" });
+    const thumbs = media.thumbnails?.data ?? [];
+    return {
+      videoId: created.id,
+      thumbnailUrl:
+        thumbs.find((t) => t.is_preferred && t.uri)?.uri ??
+        thumbs.find((t) => t.uri)?.uri ??
+        media.picture ??
+        null,
+    };
+  }
+
+  async customAudiences(
+    token: string,
+    adAccountId: string,
+  ): Promise<CustomAudienceSummary[]> {
+    const rows = await this.list<{
+      id: string;
+      name?: string;
+      subtype?: string;
+      approximate_count_lower_bound?: number | string;
+    }>(token, `/${adAccountId}/customaudiences`, {
+      fields: "id,name,approximate_count_lower_bound,subtype",
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name ?? "Custom audience",
+      subtype: r.subtype ?? null,
+      approximateCount: optNum(r.approximate_count_lower_bound),
+    }));
   }
 
   async pageAccessToken(token: string, pageId: string): Promise<string> {
@@ -677,6 +791,29 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
         call_to_action: { type: c.callToAction, value: { link: c.link } },
       };
     }
+    const cta = {
+      type: c.callToAction,
+      value: c.leadFormId
+        ? { lead_gen_form_id: c.leadFormId }
+        : { link: c.link },
+    };
+    if (c.videoId) {
+      return {
+        object_story_spec: {
+          page_id: c.pageId,
+          ...(c.instagramId ? { instagram_user_id: c.instagramId } : {}),
+          video_data: {
+            video_id: c.videoId,
+            message: c.message,
+            title: c.headline,
+            ...(c.description ? { link_description: c.description } : {}),
+            ...(c.imageHash ? { image_hash: c.imageHash } : {}),
+            ...(c.imageUrl && !c.imageHash ? { image_url: c.imageUrl } : {}),
+            call_to_action: cta,
+          },
+        },
+      };
+    }
     return {
       object_story_spec: {
         page_id: c.pageId,
@@ -688,12 +825,7 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
           ...(c.description ? { description: c.description } : {}),
           ...(c.imageHash ? { image_hash: c.imageHash } : {}),
           ...(c.imageUrl && !c.imageHash ? { picture: c.imageUrl } : {}),
-          call_to_action: {
-            type: c.callToAction,
-            value: c.leadFormId
-              ? { lead_gen_form_id: c.leadFormId }
-              : { link: c.link },
-          },
+          call_to_action: cta,
         },
       },
     };

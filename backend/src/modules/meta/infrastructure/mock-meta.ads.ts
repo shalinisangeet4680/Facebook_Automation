@@ -11,7 +11,9 @@ import {
   CampaignDraftInput,
   CampaignDraftResult,
   CampaignSummary,
+  CreativeInput,
   CreativeReplaceInput,
+  CustomAudienceSummary,
   InsightQuery,
   InsightRow,
   LeadFormInput,
@@ -22,9 +24,11 @@ import {
   PixelEventCount,
   TargetingOption,
   TargetingSearchType,
+  UploadedVideo,
 } from "../domain/ports/meta-ads";
 
 const ACCOUNT = "act_1201000000000001";
+export const MOCK_SECOND_ACCOUNT = "act_1201000000000002";
 const PAGE = "1301000000000001";
 const DAY_MS = 86_400_000;
 
@@ -40,7 +44,17 @@ interface MockLeadForm {
   adId: string | null;
 }
 
+export interface MockVideoUpload {
+  videoId: string;
+  adAccountId: string;
+  fileUrl: string;
+  name: string;
+}
+
 interface Store {
+  accounts: Map<string, string>;
+  videos: Map<string, MockVideoUpload>;
+  resultFactor: Map<string, number>;
   campaigns: Map<string, CampaignSummary>;
   adSets: Map<string, AdSetSummary>;
   ads: Map<string, AdSummary>;
@@ -152,6 +166,21 @@ function seed(): Store {
         createdTime: festive,
       },
     ],
+    [
+      "120210000000000201",
+      {
+        id: "120210000000000201",
+        name: "Clinics – Website visits – Delhi",
+        objective: "OUTCOME_TRAFFIC",
+        status: "ACTIVE",
+        effectiveStatus: "ACTIVE",
+        dailyBudget: null,
+        lifetimeBudget: null,
+        startTime: created,
+        stopTime: null,
+        createdTime: created,
+      },
+    ],
   ]);
   const adSets = new Map<string, AdSetSummary>([
     [
@@ -250,6 +279,26 @@ function seed(): Store {
         },
       },
     ],
+    [
+      "120220000000000201",
+      {
+        id: "120220000000000201",
+        name: "Delhi – Broad",
+        campaignId: "120210000000000201",
+        status: "ACTIVE",
+        effectiveStatus: "ACTIVE",
+        optimizationGoal: "LANDING_PAGE_VIEWS",
+        billingEvent: "IMPRESSIONS",
+        dailyBudget: 40_000,
+        lifetimeBudget: null,
+        targeting: {
+          age_min: 25,
+          age_max: 55,
+          geo_locations: { countries: ["IN"] },
+        },
+        promotedObject: null,
+      },
+    ],
   ]);
   const ad = (
     id: string,
@@ -306,6 +355,13 @@ function seed(): Store {
       "Built for dental clinics",
       "Charts, X-ray notes and reminders for every patient.",
     ),
+    ad(
+      "120230000000000201",
+      "120220000000000201",
+      "Delhi clinics – image",
+      "Clinic software for Delhi",
+      "Book a free walkthrough for your Delhi clinic.",
+    ),
   ]);
   ads.set("120230000000000006", {
     id: "120230000000000006",
@@ -346,6 +402,12 @@ function seed(): Store {
     ],
   ]);
   return {
+    accounts: new Map([
+      ...[...campaigns.keys()].map((id): [string, string] => [id, ACCOUNT]),
+      ["120210000000000201", MOCK_SECOND_ACCOUNT],
+    ]),
+    videos: new Map(),
+    resultFactor: new Map(),
     campaigns,
     adSets,
     ads,
@@ -364,6 +426,26 @@ export function resetMockAds(): void {
 
 export function advanceMockLeads(ms: number): void {
   store.leadClockMs += ms;
+}
+
+export function mockVideoUploads(): MockVideoUpload[] {
+  return [...store.videos.values()];
+}
+
+export function backdateMockCampaign(campaignId: string, days: number): void {
+  const campaign = store.campaigns.get(campaignId);
+  if (!campaign) return;
+  const when = new Date(Date.now() - days * DAY_MS).toISOString();
+  campaign.createdTime = when;
+  campaign.startTime = when;
+}
+
+export function setMockAdResults(adId: string, factor: number): void {
+  store.resultFactor.set(adId, factor);
+}
+
+function accountOf(campaignId: string): string {
+  return store.accounts.get(campaignId) ?? ACCOUNT;
 }
 
 export function mockLeadForm(formId: string): {
@@ -525,7 +607,9 @@ function adDay(
     landing_page_view: Math.round(linkClicks * 0.72),
   };
   if (campaign.objective === "OUTCOME_LEADS") {
-    actions.lead = Math.round(spend / (150 + r * 90));
+    actions.lead = Math.round(
+      (spend / (150 + r * 90)) * (store.resultFactor.get(ad.id) ?? 1),
+    );
     actions["offsite_conversion.fb_pixel_lead"] = actions.lead;
   }
   return {
@@ -553,7 +637,6 @@ export class MockMetaAds implements MetaAds {
     adAccountId: string,
     query: InsightQuery,
   ): Promise<InsightRow[]> {
-    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
     const { from, to } = range(query);
     const days: string[] = [];
     for (let t = from.getTime(); t <= to.getTime(); t += DAY_MS)
@@ -576,6 +659,7 @@ export class MockMetaAds implements MetaAds {
         ? store.campaigns.get(adSet.campaignId)
         : undefined;
       if (!adSet || !campaign) continue;
+      if (accountOf(campaign.id) !== adAccountId) continue;
       if (query.campaignId && campaign.id !== query.campaignId) continue;
       const entity =
         query.level === "account"
@@ -649,11 +733,10 @@ export class MockMetaAds implements MetaAds {
   }
 
   campaigns(_token: string, adAccountId: string): Promise<CampaignSummary[]> {
-    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
     return Promise.resolve(
-      [...store.campaigns.values()].sort((a, b) =>
-        b.createdTime.localeCompare(a.createdTime),
-      ),
+      [...store.campaigns.values()]
+        .filter((c) => accountOf(c.id) === adAccountId)
+        .sort((a, b) => b.createdTime.localeCompare(a.createdTime)),
     );
   }
 
@@ -672,8 +755,11 @@ export class MockMetaAds implements MetaAds {
   }
 
   adSets(_token: string, adAccountId: string): Promise<AdSetSummary[]> {
-    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
-    return Promise.resolve([...store.adSets.values()]);
+    return Promise.resolve(
+      [...store.adSets.values()].filter(
+        (s) => accountOf(s.campaignId) === adAccountId,
+      ),
+    );
   }
 
   ad(_token: string, adId: string): Promise<AdSummary> {
@@ -692,7 +778,7 @@ export class MockMetaAds implements MetaAds {
         name: campaign.name,
         status: campaign.status,
         effectiveStatus: campaign.effectiveStatus,
-        accountId: ACCOUNT,
+        accountId: accountOf(id),
         campaignId: id,
         dailyBudget: campaign.dailyBudget,
         lifetimeBudget: campaign.lifetimeBudget,
@@ -706,7 +792,7 @@ export class MockMetaAds implements MetaAds {
         name: adSet.name,
         status: adSet.status,
         effectiveStatus: adSet.effectiveStatus,
-        accountId: ACCOUNT,
+        accountId: accountOf(adSet.campaignId),
         campaignId: adSet.campaignId,
         dailyBudget: adSet.dailyBudget,
         lifetimeBudget: adSet.lifetimeBudget,
@@ -714,14 +800,15 @@ export class MockMetaAds implements MetaAds {
     }
     const ad = store.ads.get(id);
     if (ad) {
+      const campaignId = store.adSets.get(ad.adSetId)?.campaignId ?? null;
       return Promise.resolve({
         id,
         type: "ad",
         name: ad.name,
         status: ad.status,
         effectiveStatus: ad.effectiveStatus,
-        accountId: ACCOUNT,
-        campaignId: store.adSets.get(ad.adSetId)?.campaignId ?? null,
+        accountId: campaignId ? accountOf(campaignId) : ACCOUNT,
+        campaignId,
         dailyBudget: null,
         lifetimeBudget: null,
       });
@@ -908,7 +995,17 @@ export class MockMetaAds implements MetaAds {
       : null;
     const campaignId = next();
     const adSetId = next();
-    const adId = next();
+    const entries = [
+      { label: "", creative: input.creative },
+      ...(input.variants ?? []),
+    ];
+    const many = entries.length > 1;
+    const created = entries.map((e, i) => ({
+      label: many ? e.label || String.fromCharCode(65 + i) : "",
+      creative: e.creative,
+      adId: next(),
+    }));
+    const adId = created[0]!.adId;
     if (input.leadForm && leadFormId)
       store.forms.set(leadFormId, {
         id: leadFormId,
@@ -921,6 +1018,7 @@ export class MockMetaAds implements MetaAds {
         spec: input.leadForm,
         adId,
       });
+    store.accounts.set(campaignId, input.adAccountId);
     store.campaigns.set(campaignId, {
       id: campaignId,
       name: input.name,
@@ -946,40 +1044,73 @@ export class MockMetaAds implements MetaAds {
       targeting: input.adSet.targeting,
       promotedObject: input.adSet.promotedObject,
     });
-    store.ads.set(adId, {
-      id: adId,
-      name: `${input.name} – Ad`,
-      adSetId,
-      status: "PAUSED",
-      effectiveStatus: "CAMPAIGN_PAUSED",
-      creative: {
-        id: `${adId}9`,
-        kind: input.creative.existingPost ? "post" : "link",
-        title: input.creative.existingPost ? null : input.creative.headline,
-        body: input.creative.existingPost
-          ? `Existing ${input.creative.existingPost.platform} post ${input.creative.existingPost.id}`
-          : input.creative.message,
-        description: input.creative.existingPost
-          ? null
-          : input.creative.description,
-        linkUrl: input.creative.link,
-        imageUrl: input.creative.imageUrl,
-        imageHash: input.creative.imageHash,
-        thumbnailUrl: input.creative.imageUrl,
-        callToAction: input.creative.callToAction,
-        pageId: input.creative.pageId,
-        instagramId: input.creative.instagramId,
-        postId: input.creative.existingPost?.id ?? null,
-        leadFormId,
-      },
-    });
+    for (const entry of created)
+      store.ads.set(entry.adId, {
+        id: entry.adId,
+        name: `${input.name} – ${entry.label ? `Version ${entry.label}` : "Ad"}`,
+        adSetId,
+        status: "PAUSED",
+        effectiveStatus: "CAMPAIGN_PAUSED",
+        creative: mockCreative(`${entry.adId}9`, entry.creative, leadFormId),
+      });
     return Promise.resolve({
       campaignId,
       adSetId,
       creativeId: `${adId}9`,
       adId,
+      ads: created.map((e) => ({
+        label: e.label,
+        adId: e.adId,
+        creativeId: `${e.adId}9`,
+      })),
       ...(leadFormId ? { leadFormId } : {}),
     });
+  }
+
+  uploadVideo(
+    _token: string,
+    adAccountId: string,
+    fileUrl: string,
+    name: string,
+  ): Promise<UploadedVideo> {
+    if (fileUrl.includes("broken"))
+      return Promise.reject(
+        metaRejected(
+          "Meta couldn't process this video. Use a standard MP4 (H.264) of at least 3 seconds and try again.",
+        ),
+      );
+    const videoId = `1203000000${String(++store.sequence).padStart(6, "0")}`;
+    store.videos.set(videoId, {
+      videoId,
+      adAccountId,
+      fileUrl,
+      name,
+    });
+    return Promise.resolve({
+      videoId,
+      thumbnailUrl: `https://scontent.example.com/v/${videoId}.jpg`,
+    });
+  }
+
+  customAudiences(
+    _token: string,
+    adAccountId: string,
+  ): Promise<CustomAudienceSummary[]> {
+    if (adAccountId !== ACCOUNT) return Promise.resolve([]);
+    return Promise.resolve([
+      {
+        id: "23851000000000001",
+        name: "Website visitors – 30 days",
+        subtype: "WEBSITE",
+        approximateCount: 12_000,
+      },
+      {
+        id: "23851000000000002",
+        name: "Existing customers",
+        subtype: "CUSTOM",
+        approximateCount: 2_400,
+      },
+    ]);
   }
 
   setStatus(_token: string, id: string, status: AdStatus): Promise<void> {
@@ -1017,23 +1148,15 @@ export class MockMetaAds implements MetaAds {
       return Promise.reject(metaRejected("The link in your ad isn't working."));
     }
     const creativeId = `1202400000000${String(++store.sequence).padStart(5, "0")}`;
-    const imageUrl = c.imageUrl ?? ad.creative?.imageUrl ?? null;
-    ad.creative = {
-      id: creativeId,
-      kind: "link",
-      title: c.headline,
-      body: c.message,
-      description: c.description,
-      linkUrl: c.link,
-      imageUrl,
-      imageHash: c.imageHash,
-      thumbnailUrl: imageUrl,
-      callToAction: c.callToAction,
-      pageId: c.pageId,
-      instagramId: c.instagramId,
-      postId: null,
-      leadFormId: c.leadFormId ?? null,
-    };
+    ad.creative = mockCreative(
+      creativeId,
+      {
+        ...c,
+        imageUrl:
+          c.imageUrl ?? (c.imageHash ? null : (ad.creative?.imageUrl ?? null)),
+      },
+      c.leadFormId ?? null,
+    );
     return Promise.resolve({ creativeId });
   }
 
@@ -1101,6 +1224,31 @@ export class MockMetaAds implements MetaAds {
     }
     return Promise.resolve(out);
   }
+}
+
+function mockCreative(
+  id: string,
+  c: CreativeInput,
+  leadFormId: string | null,
+): AdCreativeSummary {
+  const post = c.existingPost;
+  return {
+    id,
+    kind: post ? "post" : c.videoId ? "video" : "link",
+    title: post ? null : c.headline,
+    body: post ? `Existing ${post.platform} post ${post.id}` : c.message,
+    description: post ? null : c.description,
+    linkUrl: c.link,
+    imageUrl: c.imageUrl,
+    imageHash: c.imageHash,
+    thumbnailUrl: c.imageUrl,
+    callToAction: c.callToAction,
+    pageId: c.pageId,
+    instagramId: c.instagramId,
+    postId: post?.id ?? null,
+    leadFormId,
+    videoId: c.videoId ?? null,
+  };
 }
 
 function refreshDelivery(): void {

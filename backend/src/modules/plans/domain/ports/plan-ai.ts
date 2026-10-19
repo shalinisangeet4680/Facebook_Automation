@@ -69,6 +69,7 @@ export interface PlanAiResult {
   interests: string[];
   primaryText: string;
   alternatives: string[];
+  variants?: { primaryText: string; headline: string }[];
   headline: string;
   description: string | null;
   callToAction: string;

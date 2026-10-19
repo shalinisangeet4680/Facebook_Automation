@@ -212,6 +212,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meta/assets/ad-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["MetaController_switchAdAccount_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meta/assets/selection": {
         parameters: {
             query?: never;
@@ -420,6 +436,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ads/custom-audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdsController_customAudiences_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/overview": {
         parameters: {
             query?: never;
@@ -447,6 +479,38 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AudiencesController_list_v1"];
+        put?: never;
+        post: operations["AudiencesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/audiences/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AudiencesController_get_v1"];
+        put: operations["AudiencesController_update_v1"];
+        post?: never;
+        delete: operations["AudiencesController_remove_v1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3167,6 +3231,22 @@ export interface components {
         JobAcceptedDto: {
             jobId: string;
         };
+        SwitchAdAccountDto: {
+            adAccountId: string;
+        };
+        SwitchedAdAccountDto: {
+            id: string;
+            name: string;
+            currency: string;
+        };
+        AdAccountSwitchDto: {
+            adAccount: components["schemas"]["SwitchedAdAccountDto"];
+            changed: boolean;
+            /** @enum {string} */
+            dataset: "kept" | "switched" | "cleared";
+            needsReview: boolean;
+            connection: components["schemas"]["ConnectionResponseDto"];
+        };
         SelectAssetsDto: {
             adAccountId?: string;
             pageId?: string;
@@ -3347,6 +3427,15 @@ export interface components {
             eventsManagerUrl: string;
             checkedAt: string;
         };
+        CustomAudienceDto: {
+            id: string;
+            name: string;
+            subtype: string | null;
+            approximateCount: number | null;
+        };
+        CustomAudienceListDto: {
+            data: components["schemas"]["CustomAudienceDto"][];
+        };
         ReportPeriodDto: {
             since: string;
             until: string;
@@ -3448,6 +3537,7 @@ export interface components {
         };
         CampaignListDto: {
             currency: string;
+            adAccount: components["schemas"]["ActiveAdAccountDto"];
             /** @enum {string} */
             preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
             period: components["schemas"]["CampaignPeriodDto"];
@@ -3477,11 +3567,20 @@ export interface components {
             targeting: components["schemas"]["TargetingSummaryDto"];
             metrics: components["schemas"]["AdMetricsDto"];
         };
+        VariantComparisonDto: {
+            adSetId: string;
+            adIds: string[];
+            winnerId: string | null;
+            /** @enum {string|null} */
+            basis: "cost_per_result" | "ctr" | null;
+            note: string | null;
+        };
         AdCreativeViewDto: {
             id: string | null;
             /** @enum {string} */
-            kind: "link" | "post" | "other";
+            kind: "link" | "video" | "post" | "other";
             editable: boolean;
+            videoId: string | null;
             primaryText: string | null;
             headline: string | null;
             description: string | null;
@@ -3502,6 +3601,7 @@ export interface components {
         };
         CampaignDetailDto: {
             currency: string;
+            adAccount: components["schemas"]["ActiveAdAccountDto"];
             /** @enum {string} */
             preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
             period: components["schemas"]["CampaignPeriodDto"];
@@ -3509,6 +3609,7 @@ export interface components {
             guardrails: components["schemas"]["BudgetGuardrailsDto"];
             campaign: components["schemas"]["CampaignRowDto"];
             adSets: components["schemas"]["AdSetRowDto"][];
+            comparisons: components["schemas"]["VariantComparisonDto"][];
             ads: components["schemas"]["AdRowDto"][];
         };
         SetStatusDto: {
@@ -3823,6 +3924,26 @@ export interface components {
             workPositions: components["schemas"]["InterestOptionDto"][];
             industries: components["schemas"]["InterestOptionDto"][];
             behaviors: components["schemas"]["InterestOptionDto"][];
+            customAudiences?: components["schemas"]["InterestOptionDto"][];
+            excludedCustomAudiences?: components["schemas"]["InterestOptionDto"][];
+        };
+        SavedAudienceDto: {
+            id: string;
+            name: string;
+            targeting: components["schemas"]["PlanTargetingDto"];
+            createdAt: string;
+            updatedAt: string;
+        };
+        SavedAudienceListDto: {
+            data: components["schemas"]["SavedAudienceDto"][];
+        };
+        SaveAudienceDto: {
+            name: string;
+            targeting: components["schemas"]["PlanTargetingDto"];
+        };
+        ActiveAdAccountDto: {
+            id: string;
+            name: string;
         };
         PlanPostDto: {
             /** @enum {string} */
@@ -3839,6 +3960,7 @@ export interface components {
             description?: string | null;
             linkUrl: string;
             imageUrl?: string | null;
+            videoUrl?: string | null;
             imageIdea?: string | null;
             callToAction: string;
             post?: components["schemas"]["PlanPostDto"] | null;
@@ -3880,6 +4002,13 @@ export interface components {
             privacyPolicyUrl: string;
             thankYou: components["schemas"]["LeadFormThankYouDto"];
         };
+        PlanVariantDto: {
+            enabled: boolean;
+            primaryText: string;
+            headline: string;
+            imageUrl?: string | null;
+            videoUrl?: string | null;
+        };
         CampaignPlanDto: {
             name: string;
             summary: string;
@@ -3891,9 +4020,15 @@ export interface components {
             reasons: components["schemas"]["PlanReasonsDto"];
             expectedResults?: string | null;
             leadForm?: components["schemas"]["LeadFormDto"] | null;
+            variants?: components["schemas"]["PlanVariantDto"][];
         };
         ReplacePlanDto: {
             plan: components["schemas"]["CampaignPlanDto"];
+        };
+        PlanAdMetaDto: {
+            label: string;
+            adId: string;
+            creativeId: string;
         };
         PlanMetaDto: {
             campaignId: string;
@@ -3902,6 +4037,13 @@ export interface components {
             adId: string;
             adsManagerUrl: string;
             leadFormId?: string | null;
+            adAccountId?: string | null;
+            ads?: components["schemas"]["PlanAdMetaDto"][];
+        };
+        PlanAdAccountDto: {
+            id: string;
+            name: string;
+            currency: string;
         };
         PlanResponseDto: {
             id: string;
@@ -3910,6 +4052,7 @@ export interface components {
             source: string;
             plan: components["schemas"]["CampaignPlanDto"];
             meta: components["schemas"]["PlanMetaDto"] | null;
+            adAccount: components["schemas"]["PlanAdAccountDto"] | null;
             error: string | null;
             createdAt: string;
             updatedAt: string;
@@ -3941,6 +4084,8 @@ export interface components {
             creativeId?: string;
             /** Format: uri */
             imageUrl?: string | null;
+            /** Format: uri */
+            videoUrl?: string | null;
             post?: components["schemas"]["BriefPostDto"] | null;
         };
         BriefLeadFormDto: {
@@ -3954,7 +4099,10 @@ export interface components {
             /** @enum {string} */
             goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
             dailyBudget: number;
-            locations: components["schemas"]["BriefLocationsDto"];
+            locations?: components["schemas"]["BriefLocationsDto"];
+            /** Format: uuid */
+            audienceId?: string;
+            variants?: boolean;
             ageMin?: number;
             ageMax?: number;
             audienceNotes?: string;
@@ -4000,6 +4148,7 @@ export interface components {
             source: string;
             plan: components["schemas"]["CampaignPlanDto"];
             meta: components["schemas"]["PlanMetaDto"] | null;
+            adAccount: components["schemas"]["PlanAdAccountDto"] | null;
             error: string | null;
             createdAt: string;
             updatedAt: string;
@@ -6829,6 +6978,37 @@ export interface operations {
             };
         };
     };
+    MetaController_switchAdAccount_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwitchAdAccountDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdAccountSwitchDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     MetaController_select_v1: {
         parameters: {
             query?: never;
@@ -7242,6 +7422,33 @@ export interface operations {
             };
         };
     };
+    AdsController_customAudiences_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomAudienceListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     ReportsController_overview_v1: {
         parameters: {
             query?: {
@@ -7291,6 +7498,153 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TargetingResultsDto"];
                 };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AudiencesController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudienceListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AudiencesController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAudienceDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudienceDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AudiencesController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudienceDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AudiencesController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAudienceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudienceDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AudiencesController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: {
                 headers: {

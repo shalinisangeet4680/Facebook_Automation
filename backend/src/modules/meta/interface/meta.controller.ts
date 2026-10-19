@@ -22,11 +22,12 @@ import { TenantContext } from "@shared/tenant/tenant-context";
 import { MetaConnectionService } from "../application/meta-connection.service";
 import { ConnectMetaDto } from "./dto/connect-meta.dto";
 import {
+  AdAccountSwitchDto,
   AssetListResponseDto,
   ConnectionResponseDto,
   RequirementsResponseDto,
 } from "./dto/meta-response.dto";
-import { SelectAssetsDto } from "./dto/select-assets.dto";
+import { SelectAssetsDto, SwitchAdAccountDto } from "./dto/select-assets.dto";
 
 @ApiTags("Meta")
 @ApiDefaultResponse({ type: ErrorResponseDto })
@@ -83,6 +84,15 @@ export class MetaController {
       { workspaceId: ctx.workspaceId, requestedBy: ctx.userId },
       Math.floor(Date.now() / 60_000).toString(),
     );
+  }
+
+  @Throttle({ default: { limit: 60, ttl: 3_600_000 } })
+  @Put("assets/ad-account")
+  switchAdAccount(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: SwitchAdAccountDto,
+  ): Promise<AdAccountSwitchDto> {
+    return this.meta.switchAdAccount(ctx, body.adAccountId);
   }
 
   @Put("assets/selection")

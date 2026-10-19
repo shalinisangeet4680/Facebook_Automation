@@ -552,6 +552,7 @@ export function AdPreview({
     host = "";
   }
   const src = displaySrc(creative.post?.imageUrl ?? creative.imageUrl);
+  const video = creative.post ? null : displaySrc(creative.videoUrl);
   return (
     <figure
       aria-label="Ad preview"
@@ -599,7 +600,25 @@ export function AdPreview({
           background: "#F4F2EE",
         }}
       >
-        {src ? (
+        {video ? (
+          <video
+            src={video}
+            poster={src ?? undefined}
+            controls
+            muted
+            playsInline
+            preload="metadata"
+            aria-label="Ad video"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              background: "#191917",
+            }}
+          />
+        ) : src ? (
           <Image unoptimized fill src={src} alt="" sizes="480px" style={{ objectFit: "cover" }} />
         ) : (
           <div
@@ -614,7 +633,7 @@ export function AdPreview({
               color: MUTED,
             }}
           >
-            {creative.imageIdea ? `Image idea: ${creative.imageIdea}` : "Add an image"}
+            {creative.imageIdea ? `Image idea: ${creative.imageIdea}` : "Add an image or video"}
           </div>
         )}
       </div>

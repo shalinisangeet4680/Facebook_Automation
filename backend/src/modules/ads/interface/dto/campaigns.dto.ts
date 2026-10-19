@@ -115,8 +115,14 @@ export class CampaignRowDto {
   metrics: AdMetricsDto;
 }
 
+export class ActiveAdAccountDto {
+  id: string;
+  name: string;
+}
+
 export class CampaignListDto {
   currency: string;
+  adAccount: ActiveAdAccountDto;
   preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
   period: CampaignPeriodDto;
   canManage: boolean;
@@ -146,8 +152,9 @@ export class AdSetRowDto {
 
 export class AdCreativeViewDto {
   id: string | null;
-  kind: "link" | "post" | "other";
+  kind: "link" | "video" | "post" | "other";
   editable: boolean;
+  videoId: string | null;
   primaryText: string | null;
   headline: string | null;
   description: string | null;
@@ -173,14 +180,24 @@ export class BudgetGuardrailsDto {
   monthlyBudget: number | null;
 }
 
+export class VariantComparisonDto {
+  adSetId: string;
+  adIds: string[];
+  winnerId: string | null;
+  basis: "cost_per_result" | "ctr" | null;
+  note: string | null;
+}
+
 export class CampaignDetailDto {
   currency: string;
+  adAccount: ActiveAdAccountDto;
   preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
   period: CampaignPeriodDto;
   canManage: boolean;
   guardrails: BudgetGuardrailsDto;
   campaign: CampaignRowDto;
   adSets: AdSetRowDto[];
+  comparisons: VariantComparisonDto[];
   ads: AdRowDto[];
 }
 

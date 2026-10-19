@@ -1,5 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, gt, inArray, lt, notInArray, or } from "drizzle-orm";
+import { OnEvent } from "@nestjs/event-emitter";
+import {
+  and,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  notInArray,
+  or,
+} from "drizzle-orm";
 
 import { AdsService } from "@modules/ads/application/ads.service";
 import { AdsActor } from "@modules/ads/domain/ads.types";
@@ -7,10 +18,15 @@ import { resultFor } from "@modules/ads/domain/goals";
 import { toMajor } from "@modules/ads/domain/money";
 import { AuditService } from "@modules/audit/application/audit.service";
 import {
+  META_EVENTS,
+  MetaConnectedEvent,
+} from "@modules/meta/domain/meta.types";
+import {
   InsightRow,
   META_ADS,
   MetaAds,
 } from "@modules/meta/domain/ports/meta-ads";
+import { PlanMeta } from "@modules/plans/domain/plan.types";
 import { campaignPlans } from "@modules/plans/infrastructure/plans.tables";
 import {
   daysBetween,
@@ -29,6 +45,7 @@ import {
   evaluate,
   Finding,
   Metrics,
+  VariantGroupInput,
 } from "../domain/rules";
 import { SuggestionRow, suggestions } from "../infrastructure/inbox.tables";
 
@@ -111,7 +128,7 @@ export class InboxService {
         daily: false,
         limit: 500,
       });
-    const [details, adNow, adBefore, setNow, monthRows, events] =
+    const [details, adNow, adBefore, setNow, monthRows, events, variantGroups] =
       await Promise.all([
         Promise.all(campaigns.map((c) => this.meta.campaign(ws.token, c.id))),
         query("ad", current.since, current.until),
@@ -127,6 +144,7 @@ export class InboxService {
               )
               .catch(() => null)
           : Promise.resolve(null),
+        this.variantGroups(workspaceId, account),
       ]);
 
     const byId = (rows: InsightRow[]) => new Map(rows.map((r) => [r.id, r]));
@@ -173,7 +191,49 @@ export class InboxService {
       monthSpend: monthRows[0]?.spend ?? 0,
       dayOfMonth: d,
       daysInMonth: new Date(Date.UTC(y, m, 0)).getUTCDate(),
+      variantGroups,
     });
+  }
+
+  private async variantGroups(
+    workspaceId: string,
+    adAccountId: string,
+  ): Promise<VariantGroupInput[]> {
+    const rows = await this.db
+      .select({ meta: campaignPlans.meta })
+      .from(campaignPlans)
+      .where(
+        and(
+          eq(campaignPlans.workspaceId, workspaceId),
+          inArray(campaignPlans.status, ["created", "launched"]),
+          or(
+            eq(campaignPlans.adAccountId, adAccountId),
+            isNull(campaignPlans.adAccountId),
+          ),
+        ),
+      )
+      .orderBy(desc(campaignPlans.createdAt))
+      .limit(100);
+    return rows
+      .map((r) => r.meta as unknown as PlanMeta | null)
+      .filter((m): m is PlanMeta => Boolean(m?.ads && m.ads.length > 1))
+      .map((m) => ({
+        adSetId: m.adSetId,
+        ads: m.ads!.map((a) => ({ id: a.adId, label: a.label })),
+      }));
+  }
+
+  @OnEvent(META_EVENTS.AD_ACCOUNT_SWITCHED)
+  async onAdAccountSwitched(event: MetaConnectedEvent): Promise<void> {
+    await this.db
+      .update(suggestions)
+      .set({ status: "expired", resolvedAt: new Date() })
+      .where(
+        and(
+          eq(suggestions.workspaceId, event.workspaceId),
+          inArray(suggestions.status, ["open", "snoozed"]),
+        ),
+      );
   }
 
   async refresh(

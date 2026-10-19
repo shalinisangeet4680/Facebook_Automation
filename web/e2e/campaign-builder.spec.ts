@@ -41,7 +41,7 @@ test("builds a campaign plan in the app and opens it for review", async ({ page 
   await page.getByRole("button", { name: "Next" }).click();
 
   await expect(page.getByText("Step 5 of 5")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Choose image or post/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Choose an image, video or post/ })).toBeVisible();
   await page.screenshot({ path: info.outputPath("builder-last-step.png"), fullPage: true });
   await page.getByRole("button", { name: "Generate plan" }).click();
 

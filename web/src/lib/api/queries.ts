@@ -25,6 +25,7 @@ import type {
   ProfileDraftInput,
   ProfileUpdate,
   ReportPreset,
+  SaveAudience,
   Settings,
   StoreChoice,
   PlayAppUpdate,
@@ -62,6 +63,8 @@ export const keys = {
   leadSummary: ["leads", "summary"] as const,
   plan: (id: string) => ["plans", id] as const,
   targeting: (type: string, q: string) => ["targeting", type, q] as const,
+  audiences: ["ads", "audiences"] as const,
+  customAudiences: ["ads", "custom-audiences"] as const,
   store: ["store"] as const,
   play: ["play"] as const,
   playConnections: ["play", "connections"] as const,
@@ -305,6 +308,29 @@ export function useSelectAssets() {
   });
 }
 
+export function useSwitchAdAccount() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (adAccountId: string) =>
+      unwrap(api.PUT("/api/v1/meta/assets/ad-account", { body: { adAccountId } })),
+    onSuccess: (result) => {
+      client.setQueryData(keys.connection, result.connection);
+      for (const key of [
+        keys.assets,
+        keys.tracking,
+        keys.inbox,
+        keys.settings,
+        keys.onboarding,
+        keys.plans,
+        ["ads"],
+        ["reports"],
+        ["targeting"],
+      ])
+        void client.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
 export function useDisconnectMeta() {
   const client = useQueryClient();
   return useMutation({
@@ -438,6 +464,40 @@ export function useTargetingSearch(type: TargetingType, q: string) {
     queryKey: keys.targeting(type, q),
     queryFn: () => unwrap(api.GET("/api/v1/ads/targeting", { params: { query: { type, q } } })),
     enabled: q.trim().length >= 2,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSavedAudiences(enabled = true) {
+  return useQuery({
+    queryKey: keys.audiences,
+    queryFn: () => unwrap(api.GET("/api/v1/ads/audiences")),
+    enabled,
+  });
+}
+
+export function useSaveAudience() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveAudience) => unwrap(api.POST("/api/v1/ads/audiences", { body })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.audiences }),
+  });
+}
+
+export function useDeleteAudience() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(api.DELETE("/api/v1/ads/audiences/{id}", { params: { path: { id } } })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.audiences }),
+  });
+}
+
+export function useCustomAudiences(enabled = true) {
+  return useQuery({
+    queryKey: keys.customAudiences,
+    queryFn: () => unwrap(api.GET("/api/v1/ads/custom-audiences")),
+    enabled,
     staleTime: 5 * 60_000,
   });
 }

@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { z } from "zod";
 
 import { AdsService } from "@modules/ads/application/ads.service";
+import { AudiencesService } from "@modules/ads/application/audiences.service";
 import {
   CONFIRM_TTL_SECONDS,
   ConfirmationService,
@@ -73,6 +74,7 @@ How to work:
 - Use search_targeting to find city, region and interest keys before drafting.
 - To plan a new campaign: call get_planning_context, research the business (ask the user, read their website), then call propose_campaign_plan with every setting and a clear reason for each choice. Share the returned review link. The owner reviews, edits, creates and launches the plan in TreeVook; do not call create_campaign_draft for a proposed plan unless the user asks.
 - To design an ad image: write a self-contained SVG (inline shapes, text and data-URI images only; no scripts or external links) with the viewBox of the chosen format, show it to the user, iterate, then call save_ad_creative. The returned url can be used as imageUrl in a plan. Keep text on images short and legible.
+- A plan can use a video instead of an image: set creative.videoUrl to an MP4 from list_creatives. A plan can also test up to two more versions of the ad in variants (each with its own primaryText, headline and optional imageUrl or videoUrl); every enabled version becomes its own paused ad in the same ad set.
 - To post organically: save or pick a creative, write a Facebook caption and an Instagram caption (shorter, with a few relevant hashtags), then call publish_post. It is two-step like activate: show the summary, wait for the user's yes, call again with confirm_token. Published posts can later be used as ads.
 - To set up the Facebook Page and Instagram profile: call get_profile_checkup, write the Page description and Instagram bio (150 characters max), design a logo (format logo) and Facebook cover (format facebook_cover) with save_ad_creative, then save everything with save_profile_draft. The owner applies Facebook changes in TreeVook or through apply_facebook_profile with confirmation. Instagram's API can't edit profiles, so tell the user to copy the bio and logo from TreeVook's Profile page into the Instagram app.
 - Google Play store listing images are made by the store-creatives Claude Code plugin on the user's machine. With the plugin: call store_save_project with the app name and languages, pass the returned upload_url and upload_token to the plugin's upload_to_platform tool, and share the returned url so the owner can choose a style, languages and sizes in TreeVook. Read the choice with store_get_project, render that set with the plugin and upload it the same way. Upload tokens last two hours; get a fresh one with store_start_upload.
@@ -123,6 +125,7 @@ export class McpServerFactory {
     private readonly socialContent: SocialContentService,
     private readonly socialComments: SocialCommentsService,
     private readonly socialInsights: SocialInsightsService,
+    private readonly audiences: AudiencesService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -289,10 +292,21 @@ export class McpServerFactory {
       {
         title: "List creatives",
         description:
-          "Images in the TreeVook creatives library with their public url, size and source.",
+          "Images and MP4 videos in the TreeVook creatives library with their public url, kind, size and source. A video url can be used as videoUrl in a plan.",
         annotations: readOnly,
       },
       () => run(() => this.creatives.list(ws)),
+    );
+
+    server.registerTool(
+      "list_saved_audiences",
+      {
+        title: "List saved audiences",
+        description:
+          "Audiences the owner saved in TreeVook, each with its full targeting (locations, ages, genders, interests, job titles, industries, behaviours and custom audiences) in the same shape as a plan's targeting. Copy one into propose_campaign_plan when the owner asks for it.",
+        annotations: readOnly,
+      },
+      () => run(() => this.audiences.list(ws)),
     );
 
     server.registerTool(
@@ -1297,7 +1311,7 @@ export class McpServerFactory {
       {
         title: "Propose a campaign plan",
         description:
-          "Save a complete campaign plan for the owner to review in TreeVook. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl, or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. For goal instant_leads (leads collected on Facebook or Instagram with a Meta instant form, no website or Pixel needed) fill leadForm: name, locale, intro (headline, description), questions (FULL_NAME, EMAIL, PHONE, CITY; include PHONE or EMAIL), up to 3 customQuestions (short_answer, or multiple_choice with 2–6 options), privacyPolicyUrl (the business's https privacy page) and thankYou (title, body, button: website url or call phone), use an image (not a post) and a form button such as SIGN_UP, GET_QUOTE, APPLY_NOW or CONTACT_US. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
+          "Save a complete campaign plan for the owner to review in TreeVook. Fill every setting and explain each choice in reasons (goal, audience, budget, creative) using evidence from get_planning_context and the business. Use location and interest keys from search_targeting. dailyBudget is in the account currency. Use a creative url from list_creatives or save_ad_creative as imageUrl (or an MP4 from list_creatives as videoUrl), or set creative.post to run the ad on an existing Facebook or Instagram post from list_social_posts (best when the post already has engagement). Otherwise leave imageUrl empty and describe the ideal image in imageIdea. For goal instant_leads (leads collected on Facebook or Instagram with a Meta instant form, no website or Pixel needed) fill leadForm: name, locale, intro (headline, description), questions (FULL_NAME, EMAIL, PHONE, CITY; include PHONE or EMAIL), up to 3 customQuestions (short_answer, or multiple_choice with 2–6 options), privacyPolicyUrl (the business's https privacy page) and thankYou (title, body, button: website url or call phone), use an image (not a post) and a form button such as SIGN_UP, GET_QUOTE, APPLY_NOW or CONTACT_US. To A/B test, add up to two variants (primaryText, headline, optional imageUrl or videoUrl); each enabled variant becomes its own ad. To reuse a saved audience, copy its targeting from list_saved_audiences. Returns a review link to share with the user. Nothing is created in Meta by this tool.",
         inputSchema: planSchema,
         annotations: {
           readOnlyHint: false,

@@ -101,6 +101,11 @@ export class BriefCreativeDto {
   imageUrl?: string | null;
 
   @IsOptional()
+  @IsUrl(HTTPS, { message: "videoUrl must be an https link" })
+  @MaxLength(2000)
+  videoUrl?: string | null;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => BriefPostDto)
   post?: BriefPostDto | null;
@@ -140,9 +145,18 @@ export class GenerateCampaignPlanDto {
   @Max(10_000_000)
   dailyBudget: number;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => BriefLocationsDto)
-  locations: BriefLocationsDto;
+  locations?: BriefLocationsDto;
+
+  @IsOptional()
+  @IsUUID()
+  audienceId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  variants?: boolean;
 
   @IsOptional()
   @IsInt()

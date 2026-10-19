@@ -46,7 +46,7 @@ test("reviews a plan, runs it on an Instagram post, creates it paused and launch
   await expect(page.getByLabel("Campaign name")).toHaveValue(name);
   await expect(page.getByRole("button", { name: "Create in Meta (paused)" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Choose image or post" }).click();
+  await page.getByRole("button", { name: "Choose image, video or post" }).click();
   const picker = page.getByRole("dialog");
   await picker.getByRole("tab", { name: "Instagram posts" }).click();
   await picker

@@ -58,7 +58,7 @@ export interface AdSetSummary {
   promotedObject: Record<string, unknown> | null;
 }
 
-export type AdCreativeKind = "link" | "post" | "other";
+export type AdCreativeKind = "link" | "video" | "post" | "other";
 
 export interface AdCreativeSummary {
   id: string;
@@ -75,6 +75,7 @@ export interface AdCreativeSummary {
   instagramId: string | null;
   postId: string | null;
   leadFormId?: string | null;
+  videoId?: string | null;
 }
 
 export interface AdSummary {
@@ -181,6 +182,11 @@ export interface LeadRecord {
   campaignName: string | null;
 }
 
+export interface DraftAdInput {
+  label: string;
+  creative: CreativeInput;
+}
+
 export interface CampaignDraftInput {
   adAccountId: string;
   name: string;
@@ -194,6 +200,7 @@ export interface CampaignDraftInput {
     targeting: Record<string, unknown>;
   };
   creative: CreativeInput;
+  variants?: DraftAdInput[];
   leadForm?: LeadFormInput | null;
 }
 
@@ -209,6 +216,7 @@ export interface CreativeInput {
   callToAction: string;
   existingPost: { platform: "facebook" | "instagram"; id: string } | null;
   leadFormId?: string | null;
+  videoId?: string | null;
 }
 
 export interface CreativeReplaceInput {
@@ -218,12 +226,31 @@ export interface CreativeReplaceInput {
   creative: CreativeInput;
 }
 
+export interface DraftAdResult {
+  label: string;
+  adId: string;
+  creativeId: string;
+}
+
 export interface CampaignDraftResult {
   campaignId: string;
   adSetId: string;
   creativeId: string;
   adId: string;
+  ads: DraftAdResult[];
   leadFormId?: string;
+}
+
+export interface UploadedVideo {
+  videoId: string;
+  thumbnailUrl: string | null;
+}
+
+export interface CustomAudienceSummary {
+  id: string;
+  name: string;
+  subtype: string | null;
+  approximateCount: number | null;
 }
 
 export interface MetaAds {
@@ -260,6 +287,16 @@ export interface MetaAds {
     token: string,
     input: CreativeReplaceInput,
   ): Promise<{ creativeId: string }>;
+  uploadVideo(
+    token: string,
+    adAccountId: string,
+    fileUrl: string,
+    name: string,
+  ): Promise<UploadedVideo>;
+  customAudiences(
+    token: string,
+    adAccountId: string,
+  ): Promise<CustomAudienceSummary[]>;
   pageAccessToken(token: string, pageId: string): Promise<string>;
   leadForms(pageToken: string, pageId: string): Promise<LeadFormSummary[]>;
   leads(

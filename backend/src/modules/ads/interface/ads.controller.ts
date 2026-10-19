@@ -6,6 +6,7 @@ import { CurrentUser } from "@shared/security/current-user.decorator";
 import { TenantContext } from "@shared/tenant/tenant-context";
 
 import { AdsService } from "../application/ads.service";
+import { CustomAudienceListDto } from "./dto/audiences.dto";
 import { TargetingQueryDto, TargetingResultsDto } from "./dto/targeting.dto";
 import { TrackingReportDto } from "./dto/tracking.dto";
 
@@ -18,6 +19,13 @@ export class AdsController {
   @Get("tracking")
   tracking(@CurrentUser() ctx: TenantContext): Promise<TrackingReportDto> {
     return this.ads.tracking(ctx.workspaceId);
+  }
+
+  @Get("custom-audiences")
+  customAudiences(
+    @CurrentUser() ctx: TenantContext,
+  ): Promise<CustomAudienceListDto> {
+    return this.ads.customAudiences(ctx.workspaceId);
   }
 
   @Get("targeting")

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { CampaignStatusFilter, ReportPreset } from "@/lib/api/types";
 import { PlansTab } from "@/features/plans/plans-list";
+import { AdAccountSwitcher } from "@/features/meta-ads/account-switcher";
 import { PageHead, Seg } from "@/features/replyly/ui";
 
 import { PRESETS } from "./labels";
@@ -40,9 +41,14 @@ export function CampaignsPage() {
       <PageHead
         title="Campaigns"
         sub={
-          tab === "live"
-            ? "What’s running in your Meta ad account. Pause, resume and adjust budgets here."
-            : "Plans drafted here or by Claude, waiting for your review."
+          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span>
+              {tab === "live"
+                ? "What’s running in your Meta ad account. Pause, resume and adjust budgets here."
+                : "Plans drafted here or by Claude, waiting for your review."}
+            </span>
+            <AdAccountSwitcher inline />
+          </span>
         }
         actions={
           <Link href="/campaigns/new" className="rp-btn">
