@@ -108,6 +108,12 @@ export interface PixelEventCount {
   count: number;
 }
 
+export interface PixelDetails {
+  id: string;
+  name: string;
+  lastFiredTime: string | null;
+}
+
 export type TargetingSearchType =
   | "city"
   | "region"
@@ -184,6 +190,7 @@ export interface MetaAds {
     pixelId: string,
     sinceUnix: number,
   ): Promise<PixelEventCount[]>;
+  pixel(token: string, pixelId: string): Promise<PixelDetails>;
   searchTargeting(
     token: string,
     adAccountId: string,

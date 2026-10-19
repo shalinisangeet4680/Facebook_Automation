@@ -122,6 +122,14 @@ export class PlanService {
     };
   }
 
+  async progress(
+    workspaceId: string,
+  ): Promise<{ planned: number; createdInMeta: number }> {
+    const counts = await this.plans.countByStatus(workspaceId);
+    const created = (counts.created ?? 0) + (counts.launched ?? 0);
+    return { planned: (counts.draft ?? 0) + created, createdInMeta: created };
+  }
+
   async list(workspaceId: string): Promise<{ data: PlanSummaryView[] }> {
     const rows = await this.plans.list(workspaceId, 100);
     return {

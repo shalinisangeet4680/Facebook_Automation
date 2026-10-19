@@ -15,6 +15,7 @@ import {
   InsightQuery,
   InsightRow,
   MetaAds,
+  PixelDetails,
   PixelEventCount,
   TargetingOption,
   TargetingSearchType,
@@ -615,7 +616,7 @@ export class MockMetaAds implements MetaAds {
   }
 
   pixelEvents(
-    _token: string,
+    token: string,
     _pixelId: string,
     sinceUnix: number,
   ): Promise<PixelEventCount[]> {
@@ -623,12 +624,32 @@ export class MockMetaAds implements MetaAds {
       1,
       Math.round((Date.now() / 1000 - sinceUnix) / 86_400),
     );
+    if (token.includes("quietpixel")) {
+      return Promise.resolve(
+        days <= 1
+          ? []
+          : [
+              { event: "PageView", count: 180 },
+              { event: "ViewContent", count: 22 },
+            ],
+      );
+    }
     return Promise.resolve([
       { event: "PageView", count: 412 * days },
       { event: "ViewContent", count: 96 * days },
       { event: "Lead", count: 7 * days },
       { event: "CompleteRegistration", count: 3 * days },
     ]);
+  }
+
+  pixel(token: string, pixelId: string): Promise<PixelDetails> {
+    return Promise.resolve({
+      id: pixelId,
+      name: "Arogya System Website",
+      lastFiredTime: new Date(
+        Date.now() - (token.includes("quietpixel") ? 3 * DAY_MS : 5 * 60_000),
+      ).toISOString(),
+    });
   }
 
   searchTargeting(

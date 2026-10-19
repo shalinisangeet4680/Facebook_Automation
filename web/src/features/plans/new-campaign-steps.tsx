@@ -77,9 +77,19 @@ export const GOALS: { id: Goal; title: string; text: string; icon: LucideIcon }[
 
 export const LANGUAGES = [
   { id: "", label: "Let AI choose" },
-  { id: "English", label: "English" },
-  { id: "Hindi", label: "Hindi" },
-  { id: "Hinglish", label: "Hinglish" },
+  ...[
+    "English",
+    "Hindi",
+    "Hinglish",
+    "Bengali",
+    "Marathi",
+    "Tamil",
+    "Telugu",
+    "Gujarati",
+    "Kannada",
+    "Malayalam",
+    "Punjabi",
+  ].map((l) => ({ id: l, label: l })),
 ];
 
 const full: CSSProperties = { width: "100%", boxSizing: "border-box" };

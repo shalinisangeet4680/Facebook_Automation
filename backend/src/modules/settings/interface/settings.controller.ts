@@ -8,6 +8,8 @@ import { TenantContext } from "@shared/tenant/tenant-context";
 import { SettingsService } from "../application/settings.service";
 import {
   SettingsResponseDto,
+  UpdateBusinessBasicsDto,
+  UpdateGoalBudgetDto,
   UpdateProfileDto,
   UpdateWorkspaceDto,
 } from "./dto/settings.dto";
@@ -29,6 +31,22 @@ export class SettingsController {
     @Body() body: UpdateWorkspaceDto,
   ): Promise<SettingsResponseDto> {
     return this.settings.updateWorkspace(ctx, body);
+  }
+
+  @Put("business")
+  business(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: UpdateBusinessBasicsDto,
+  ): Promise<SettingsResponseDto> {
+    return this.settings.updateBasics(ctx, body);
+  }
+
+  @Put("goal")
+  goal(
+    @CurrentUser() ctx: TenantContext,
+    @Body() body: UpdateGoalBudgetDto,
+  ): Promise<SettingsResponseDto> {
+    return this.settings.updateGoalBudget(ctx, body);
   }
 
   @Put("profile")

@@ -20,8 +20,8 @@ const NAV = [
 const NEEDS_META = new Set(["campaigns", "profile", "reports"]);
 
 function activeOf(pathname: string) {
+  if (pathname === "/setup" || pathname.startsWith("/setup/start")) return "overview";
   if (pathname.startsWith("/setup/")) return "account";
-  if (pathname === "/setup") return "overview";
   return NAV.find(([, , href]) => pathname === href || pathname.startsWith(`${href}/`))?.[0];
 }
 

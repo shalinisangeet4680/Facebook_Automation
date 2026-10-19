@@ -215,7 +215,7 @@ export class McpServerFactory {
       {
         title: "Check Pixel tracking",
         description:
-          "Pixel (dataset) health: last fire time and event counts for the last 24 hours and 7 days, with warnings when conversions are not being tracked.",
+          "Pixel (dataset) health: status (healthy, warning or missing) with reasons and plain-language fixes, last fire time, event counts for the last 24 hours and 7 days, whether it fits each goal (leads needs Lead, CompleteRegistration or Contact; sales needs Purchase) and an Events Manager link.",
         annotations: readOnly,
       },
       () => run(() => this.ads.tracking(ws)),
@@ -258,7 +258,7 @@ export class McpServerFactory {
       {
         title: "Planning context",
         description:
-          "Everything needed to plan a new campaign: ad account, Page, Pixel and its recent events, past campaigns with 90-day results, guardrails and the allowed goals, conversion events and calls to action.",
+          "Everything needed to plan a new campaign: the business basics the owner saved (website, what they sell, main area, category, ad language, main goal), ad account, Page, Pixel health and its recent events, past campaigns with 90-day results, guardrails and the allowed goals, conversion events and calls to action.",
         annotations: readOnly,
       },
       () => run(() => this.ads.planningContext(ws)),

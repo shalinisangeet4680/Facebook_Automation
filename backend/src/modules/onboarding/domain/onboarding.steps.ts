@@ -1,12 +1,12 @@
+import { Goal, GOALS } from "@modules/ads/domain/goals";
+
 export type OnboardingStepId =
-  | "sign_in"
   | "connect_meta"
   | "choose_assets"
   | "business_profile"
   | "goal_budget"
   | "tracking_check"
   | "campaign_plan"
-  | "creatives"
   | "launch";
 
 export interface StepDefinition {
@@ -14,72 +14,112 @@ export interface StepDefinition {
   title: string;
   description: string;
   available: boolean;
+  skippable: boolean;
 }
 
 export const STEPS: StepDefinition[] = [
   {
-    id: "sign_in",
-    title: "Create your account",
-    description: "Sign in with Google.",
-    available: true,
-  },
-  {
     id: "connect_meta",
     title: "Connect Meta",
-    description: "Link your Meta Business with a system user token.",
+    description: "Link your Meta business so we can manage ads for you.",
     available: true,
+    skippable: false,
   },
   {
     id: "choose_assets",
     title: "Choose your accounts",
     description:
-      "Pick the ad account, Page, Instagram account and dataset to use.",
+      "Pick the ad account, Facebook Page, Instagram account and Pixel to use.",
     available: true,
+    skippable: false,
   },
   {
     id: "business_profile",
-    title: "Business profile",
+    title: "Business basics",
     description:
-      "We read your website and summarise what you sell and to whom.",
-    available: false,
+      "Your website, what you sell, where your customers are and the language for ads.",
+    available: true,
+    skippable: false,
   },
   {
     id: "goal_budget",
     title: "Goal and budget",
-    description: "Set your goal, monthly budget and a hard spending cap.",
-    available: false,
+    description:
+      "What you want from ads, a comfortable daily budget and a monthly cap.",
+    available: true,
+    skippable: false,
   },
   {
     id: "tracking_check",
     title: "Tracking check",
-    description: "Make sure your Pixel and conversion events are working.",
-    available: false,
+    description: "Make sure your Pixel records the results your goal needs.",
+    available: true,
+    skippable: true,
   },
   {
     id: "campaign_plan",
-    title: "Campaign plan",
-    description: "Review the AI campaign plan and approve it.",
-    available: false,
-  },
-  {
-    id: "creatives",
-    title: "Creatives",
-    description: "Pick ad copy, images and videos.",
-    available: false,
+    title: "First campaign",
+    description:
+      "Answer a few questions and AI builds your first campaign plan.",
+    available: true,
+    skippable: false,
   },
   {
     id: "launch",
     title: "Review and launch",
-    description: "Preview every ad and launch when you're ready.",
-    available: false,
+    description:
+      "Check the plan, create it in Meta and launch when you're ready.",
+    available: true,
+    skippable: false,
   },
 ];
+
+export const SKIPPABLE_STEPS = STEPS.filter((s) => s.skippable).map(
+  (s) => s.id,
+);
+
+export interface OnboardingFacts {
+  metaConnected: boolean;
+  primaryKinds: string[];
+  basicsComplete: boolean;
+  goal: Goal | null;
+  budgetSet: boolean;
+  trackingReady: boolean;
+  plans: { planned: number; createdInMeta: number };
+}
+
+export const REQUIRED_PRIMARY = ["ad_account", "page"] as const;
+
+export function goalNeedsTracking(goal: Goal | null): boolean {
+  return goal !== null && GOALS[goal].needsPixel;
+}
+
+export function completedSteps(facts: OnboardingFacts): Set<OnboardingStepId> {
+  const done = new Set<OnboardingStepId>();
+  if (facts.metaConnected) done.add("connect_meta");
+  if (
+    facts.metaConnected &&
+    REQUIRED_PRIMARY.every((k) => facts.primaryKinds.includes(k))
+  )
+    done.add("choose_assets");
+  if (facts.basicsComplete) done.add("business_profile");
+  if (facts.goal && facts.budgetSet) done.add("goal_budget");
+  if (
+    facts.goal !== null &&
+    (!goalNeedsTracking(facts.goal) || facts.trackingReady)
+  )
+    done.add("tracking_check");
+  if (facts.plans.planned > 0) done.add("campaign_plan");
+  if (facts.plans.createdInMeta > 0) done.add("launch");
+  return done;
+}
 
 export type StepStatus = "completed" | "current" | "upcoming";
 
 export interface OnboardingStepView extends StepDefinition {
   order: number;
   status: StepStatus;
+  skipped: boolean;
   completedAt: string | null;
 }
 
@@ -89,20 +129,25 @@ export interface OnboardingView {
   completedCount: number;
   totalCount: number;
   isComplete: boolean;
+  goal: Goal | null;
 }
 
 export function buildView(
   completed: Map<OnboardingStepId, Date | null>,
+  skipped: Set<OnboardingStepId> = new Set(),
+  goal: Goal | null = null,
 ): OnboardingView {
-  const currentIndex = STEPS.findIndex((s) => !completed.has(s.id));
+  const isDone = (id: OnboardingStepId) => completed.has(id) || skipped.has(id);
+  const currentIndex = STEPS.findIndex((s) => !isDone(s.id));
   const steps = STEPS.map((s, i) => ({
     ...s,
     order: i + 1,
-    status: completed.has(s.id)
+    status: isDone(s.id)
       ? ("completed" as const)
       : i === currentIndex
         ? ("current" as const)
         : ("upcoming" as const),
+    skipped: !completed.has(s.id) && skipped.has(s.id),
     completedAt: completed.get(s.id)?.toISOString() ?? null,
   }));
   return {
@@ -111,5 +156,6 @@ export function buildView(
     completedCount: steps.filter((s) => s.status === "completed").length,
     totalCount: STEPS.length,
     isComplete: currentIndex === -1,
+    goal,
   };
 }

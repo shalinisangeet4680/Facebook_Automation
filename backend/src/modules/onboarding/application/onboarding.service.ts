@@ -1,20 +1,28 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 
+import { AdsService } from "@modules/ads/application/ads.service";
+import { Goal } from "@modules/ads/domain/goals";
 import { MetaConnectionService } from "@modules/meta/application/meta-connection.service";
 import {
   META_EVENTS,
   MetaConnectedEvent,
 } from "@modules/meta/domain/meta.types";
+import { PlanService } from "@modules/plans/application/plan.service";
+import { SettingsService } from "@modules/settings/application/settings.service";
+import { ValidationError } from "@shared/errors/domain-error";
 
 import {
   buildView,
+  completedSteps,
+  goalNeedsTracking,
   OnboardingStepId,
   OnboardingView,
+  REQUIRED_PRIMARY,
+  SKIPPABLE_STEPS,
+  STEPS,
 } from "../domain/onboarding.steps";
 import { OnboardingRepository } from "../infrastructure/onboarding.repository";
-
-const REQUIRED_PRIMARY = ["ad_account", "page"] as const;
 
 @Injectable()
 export class OnboardingService {
@@ -23,32 +31,57 @@ export class OnboardingService {
   constructor(
     private readonly progress: OnboardingRepository,
     private readonly meta: MetaConnectionService,
+    private readonly settings: SettingsService,
+    private readonly ads: AdsService,
+    private readonly plans: PlanService,
   ) {}
 
   async view(workspaceId: string): Promise<OnboardingView> {
-    const [rows, meta] = await Promise.all([
+    const [rows, meta, profile, plans] = await Promise.all([
       this.progress.list(workspaceId),
       this.meta.setupState(workspaceId),
+      this.settings.profile(workspaceId),
+      this.plans.progress(workspaceId),
     ]);
     const stored = new Map(
-      rows
-        .filter((r) => r.status === "completed")
-        .map((r) => [r.step as OnboardingStepId, r.completedAt]),
+      rows.map((r) => [r.step as OnboardingStepId, r] as const),
     );
+    const skipped = new Set(
+      rows
+        .filter((r) => r.status === "skipped")
+        .map((r) => r.step as OnboardingStepId),
+    );
+    const trackingReady =
+      meta.connected && goalNeedsTracking(profile.goal)
+        ? await this.trackingReady(workspaceId, profile.goal!)
+        : false;
+    const done = completedSteps({
+      metaConnected: meta.connected,
+      primaryKinds: meta.primaryKinds,
+      basicsComplete: profile.basicsComplete,
+      goal: profile.goal,
+      budgetSet: profile.budgetSet,
+      trackingReady,
+      plans,
+    });
     const completed = new Map<OnboardingStepId, Date | null>();
-    completed.set("sign_in", null);
-    if (meta.connected) {
-      completed.set("connect_meta", stored.get("connect_meta") ?? null);
-      if (REQUIRED_PRIMARY.every((k) => meta.primaryKinds.includes(k))) {
-        completed.set("choose_assets", stored.get("choose_assets") ?? null);
-      }
+    for (const id of done) {
+      const row = stored.get(id);
+      completed.set(
+        id,
+        row?.status === "completed" ? (row.completedAt ?? null) : null,
+      );
     }
-    for (const [step, at] of stored) {
-      if (step !== "connect_meta" && step !== "choose_assets") {
-        completed.set(step, at);
-      }
+    return buildView(completed, skipped, profile.goal);
+  }
+
+  async skip(workspaceId: string, step: string): Promise<OnboardingView> {
+    const known = STEPS.find((s) => s.id === step);
+    if (!known || !SKIPPABLE_STEPS.includes(known.id)) {
+      throw new ValidationError("This step can't be skipped.");
     }
-    return buildView(completed);
+    await this.progress.skip(workspaceId, known.id);
+    return this.view(workspaceId);
   }
 
   @OnEvent(META_EVENTS.CONNECTED)
@@ -71,6 +104,18 @@ export class OnboardingService {
     return this.safely("reset", () =>
       this.progress.reset(event.workspaceId, ["connect_meta", "choose_assets"]),
     );
+  }
+
+  private async trackingReady(workspaceId: string, goal: Goal) {
+    try {
+      const report = await this.ads.tracking(workspaceId);
+      return report.goals.find((g) => g.goal === goal)?.ready ?? false;
+    } catch (err) {
+      this.logger.warn(
+        `Tracking check unavailable: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
   }
 
   private async safely(label: string, run: () => Promise<void>): Promise<void> {

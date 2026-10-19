@@ -7,7 +7,6 @@ import { errorMessage } from "@/lib/api/errors";
 import {
   useInbox,
   useOnboarding,
-  usePlans,
   useRefreshInbox,
   useReport,
   useSuggestionAction,
@@ -16,6 +15,7 @@ import type { Suggestion } from "@/lib/api/types";
 import { Banner, PageHead, Section, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
 import { useMetaConnected } from "./shell";
+import { TrackingCard } from "./tracking";
 
 const SEVERITY = {
   critical: { label: "Urgent", bg: "#FDF0EE", fg: "#B42318" },
@@ -76,90 +76,94 @@ function actionLabel(action: Suggestion["action"], money: Intl.NumberFormat) {
 
 function SetupCard() {
   const onboarding = useOnboarding();
-  const plans = usePlans();
-  const steps = onboarding.data?.steps ?? [];
-  const done = (id: string) => steps.find((s) => s.id === id)?.status === "completed";
-  const list = [
-    {
-      title: "Connect Meta",
-      text: "Link your Meta Business with a system user token.",
-      href: "/setup/connect-meta",
-      done: done("connect_meta"),
-    },
-    {
-      title: "Choose your accounts",
-      text: "The ad account, Page, Instagram account and dataset to use.",
-      href: "/setup/accounts",
-      done: done("choose_assets"),
-    },
-    {
-      title: "Plan your first campaign",
-      text: "Ask Claude for a plan; every setting comes with a reason.",
-      href: "/campaigns?tab=plans",
-      done: Boolean(plans.data?.data.length),
-    },
-  ];
-  if (onboarding.isPending || plans.isPending) return <Skel h={180} r={14} />;
-  if (list.every((s) => s.done)) return null;
-  const next = list.findIndex((s) => !s.done);
+  if (onboarding.isPending) return <Skel h={180} r={14} />;
+  if (!onboarding.data || onboarding.data.isComplete) return null;
+  const { steps, completedCount, totalCount, currentStep } = onboarding.data;
   return (
-    <div className="rp-card" style={{ overflow: "hidden" }}>
+    <section className="rp-card" aria-labelledby="setup-title" style={{ overflow: "hidden" }}>
       <div
         style={{
           padding: "16px 20px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 12,
           borderBottom: "1px solid #EFEDE8",
         }}
       >
-        <span style={{ fontWeight: 600 }}>Get set up</span>
+        <span id="setup-title" style={{ fontWeight: 600 }}>
+          Get set up
+        </span>
         <span className="rp-mono" style={{ fontSize: 12, color: "#6C6962" }}>
-          {list.filter((s) => s.done).length}/{list.length}
+          {completedCount}/{totalCount}
         </span>
       </div>
-      {list.map((s, i) => (
-        <div
-          key={s.title}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            padding: "14px 20px",
-            borderTop: i ? "1px solid #EFEDE8" : "none",
-          }}
-        >
-          <span
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 999,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontFamily: "var(--rp-mono)",
-              background: s.done ? "#0F6B4A" : i === next ? "#191917" : "#EFEDE8",
-              color: s.done || i === next ? "#fff" : "#6C6962",
-            }}
-          >
-            {s.done ? <Check size={14} strokeWidth={3} /> : i + 1}
-          </span>
-          <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 500, color: s.done ? "#6C6962" : "#191917" }}>
-              {s.title}
-            </span>
-            <span style={{ fontSize: 12.5, color: "#6C6962" }}>{s.text}</span>
-          </span>
-          {i === next ? (
-            <Link href={s.href} className="rp-btn">
-              {i === 0 ? "Start" : "Continue"} <ArrowRight size={14} />
-            </Link>
-          ) : null}
-        </div>
-      ))}
-    </div>
+      <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {steps.map((s, i) => {
+          const done = s.status === "completed";
+          const next = s.id === currentStep;
+          return (
+            <li
+              key={s.id}
+              aria-current={next ? "step" : undefined}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 20px",
+                borderTop: i ? "1px solid #EFEDE8" : "none",
+                background: next ? "#FAF9F7" : undefined,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 999,
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontFamily: "var(--rp-mono)",
+                  background: done ? "#0F6B4A" : next ? "#191917" : "#EFEDE8",
+                  color: done || next ? "#fff" : "#6C6962",
+                }}
+              >
+                {done ? <Check size={14} strokeWidth={3} /> : s.order}
+              </span>
+              <span
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  flex: "1 1 200px",
+                  minWidth: 0,
+                }}
+              >
+                <span style={{ fontWeight: 500, color: done ? "#6C6962" : "#191917" }}>
+                  {s.title}
+                  {s.skipped ? (
+                    <span style={{ fontWeight: 400, fontSize: 12, color: "#8A5A00" }}>
+                      {" "}
+                      · skipped
+                    </span>
+                  ) : null}
+                </span>
+                <span style={{ fontSize: 12.5, color: "#6C6962" }}>{s.description}</span>
+              </span>
+              {next ? (
+                <Link href={`/setup/start?step=${s.id}`} className="rp-btn">
+                  {completedCount === 0 ? "Start" : "Continue"} <ArrowRight size={14} />
+                </Link>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -457,6 +461,7 @@ export function OverviewPage() {
       {loading ? null : connected ? (
         <>
           <Snapshot />
+          <TrackingCard />
           <Inbox />
         </>
       ) : null}

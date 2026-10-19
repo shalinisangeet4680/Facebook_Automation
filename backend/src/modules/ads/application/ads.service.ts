@@ -37,12 +37,14 @@ import {
   resultFor,
 } from "../domain/goals";
 import { formatMoney, toMajor, toMinor } from "../domain/money";
+import { buildTrackingReport, TrackingReport } from "../domain/tracking";
 import {
   CONFIRM_TTL_SECONDS,
   ConfirmationService,
 } from "./confirmation.service";
 
 const DAY_SECONDS = 86_400;
+const TRACKING_CACHE_SECONDS = 60;
 const DRAFT_DEDUPE_SECONDS = 600;
 
 export interface DraftResult {
@@ -254,54 +256,54 @@ export class AdsService {
     };
   }
 
-  async tracking(workspaceId: string) {
+  async tracking(workspaceId: string): Promise<TrackingReport> {
     const ws = await this.workspace(workspaceId);
-    if (!ws.dataset) {
-      return {
-        pixel: null,
-        warnings: [
-          "No Pixel (dataset) is selected. Conversion campaigns need one.",
-        ],
-      };
-    }
-    const now = Math.floor(Date.now() / 1000);
-    const [day, week] = await Promise.all([
-      this.ads.pixelEvents(ws.token, ws.dataset.externalId, now - DAY_SECONDS),
+    const dataset = ws.dataset;
+    const key = `ads:tracking:${workspaceId}:${dataset?.externalId ?? "none"}`;
+    const cached = await this.cache.get<TrackingReport>(key);
+    if (cached) return cached;
+    const report = dataset
+      ? await this.pixelReport(ws, dataset)
+      : buildTrackingReport({
+          dataset: null,
+          businessId: ws.business?.externalId ?? null,
+          last24Hours: [],
+          last7Days: [],
+          now: new Date(),
+        });
+    await this.cache.set(key, report, TRACKING_CACHE_SECONDS);
+    return report;
+  }
+
+  private async pixelReport(
+    ws: Workspace,
+    dataset: AssetView,
+  ): Promise<TrackingReport> {
+    const now = new Date();
+    const unix = Math.floor(now.getTime() / 1000);
+    const [day, week, details] = await Promise.all([
+      this.ads.pixelEvents(ws.token, dataset.externalId, unix - DAY_SECONDS),
       this.ads.pixelEvents(
         ws.token,
-        ws.dataset.externalId,
-        now - 7 * DAY_SECONDS,
+        dataset.externalId,
+        unix - 7 * DAY_SECONDS,
       ),
+      this.ads.pixel(ws.token, dataset.externalId).catch(() => null),
     ]);
-    const warnings: string[] = [];
-    if (!day.length)
-      warnings.push(
-        "The Pixel hasn't received any events in the last 24 hours.",
-      );
-    const conversions = [
-      "Lead",
-      "Purchase",
-      "CompleteRegistration",
-      "Contact",
-      "Schedule",
-      "StartTrial",
-      "Subscribe",
-    ];
-    if (!week.some((e) => conversions.includes(e.event))) {
-      warnings.push(
-        "No conversion events (Lead, Purchase, CompleteRegistration…) in the last 7 days.",
-      );
-    }
-    return {
-      pixel: {
-        id: ws.dataset.externalId,
-        name: ws.dataset.name,
-        lastFiredTime: ws.dataset.details.lastFiredTime ?? null,
+    const stored = dataset.details.lastFiredTime;
+    return buildTrackingReport({
+      dataset: {
+        id: dataset.externalId,
+        name: details?.name || dataset.name,
+        lastFiredTime:
+          details?.lastFiredTime ??
+          (typeof stored === "string" ? stored : null),
       },
+      businessId: ws.business?.externalId ?? null,
       last24Hours: day,
       last7Days: week,
-      warnings,
-    };
+      now,
+    });
   }
 
   async searchTargeting(
@@ -558,7 +560,7 @@ export class AdsService {
   }
 
   async planningContext(workspaceId: string) {
-    const [overview, history, tracking] = await Promise.all([
+    const [overview, history, tracking, profile] = await Promise.all([
       this.overview(workspaceId),
       this.performance(workspaceId, {
         level: "campaign",
@@ -566,9 +568,11 @@ export class AdsService {
         limit: 50,
       }),
       this.tracking(workspaceId),
+      this.settings.profile(workspaceId),
     ]);
     const campaigns = await this.campaigns(workspaceId, "all");
     return {
+      business: { ...profile.basics, mainGoal: profile.goal },
       account: overview,
       campaigns: campaigns.campaigns,
       last90Days: { totals: history.totals, byCampaign: history.rows },

@@ -32,6 +32,7 @@ for (const theme of ["light", "dark"] as const) {
 
       for (const path of [
         "/setup",
+        "/setup/start",
         "/setup/connect-meta",
         "/setup/accounts",
         "/claude",

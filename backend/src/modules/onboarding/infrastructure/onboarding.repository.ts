@@ -28,6 +28,17 @@ export class OnboardingRepository {
       });
   }
 
+  async skip(workspaceId: string, step: OnboardingStepId): Promise<void> {
+    const now = new Date();
+    await this.db
+      .insert(onboardingProgress)
+      .values({ workspaceId, step, status: "skipped", completedAt: now })
+      .onConflictDoUpdate({
+        target: [onboardingProgress.workspaceId, onboardingProgress.step],
+        set: { status: "skipped", completedAt: now },
+      });
+  }
+
   async reset(workspaceId: string, steps: OnboardingStepId[]): Promise<void> {
     await this.db
       .delete(onboardingProgress)

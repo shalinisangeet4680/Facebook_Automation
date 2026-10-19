@@ -5,7 +5,7 @@ import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.ser
 import { SettingsService } from "@modules/settings/application/settings.service";
 
 import { CampaignPlan, parsePlan } from "../domain/plan.schema";
-import { PlanAi, PlanAiResult } from "../domain/ports/plan-ai";
+import { PlanAi, PlanAiInput, PlanAiResult } from "../domain/ports/plan-ai";
 import { PlanGeneratorService } from "./plan-generator.service";
 import { PlanService } from "./plan.service";
 
@@ -53,6 +53,19 @@ function setup(ai: PlanAi) {
         maxDailyBudget: 1000,
         monthlyBudget: null,
         targetCostPerResult: null,
+      }),
+    profile: () =>
+      Promise.resolve({
+        basics: {
+          websiteUrl: "https://glowclinic.in",
+          offer: "Skin and hair treatments",
+          area: "Patna",
+          category: "Clinic",
+          language: "Hinglish",
+        },
+        basicsComplete: true,
+        goal: "leads",
+        budgetSet: true,
       }),
   } as unknown as SettingsService;
   const workspaceAi = {
@@ -146,5 +159,23 @@ describe("PlanGeneratorService", () => {
     await expect(
       service.generate(actor, { ...request, goal: "sales" }),
     ).rejects.toThrow("web page");
+  });
+
+  it("gives the AI the saved business basics and ad language", async () => {
+    const write = vi.fn((_key: string, _input: PlanAiInput) =>
+      Promise.reject(new Error("overloaded")),
+    );
+    const { service } = setup({ write });
+    await service.generate(actor, request);
+    const input = write.mock.calls[0]![1];
+    expect(input.language).toBe("Hinglish");
+    expect(input.business).toMatchObject({
+      website: "https://glowclinic.in",
+      sells: "Skin and hair treatments",
+      area: "Patna",
+      category: "Clinic",
+    });
+    await service.generate(actor, { ...request, language: "English" });
+    expect(write.mock.calls[1]![1].language).toBe("English");
   });
 });

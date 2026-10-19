@@ -12,6 +12,7 @@ import {
   useJob,
   useMetaAssets,
   useMetaConnection,
+  useOnboarding,
   useRefreshAssets,
   useSelectAssets,
 } from "@/lib/api/queries";
@@ -187,6 +188,7 @@ function AccountsForm({ assets }: { assets: Asset[] }) {
   const router = useRouter();
   const toast = useToast();
   const select = useSelectAssets();
+  const onboarding = useOnboarding();
   const now = useNow();
   const [selection, setSelection] = useState<AssetSelection>(() =>
     Object.fromEntries(
@@ -304,7 +306,9 @@ function AccountsForm({ assets }: { assets: Asset[] }) {
             select.mutate(selection, {
               onSuccess: () => {
                 toast("Accounts saved");
-                router.push("/setup");
+                router.push(
+                  onboarding.data?.isComplete ? "/setup" : "/setup/start?step=business_profile",
+                );
               },
               onError: (err) => toast(errorMessage(err)),
             })

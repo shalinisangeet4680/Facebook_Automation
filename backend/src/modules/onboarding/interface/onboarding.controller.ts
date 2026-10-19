@@ -1,4 +1,11 @@
-import { Controller, Get } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from "@nestjs/common";
 import { ApiDefaultResponse, ApiTags } from "@nestjs/swagger";
 
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
@@ -17,5 +24,14 @@ export class OnboardingController {
   @Get()
   view(@CurrentUser() ctx: TenantContext): Promise<OnboardingResponseDto> {
     return this.onboarding.view(ctx.workspaceId);
+  }
+
+  @Post("steps/:step/skip")
+  @HttpCode(HttpStatus.OK)
+  skip(
+    @CurrentUser() ctx: TenantContext,
+    @Param("step") step: string,
+  ): Promise<OnboardingResponseDto> {
+    return this.onboarding.skip(ctx.workspaceId, step);
   }
 }

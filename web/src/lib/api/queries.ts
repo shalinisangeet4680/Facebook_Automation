@@ -9,6 +9,7 @@ import type {
   AssetSelection,
   AutomationSettingsUpdate,
   AuthorizationQuery,
+  BusinessBasicsUpdate,
   CampaignBrief,
   CampaignPlan,
   CampaignStatusFilter,
@@ -16,6 +17,8 @@ import type {
   Job,
   PlanDetail,
   FacebookPart,
+  GoalBudgetUpdate,
+  Onboarding,
   ProfileDraftInput,
   ProfileUpdate,
   ReportPreset,
@@ -32,6 +35,7 @@ import type {
 export const keys = {
   me: ["me"] as const,
   onboarding: ["onboarding"] as const,
+  tracking: ["tracking"] as const,
   requirements: ["meta", "requirements"] as const,
   connection: ["meta", "connection"] as const,
   assets: ["meta", "assets"] as const,
@@ -78,6 +82,25 @@ export function useOnboarding() {
   return useQuery({
     queryKey: keys.onboarding,
     queryFn: () => unwrap(api.GET("/api/v1/onboarding")),
+  });
+}
+
+export function useSkipOnboardingStep() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (step: string) =>
+      unwrap(api.POST("/api/v1/onboarding/steps/{step}/skip", { params: { path: { step } } })),
+    onSuccess: (view: Onboarding) => client.setQueryData(keys.onboarding, view),
+  });
+}
+
+export function useTracking(enabled = true) {
+  return useQuery({
+    queryKey: keys.tracking,
+    queryFn: () => unwrap(api.GET("/api/v1/ads/tracking")),
+    enabled,
+    retry: false,
+    staleTime: 60_000,
   });
 }
 
@@ -152,6 +175,7 @@ export function useConnectMeta() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.onboarding });
       void client.invalidateQueries({ queryKey: keys.assets });
+      void client.invalidateQueries({ queryKey: keys.tracking });
     },
   });
 }
@@ -164,7 +188,8 @@ export function useSelectAssets() {
     onSuccess: (connection: Connection) => {
       client.setQueryData(keys.connection, connection);
       void client.invalidateQueries({ queryKey: keys.assets });
-      void client.invalidateQueries({ queryKey: keys.onboarding });
+      void client.invalidateQueries({ queryKey: keys.tracking });
+      return client.invalidateQueries({ queryKey: keys.onboarding });
     },
   });
 }
@@ -176,6 +201,7 @@ export function useDisconnectMeta() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["meta"] });
       void client.invalidateQueries({ queryKey: keys.onboarding });
+      void client.invalidateQueries({ queryKey: keys.tracking });
     },
   });
 }
@@ -245,7 +271,10 @@ export function useGeneratePlan() {
   return useMutation({
     mutationFn: (body: CampaignBrief) =>
       unwrap(api.POST("/api/v1/campaign-plans/generate", { body })),
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.plans, exact: true }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.plans, exact: true });
+      void client.invalidateQueries({ queryKey: keys.onboarding });
+    },
   });
 }
 
@@ -256,6 +285,7 @@ function usePlanMutation<T>(id: string, run: (input: T) => Promise<Omit<PlanDeta
     onSuccess: (plan) => {
       client.setQueryData<PlanDetail>(keys.plan(id), (old) => (old ? { ...old, ...plan } : old));
       void client.invalidateQueries({ queryKey: keys.plans, exact: true });
+      void client.invalidateQueries({ queryKey: keys.onboarding });
     },
   });
 }
@@ -313,6 +343,30 @@ export function useUpdateWorkspace() {
       client.setQueryData(keys.settings, settings);
       void client.invalidateQueries({ queryKey: keys.me });
       void client.invalidateQueries({ queryKey: keys.connector });
+      void client.invalidateQueries({ queryKey: keys.onboarding });
+    },
+  });
+}
+
+export function useUpdateBusinessBasics() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BusinessBasicsUpdate) =>
+      unwrap(api.PUT("/api/v1/settings/business", { body })),
+    onSuccess: (settings: Settings) => {
+      client.setQueryData(keys.settings, settings);
+      return client.invalidateQueries({ queryKey: keys.onboarding });
+    },
+  });
+}
+
+export function useUpdateGoalBudget() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: GoalBudgetUpdate) => unwrap(api.PUT("/api/v1/settings/goal", { body })),
+    onSuccess: (settings: Settings) => {
+      client.setQueryData(keys.settings, settings);
+      return client.invalidateQueries({ queryKey: keys.onboarding });
     },
   });
 }

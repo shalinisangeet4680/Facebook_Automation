@@ -19,11 +19,13 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
     await page.request.delete("/api/v1/meta/connection");
     await page.reload();
     await expect(page.getByText("Get set up")).toBeVisible();
-    await expect(page.getByText("0/3")).toBeVisible();
+    await expect(page.getByText("0/7")).toBeVisible();
   });
 
   await test.step("explains missing permissions", async () => {
     await page.getByRole("link", { name: "Start" }).click();
+    await expect(page).toHaveURL(/\/setup\/start\?step=connect_meta$/);
+    await page.getByRole("link", { name: "Connect Meta" }).click();
     await expect(page).toHaveURL(/\/setup\/connect-meta$/);
     await page.getByLabel("System user access token").fill(NO_PERMS_TOKEN);
     await page.getByRole("button", { name: "Connect and verify" }).click();
@@ -36,12 +38,14 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
     await expect(page.getByRole("heading", { name: "Meta is connected" })).toBeVisible();
   });
 
-  await test.step("saves accounts and returns to setup", async () => {
+  await test.step("saves accounts and continues the guided setup", async () => {
     await page.getByRole("link", { name: "Choose accounts" }).click();
     await expect(page.getByRole("heading", { name: "Choose your accounts" })).toBeVisible();
     await page.getByRole("button", { name: "Save and continue" }).click();
-    await expect(page).toHaveURL(/\/setup$/);
-    await expect(page.getByText("2/3")).toBeVisible();
+    await expect(page).toHaveURL(/\/setup\/start\?step=business_profile$/);
+    await expect(page.getByRole("heading", { name: "Tell us about your business" })).toBeVisible();
+    await page.goto("/setup");
+    await expect(page.getByText("2/7")).toBeVisible();
   });
 
   await test.step("disconnects Meta", async () => {

@@ -244,6 +244,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding/steps/{step}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingController_skip_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oauth/authorization": {
         parameters: {
             query?: never;
@@ -340,6 +356,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/business": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SettingsController_business_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/goal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SettingsController_goal_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/profile": {
         parameters: {
             query?: never;
@@ -349,6 +397,22 @@ export interface paths {
         };
         get?: never;
         put: operations["SettingsController_profile_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ads/tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdsController_tracking_v1"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -3001,6 +3065,8 @@ export interface components {
             title: string;
             description: string;
             available: boolean;
+            skippable: boolean;
+            skipped: boolean;
             /** @enum {string} */
             status: "completed" | "current" | "upcoming";
             completedAt: string | null;
@@ -3011,6 +3077,8 @@ export interface components {
             completedCount: number;
             totalCount: number;
             isComplete: boolean;
+            /** @enum {string|null} */
+            goal: "traffic" | "leads" | "sales" | "awareness" | null;
         };
         AuthorizationClientDto: {
             name: string;
@@ -3081,11 +3149,21 @@ export interface components {
             platformMaxDailyBudget: number;
             monthlyBudget: number | null;
             targetCostPerResult: number | null;
+            /** @enum {string|null} */
+            goal: "traffic" | "leads" | "sales" | "awareness" | null;
+        };
+        BusinessBasicsDto: {
+            websiteUrl: string | null;
+            offer: string | null;
+            area: string | null;
+            category: string | null;
+            language: string | null;
         };
         SettingsResponseDto: {
             workspace: components["schemas"]["SettingsWorkspaceDto"];
             profile: components["schemas"]["SettingsProfileDto"];
             budget: components["schemas"]["SettingsBudgetDto"];
+            business: components["schemas"]["BusinessBasicsDto"];
         };
         UpdateWorkspaceDto: {
             name: string;
@@ -3093,10 +3171,67 @@ export interface components {
             monthlyBudget: number | null;
             targetCostPerResult: number | null;
         };
+        UpdateBusinessBasicsDto: {
+            /** Format: uri */
+            websiteUrl: string | null;
+            offer: string;
+            area: string;
+            category: string;
+            language: string;
+        };
+        UpdateGoalBudgetDto: {
+            /** @enum {string} */
+            goal: "traffic" | "leads" | "sales" | "awareness";
+            dailyBudget: number;
+            monthlyBudget: number | null;
+            targetCostPerResult: number | null;
+        };
         UpdateProfileDto: {
             name: string | null;
             /** Format: email */
             email: string | null;
+        };
+        TrackingPixelDto: {
+            id: string;
+            name: string;
+            lastFiredTime: string | null;
+        };
+        TrackingEventCountDto: {
+            event: string;
+            count: number;
+        };
+        TrackingEventDto: {
+            event: string;
+            last24Hours: number;
+            last7Days: number;
+        };
+        TrackingTotalsDto: {
+            last24Hours: number;
+            last7Days: number;
+        };
+        TrackingGoalDto: {
+            /** @enum {string} */
+            goal: "traffic" | "leads" | "sales" | "awareness";
+            ready: boolean;
+            needs: string[];
+            message: string;
+            fix: string | null;
+        };
+        TrackingReportDto: {
+            selected: boolean;
+            pixel: components["schemas"]["TrackingPixelDto"] | null;
+            /** @enum {string} */
+            status: "healthy" | "warning" | "missing";
+            reasons: string[];
+            fixes: string[];
+            warnings: string[];
+            last24Hours: components["schemas"]["TrackingEventCountDto"][];
+            last7Days: components["schemas"]["TrackingEventCountDto"][];
+            events: components["schemas"]["TrackingEventDto"][];
+            totals: components["schemas"]["TrackingTotalsDto"];
+            goals: components["schemas"]["TrackingGoalDto"][];
+            eventsManagerUrl: string;
+            checkedAt: string;
         };
         ReportPeriodDto: {
             since: string;
@@ -6507,6 +6642,35 @@ export interface operations {
             };
         };
     };
+    OnboardingController_skip_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     AuthorizationController_context_v1: {
         parameters: {
             query: {
@@ -6713,6 +6877,68 @@ export interface operations {
             };
         };
     };
+    SettingsController_business_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBusinessBasicsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SettingsController_goal_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGoalBudgetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     SettingsController_profile_v1: {
         parameters: {
             query?: never;
@@ -6732,6 +6958,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdsController_tracking_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackingReportDto"];
                 };
             };
             default: {

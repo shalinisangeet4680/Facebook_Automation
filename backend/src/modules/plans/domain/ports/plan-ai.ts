@@ -31,6 +31,10 @@ export interface PlanAiInput {
     instagram: string | null;
     pixel: boolean;
     pixelEvents: string[];
+    website: string | null;
+    sells: string | null;
+    area: string | null;
+    category: string | null;
   };
   pastCampaigns: PlanAiPastCampaign[];
 }

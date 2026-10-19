@@ -171,7 +171,7 @@ describe("Meta connection", () => {
     const res = await call(app, "GET", "/api/v1/onboarding", { headers });
     expect(res.statusCode).toBe(200);
     expect(res.body.currentStep).toBe("business_profile");
-    expect(res.body.completedCount).toBe(3);
+    expect(res.body.completedCount).toBe(2);
   });
 
   it("never returns the token itself", async () => {

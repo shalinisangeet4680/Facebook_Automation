@@ -93,13 +93,17 @@ export class MockMetaGraph implements MetaGraph {
     ]);
   }
 
-  datasets(_token: string, adAccountId: string): Promise<GraphDataset[]> {
+  datasets(token: string, adAccountId: string): Promise<GraphDataset[]> {
+    if (token.includes("nopixel")) return Promise.resolve([]);
+    const quiet = token.includes("quietpixel");
     return Promise.resolve([
       {
         id: "2519233968487265",
         name: "Arogya System Website",
         adAccountId,
-        lastFiredTime: new Date().toISOString(),
+        lastFiredTime: new Date(
+          Date.now() - (quiet ? 3 * 86_400_000 : 0),
+        ).toISOString(),
         isUnavailable: false,
       },
     ]);

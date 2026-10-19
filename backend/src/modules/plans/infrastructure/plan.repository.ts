@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import {
   DATABASE,
@@ -8,7 +8,11 @@ import {
   firstOrNull,
 } from "@shared/database/database";
 
-import { CampaignPlanRow, campaignPlans } from "./plans.tables";
+import {
+  CampaignPlanRow,
+  campaignPlans,
+  CampaignPlanStatus,
+} from "./plans.tables";
 
 @Injectable()
 export class PlanRepository {
@@ -51,6 +55,17 @@ export class PlanRepository {
       .where(eq(campaignPlans.workspaceId, workspaceId))
       .orderBy(desc(campaignPlans.createdAt))
       .limit(limit);
+  }
+
+  async countByStatus(
+    workspaceId: string,
+  ): Promise<Partial<Record<CampaignPlanStatus, number>>> {
+    const rows = await this.db
+      .select({ status: campaignPlans.status, total: count() })
+      .from(campaignPlans)
+      .where(eq(campaignPlans.workspaceId, workspaceId))
+      .groupBy(campaignPlans.status);
+    return Object.fromEntries(rows.map((r) => [r.status, r.total]));
   }
 
   async update(

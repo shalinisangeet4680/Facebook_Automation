@@ -83,8 +83,9 @@ export class PlanGeneratorService {
     this.check(request);
     const ws = actor.workspaceId;
     const account = await this.ads.account(ws);
-    const [targets, context, visual] = await Promise.all([
+    const [targets, profile, context, visual] = await Promise.all([
       this.settings.targets(ws),
+      this.settings.profile(ws),
       this.ads.planningContext(ws).catch((err: unknown) => {
         this.logger.warn(
           `Planning context unavailable: ${err instanceof Error ? err.message : String(err)}`,
@@ -109,7 +110,7 @@ export class PlanGeneratorService {
       offer: request.offer.trim(),
       audienceNotes: request.audienceNotes?.trim() || null,
       landingUrl: request.landingUrl ?? null,
-      language: request.language?.trim() || null,
+      language: request.language?.trim() || profile.basics.language || null,
       dailyBudget: budget.dailyBudget,
       requestedDailyBudget: request.dailyBudget,
       currency: account.currency,
@@ -125,6 +126,10 @@ export class PlanGeneratorService {
         instagram: account.instagram?.name ?? null,
         pixel: Boolean(account.dataset),
         pixelEvents: this.pixelEvents(context),
+        website: profile.basics.websiteUrl,
+        sells: profile.basics.offer,
+        area: profile.basics.area,
+        category: profile.basics.category,
       },
       pastCampaigns: this.pastCampaigns(context),
     };

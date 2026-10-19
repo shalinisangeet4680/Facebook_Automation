@@ -74,6 +74,10 @@ function user(input: PlanAiInput): string {
   return [
     "<business>",
     `Name: ${input.business.name ?? "unknown"}`,
+    input.business.category ? `Category: ${input.business.category}` : "",
+    input.business.sells ? `What they sell: ${input.business.sells}` : "",
+    input.business.area ? `Main area: ${input.business.area}` : "",
+    input.business.website ? `Website: ${input.business.website}` : "",
     `Facebook Page: ${input.business.page ?? "none"}`,
     `Instagram: ${input.business.instagram ?? "none"}`,
     `Pixel: ${input.business.pixel ? `yes, recent events: ${input.business.pixelEvents.join(", ") || "none"}` : "no"}`,

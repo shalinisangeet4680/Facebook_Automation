@@ -7,12 +7,18 @@ import { TenantContext } from "@shared/tenant/tenant-context";
 
 import { AdsService } from "../application/ads.service";
 import { TargetingQueryDto, TargetingResultsDto } from "./dto/targeting.dto";
+import { TrackingReportDto } from "./dto/tracking.dto";
 
 @ApiTags("Ads")
 @ApiDefaultResponse({ type: ErrorResponseDto })
 @Controller("ads")
 export class AdsController {
   constructor(private readonly ads: AdsService) {}
+
+  @Get("tracking")
+  tracking(@CurrentUser() ctx: TenantContext): Promise<TrackingReportDto> {
+    return this.ads.tracking(ctx.workspaceId);
+  }
 
   @Get("targeting")
   targeting(

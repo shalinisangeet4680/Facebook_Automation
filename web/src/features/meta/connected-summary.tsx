@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
-import { useDisconnectMeta } from "@/lib/api/queries";
+import { useDisconnectMeta, useOnboarding } from "@/lib/api/queries";
 import type { AssetKind, Connection } from "@/lib/api/types";
 import { ConfirmDialog } from "@/features/replyly/dialog";
 import { useToast } from "@/features/replyly/ui";
@@ -28,6 +28,10 @@ export function ConnectedSummary({
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const disconnect = useDisconnectMeta();
+  const onboarding = useOnboarding();
+  const accountsDone =
+    onboarding.data?.steps.find((s) => s.id === "choose_assets")?.status === "completed";
+  const continueSetup = Boolean(onboarding.data && !onboarding.data.isComplete && accountsDone);
   const counts = ORDER.map((kind) => ({
     kind,
     count: connection.assets.filter((a) => a.kind === kind).length,
@@ -103,6 +107,15 @@ export function ConnectedSummary({
           >
             <RefreshCw size={14} /> Replace token
           </button>
+        ) : continueSetup ? (
+          <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link href="/setup/accounts" className="rp-btn-light" style={{ padding: "10px 16px" }}>
+              Choose accounts
+            </Link>
+            <Link href="/setup/start" className="rp-btn" style={{ padding: "10px 16px" }}>
+              Continue setup <ArrowRight size={14} />
+            </Link>
+          </span>
         ) : (
           <Link href="/setup/accounts" className="rp-btn" style={{ padding: "10px 16px" }}>
             Choose accounts <ArrowRight size={14} />

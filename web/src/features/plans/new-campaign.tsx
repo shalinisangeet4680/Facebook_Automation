@@ -7,8 +7,9 @@ import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import { useGeneratePlan, useSettings } from "@/lib/api/queries";
-import type { CampaignBrief } from "@/lib/api/types";
-import { Banner, Spinner } from "@/features/replyly/ui";
+import type { CampaignBrief, Settings } from "@/lib/api/types";
+import { TrackingGoalWarning } from "@/features/meta-ads/tracking";
+import { Banner, Skel, Spinner } from "@/features/replyly/ui";
 
 import {
   AudienceStep,
@@ -17,11 +18,13 @@ import {
   type Draft,
   type Errors,
   GoalStep,
+  LANGUAGES,
   type Limits,
   PromoteStep,
   validate,
 } from "./new-campaign-steps";
 import { MUTED } from "./plan-sections";
+import { StepBar } from "./step-bar";
 
 const STEPS = [
   { title: "What do you want?", sub: "Pick the one result that matters most right now." },
@@ -54,6 +57,19 @@ const EMPTY: Draft = {
   language: "",
   visual: { imageUrl: null, post: null },
 };
+
+export function prefill(settings: Settings | undefined): Draft {
+  if (!settings) return EMPTY;
+  const { business, budget } = settings;
+  return {
+    ...EMPTY,
+    goal: budget.goal ?? null,
+    dailyBudget: budget.goal ? String(budget.maxDailyBudget) : "",
+    offer: business.offer ?? "",
+    landingUrl: business.websiteUrl ?? "",
+    language: LANGUAGES.some((l) => l.id === business.language) ? (business.language ?? "") : "",
+  };
+}
 
 function toBrief(draft: Draft): CampaignBrief {
   const { targeting: t, visual } = draft;
@@ -89,11 +105,26 @@ function toBrief(draft: Draft): CampaignBrief {
 }
 
 export function NewCampaign() {
+  const settings = useSettings();
+  if (settings.isPending)
+    return (
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 760, width: "100%" }}
+      >
+        <Skel h={40} w={260} />
+        <Skel h={8} />
+        <Skel h={320} r={14} />
+      </div>
+    );
+  return <Builder initial={prefill(settings.data)} />;
+}
+
+function Builder({ initial }: { initial: Draft }) {
   const router = useRouter();
   const settings = useSettings();
   const generate = useGeneratePlan();
   const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [draft, setDraft] = useState<Draft>(initial);
   const [tried, setTried] = useState<Record<number, boolean>>({});
   const [done, setDone] = useState(false);
 
@@ -160,7 +191,7 @@ export function NewCampaign() {
         </span>
       </div>
 
-      <StepBar step={step} onGo={(i) => setStep(i)} />
+      <StepBar steps={STEPS} step={step} onGo={(i) => setStep(i)} />
 
       {generate.isError ? (
         <Banner
@@ -185,11 +216,14 @@ export function NewCampaign() {
         </div>
         <div style={{ padding: 20 }}>
           {step === 0 ? (
-            <GoalStep
-              value={draft.goal}
-              error={errors.goal}
-              onChange={(goal) => update({ goal })}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <GoalStep
+                value={draft.goal}
+                error={errors.goal}
+                onChange={(goal) => update({ goal })}
+              />
+              <TrackingGoalWarning goal={draft.goal} />
+            </div>
           ) : step === 1 ? (
             settings.isError ? (
               <Banner
@@ -220,7 +254,10 @@ export function NewCampaign() {
           ) : step === 3 ? (
             <PromoteStep draft={draft} errors={errors} onChange={update} />
           ) : (
-            <CreativeStep visual={draft.visual} onChange={(visual) => update({ visual })} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <CreativeStep visual={draft.visual} onChange={(visual) => update({ visual })} />
+              <TrackingGoalWarning goal={draft.goal} />
+            </div>
           )}
         </div>
       </section>
@@ -258,52 +295,6 @@ export function NewCampaign() {
         )}
       </div>
     </div>
-  );
-}
-
-function StepBar({ step, onGo }: { step: number; onGo: (step: number) => void }) {
-  return (
-    <nav aria-label="Progress" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: MUTED }}>
-        Step {step + 1} of {STEPS.length}
-      </span>
-      <ol
-        style={{
-          listStyle: "none",
-          margin: 0,
-          padding: 0,
-          display: "grid",
-          gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`,
-          gap: 6,
-        }}
-      >
-        {STEPS.map((s, i) => {
-          const past = i < step;
-          const current = i === step;
-          return (
-            <li key={s.title}>
-              <button
-                type="button"
-                disabled={!past}
-                onClick={() => onGo(i)}
-                aria-current={current ? "step" : undefined}
-                aria-label={`Step ${i + 1}: ${s.title}${past ? " (done, go back)" : ""}`}
-                style={{
-                  width: "100%",
-                  height: 6,
-                  padding: 0,
-                  border: "none",
-                  borderRadius: 999,
-                  background: past || current ? "#0F6B4A" : "#E6E4DF",
-                  opacity: current ? 1 : past ? 0.55 : 1,
-                  cursor: past ? "pointer" : "default",
-                }}
-              />
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
   );
 }
 

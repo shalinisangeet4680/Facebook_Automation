@@ -15,6 +15,7 @@ import {
   InsightQuery,
   InsightRow,
   MetaAds,
+  PixelDetails,
   PixelEventCount,
   TargetingOption,
   TargetingSearchType,
@@ -334,6 +335,19 @@ export class GraphAdsClient extends GraphApiClient implements MetaAds {
     return [...totals.entries()]
       .map(([event, count]) => ({ event, count }))
       .sort((a, b) => b.count - a.count);
+  }
+
+  async pixel(token: string, pixelId: string): Promise<PixelDetails> {
+    const res = await this.get<{
+      id?: string;
+      name?: string;
+      last_fired_time?: string;
+    }>(token, `/${pixelId}`, { fields: "id,name,last_fired_time" });
+    return {
+      id: str(res.id, pixelId),
+      name: str(res.name),
+      lastFiredTime: optStr(res.last_fired_time),
+    };
   }
 
   async searchTargeting(
