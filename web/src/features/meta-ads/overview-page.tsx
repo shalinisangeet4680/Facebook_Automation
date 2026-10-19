@@ -13,7 +13,7 @@ import {
   useSuggestionAction,
 } from "@/lib/api/queries";
 import type { Suggestion } from "@/lib/api/types";
-import { Banner, PageHead, Section, Skel, Spinner, useToast } from "@/features/replyly/ui";
+import { Banner, Section, Skel, Spinner, useToast } from "@/features/replyly/ui";
 
 import { AdAccountSwitcher } from "./account-switcher";
 import { useMetaConnected } from "./shell";
@@ -448,40 +448,50 @@ export function OverviewPage() {
   const toast = useToast();
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      <PageHead
-        title="Overview"
-        sub={
-          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span>
-              Your ads at a glance and what needs you today. Nothing spends until you approve.
-            </span>
-            {connected ? <AdAccountSwitcher inline /> : null}
-          </span>
-        }
-        actions={
-          connected ? (
-            <button
-              type="button"
-              className="rp-btn-light"
-              disabled={refresh.isPending}
-              onClick={() =>
-                refresh.mutate(undefined, {
-                  onSuccess: (r) =>
-                    toast(
-                      r.created
-                        ? `${r.created} new suggestion${r.created === 1 ? "" : "s"}`
-                        : "Checked. Nothing new.",
-                    ),
-                  onError: (err) => toast(errorMessage(err)),
-                })
-              }
-            >
-              {refresh.isPending ? <Spinner /> : null}
-              Check now
-            </button>
-          ) : null
-        }
-      />
+      <h1
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          overflow: "hidden",
+          clip: "rect(0 0 0 0)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Overview
+      </h1>
+      {connected ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <AdAccountSwitcher inline />
+          <button
+            type="button"
+            className="rp-btn-light"
+            disabled={refresh.isPending}
+            onClick={() =>
+              refresh.mutate(undefined, {
+                onSuccess: (r) =>
+                  toast(
+                    r.created
+                      ? `${r.created} new suggestion${r.created === 1 ? "" : "s"}`
+                      : "Checked. Nothing new.",
+                  ),
+                onError: (err) => toast(errorMessage(err)),
+              })
+            }
+          >
+            {refresh.isPending ? <Spinner /> : null}
+            Check now
+          </button>
+        </div>
+      ) : null}
       <SetupCard />
       {loading ? null : connected ? (
         <>
