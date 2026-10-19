@@ -37,6 +37,8 @@ export function ConnectedSummary({
     count: connection.assets.filter((a) => a.kind === kind).length,
   })).filter((c) => c.count > 0);
   const invalid = connection.status === "invalid";
+  const viaFacebook = connection.method === "facebook_login";
+  const replaceLabel = viaFacebook ? "Reconnect" : "Replace token";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -85,8 +87,10 @@ export function ConnectedSummary({
           </h2>
           <span style={{ fontSize: 13.5, color: SOFT }}>
             {invalid
-              ? "The token was revoked or expired. Generate a new one and replace it."
-              : `Connected as ${connection.systemUser?.name ?? "your system user"} · token ending ${connection.tokenLast4}`}
+              ? viaFacebook
+                ? "Facebook access was removed or expired. Continue with Facebook again to reconnect."
+                : "The token was revoked or expired. Generate a new one and replace it."
+              : `${viaFacebook ? "Connected with Facebook" : "Connected with a system user token"} · ${connection.systemUser?.name ?? "your system user"} · token ending ${connection.tokenLast4}`}
           </span>
           {counts.length ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
@@ -105,7 +109,7 @@ export function ConnectedSummary({
             style={{ padding: "10px 16px" }}
             onClick={onReplace}
           >
-            <RefreshCw size={14} /> Replace token
+            <RefreshCw size={14} /> {replaceLabel}
           </button>
         ) : continueSetup ? (
           <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -159,12 +163,16 @@ export function ConnectedSummary({
         >
           <CardTitle
             title="Manage connection"
-            sub="Replace the token if you regenerate it in Meta, or disconnect to remove all access."
+            sub={
+              viaFacebook
+                ? "Reconnect to change which assets you shared, or disconnect to remove all access."
+                : "Replace the token if you regenerate it in Meta, or disconnect to remove all access."
+            }
           />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {invalid ? null : (
               <button type="button" className="rp-btn-light" onClick={onReplace}>
-                <RefreshCw size={14} /> Replace token
+                <RefreshCw size={14} /> {replaceLabel}
               </button>
             )}
             <button

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."meta_connection_method" AS ENUM('system_user_token', 'facebook_login');--> statement-breakpoint
+ALTER TABLE "meta_connections" ADD COLUMN "method" "meta_connection_method" DEFAULT 'system_user_token' NOT NULL;

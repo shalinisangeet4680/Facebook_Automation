@@ -30,10 +30,16 @@ import {
 import { META_GRAPH, MetaGraph } from "../domain/ports/meta-graph";
 import { MetaAssetRepository } from "../infrastructure/meta-asset.repository";
 import { MetaConnectionRepository } from "../infrastructure/meta-connection.repository";
-import { MetaAssetKind, MetaAssetRow } from "../infrastructure/meta.tables";
+import {
+  MetaAssetKind,
+  MetaAssetRow,
+  MetaConnectionMethod,
+} from "../infrastructure/meta.tables";
 
 const TOKEN_PATTERN = /^EAA[A-Za-z0-9]{30,}$/;
 const MAX_AD_ACCOUNTS_FOR_DATASETS = 10;
+
+export type MetaActor = Pick<TenantContext, "workspaceId" | "userId">;
 
 export interface AssetSelection {
   adAccountId?: string;
@@ -58,14 +64,22 @@ export class MetaConnectionService {
     return { steps: GUIDE_STEPS, permissions: PERMISSIONS };
   }
 
-  async connect(ctx: TenantContext, rawToken: string): Promise<ConnectionView> {
+  connect(ctx: TenantContext, rawToken: string): Promise<ConnectionView> {
     const token = rawToken.trim();
     if (!TOKEN_PATTERN.test(token)) {
       throw new ValidationError(
         "That doesn't look like a Meta access token. It should start with EAA.",
       );
     }
+    return this.connectWith(ctx, token, "system_user_token");
+  }
 
+  async connectWith(
+    actor: MetaActor,
+    token: string,
+    method: MetaConnectionMethod,
+  ): Promise<ConnectionView> {
+    const viaLogin = method === "facebook_login";
     const identity = await this.graph.identity(token);
     const granted = await this.graph.grantedPermissions(token);
     const missing = missingPermissions(granted);
@@ -84,18 +98,23 @@ export class MetaConnectionService {
       throw new CodedError(
         ErrorCode.META_PERMISSIONS_MISSING,
         422,
-        `The token is missing required permissions: ${missing.required.join(", ")}. Generate a new token with every required permission ticked.`,
+        viaLogin
+          ? `Facebook didn't grant every permission we need: ${missing.required.join(", ")}. Continue with Facebook again and keep every permission switched on.`
+          : `The token is missing required permissions: ${missing.required.join(", ")}. Generate a new token with every required permission ticked.`,
         { checks: baseChecks, missing },
       );
     }
 
     const discovered = await this.discover(token);
     const checks = [...baseChecks, ...assetChecks(discovered)];
-    if (checks.some((c) => c.status === "failed")) {
+    const failed = checks.filter((c) => c.status === "failed");
+    if (failed.length) {
       throw new CodedError(
         ErrorCode.META_ASSETS_MISSING,
         422,
-        "Some required assets aren't assigned to the system user yet. Assign them in Business settings and try again.",
+        viaLogin
+          ? missingSharedAssets(failed.map((c) => c.key))
+          : "Some required assets aren't assigned to the system user yet. Assign them in Business settings and try again.",
         { checks, missing },
       );
     }
@@ -103,33 +122,34 @@ export class MetaConnectionService {
     await this.db.transaction(async (tx) => {
       await this.connections.upsert(
         {
-          workspaceId: ctx.workspaceId,
+          workspaceId: actor.workspaceId,
           tokenCiphertext: this.crypto.encrypt(token),
           tokenLast4: token.slice(-4),
           systemUserId: identity.id,
           systemUserName: identity.name,
           grantedScopes: granted,
+          method,
         },
         tx,
       );
-      await this.assets.sync(ctx.workspaceId, discovered, tx);
-      await this.assets.autoSelectSingles(ctx.workspaceId, tx);
+      await this.assets.sync(actor.workspaceId, discovered, tx);
+      await this.assets.autoSelectSingles(actor.workspaceId, tx);
     });
 
     await this.audit.record({
-      workspaceId: ctx.workspaceId,
+      workspaceId: actor.workspaceId,
       actor: "user",
-      actorId: ctx.userId,
+      actorId: actor.userId,
       action: "meta.connected",
       target: identity.id,
-      data: { systemUser: identity.name, assets: discovered.length },
+      data: { systemUser: identity.name, assets: discovered.length, method },
     });
     this.events.emit(META_EVENTS.CONNECTED, {
-      workspaceId: ctx.workspaceId,
-      userId: ctx.userId,
+      workspaceId: actor.workspaceId,
+      userId: actor.userId,
     } satisfies MetaConnectedEvent);
 
-    return { ...(await this.view(ctx.workspaceId)), checks };
+    return { ...(await this.view(actor.workspaceId)), checks };
   }
 
   view(workspaceId: string): Promise<ConnectionView> {
@@ -339,6 +359,7 @@ export class MetaConnectionService {
     if (!connection) {
       return {
         status: "not_connected",
+        method: null,
         systemUser: null,
         tokenLast4: null,
         connectedAt: null,
@@ -362,6 +383,7 @@ export class MetaConnectionService {
     );
     return {
       status: connection.status,
+      method: connection.method,
       systemUser: {
         id: connection.systemUserId,
         name: connection.systemUserName,
@@ -500,6 +522,18 @@ function assetChecks(discovered: DiscoveredAsset[]): ConnectionCheck[] {
           "No dataset found. You can add one later.",
         ),
   ];
+}
+
+function missingSharedAssets(failedKeys: string[]): string {
+  const ads = failedKeys.includes("ad_accounts");
+  const pages = failedKeys.includes("pages");
+  const what =
+    ads && pages
+      ? "No ad account or Facebook Page was shared"
+      : ads
+        ? "No ad account was shared"
+        : "No Facebook Page was shared";
+  return `${what}. Continue with Facebook again and pick at least one ad account and one Page.`;
 }
 
 function toAssetView(r: MetaAssetRow): AssetView {

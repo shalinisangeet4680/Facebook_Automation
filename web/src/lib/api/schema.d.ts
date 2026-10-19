@@ -916,6 +916,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meta/oauth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MetaOAuthController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MetaOAuthController_start_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/store-projects": {
         parameters: {
             query?: never;
@@ -3039,6 +3071,8 @@ export interface components {
         ConnectionResponseDto: {
             /** @enum {string} */
             status: "active" | "invalid" | "not_connected";
+            /** @enum {string|null} */
+            method: "system_user_token" | "facebook_login" | null;
             systemUser: components["schemas"]["SystemUserDto"] | null;
             tokenLast4: string | null;
             connectedAt: string | null;
@@ -3844,6 +3878,17 @@ export interface components {
         };
         LaunchPlanDto: {
             confirm: boolean;
+        };
+        MetaOAuthStatusDto: {
+            facebookLogin: boolean;
+            redirectUri: string;
+        };
+        StartMetaOAuthDto: {
+            next?: string;
+            origin?: string;
+        };
+        MetaOAuthUrlDto: {
+            url: string;
         };
         StoreChoiceDto: {
             /** @enum {string} */
@@ -8037,6 +8082,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanResponseDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    MetaOAuthController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetaOAuthStatusDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    MetaOAuthController_start_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartMetaOAuthDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetaOAuthUrlDto"];
                 };
             };
             default: {

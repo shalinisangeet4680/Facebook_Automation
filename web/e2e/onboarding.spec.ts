@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { VALID_TOKEN, signInWithGoogle } from "./fixtures";
+import { VALID_TOKEN, openTokenForm, signInWithGoogle } from "./fixtures";
 
 const QUIET_TOKEN = `EAA${"e".repeat(40)}quietpixel`;
 
@@ -45,8 +45,10 @@ test("guides a new owner from connecting Meta to the first campaign", async ({ p
   });
 
   await test.step("connects Meta and comes back into the flow", async () => {
-    await page.getByRole("link", { name: "Connect Meta" }).click();
+    await openTokenForm(page);
+    await page.getByRole("link", { name: "Open the step-by-step guide" }).click();
     await expect(page).toHaveURL(/\/setup\/connect-meta$/);
+    await openTokenForm(page);
     await page.getByLabel("System user access token").fill(VALID_TOKEN);
     await page.getByRole("button", { name: "Connect and verify" }).click();
     await expect(page.getByRole("heading", { name: "Meta is connected" })).toBeVisible();

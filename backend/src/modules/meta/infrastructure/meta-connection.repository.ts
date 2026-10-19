@@ -8,7 +8,11 @@ import {
   firstOrNull,
 } from "@shared/database/database";
 
-import { MetaConnectionRow, metaConnections } from "./meta.tables";
+import {
+  MetaConnectionMethod,
+  MetaConnectionRow,
+  metaConnections,
+} from "./meta.tables";
 
 @Injectable()
 export class MetaConnectionRepository {
@@ -32,6 +36,7 @@ export class MetaConnectionRepository {
       systemUserId: string;
       systemUserName: string;
       grantedScopes: string[];
+      method: MetaConnectionMethod;
     },
     tx: Executor = this.db,
   ): Promise<MetaConnectionRow> {

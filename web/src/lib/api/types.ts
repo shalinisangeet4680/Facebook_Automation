@@ -10,6 +10,7 @@ export type GuideStep = Schemas["GuideStepDto"];
 export type Permission = Schemas["PermissionDto"];
 export type Connection = Schemas["ConnectionResponseDto"];
 export type ConnectionCheck = Schemas["ConnectionCheckDto"];
+export type ConnectionMethod = NonNullable<Connection["method"]>;
 export type Asset = Schemas["AssetDto"];
 export type AssetKind = Asset["kind"];
 export type Job = Schemas["JobResponseDto"];

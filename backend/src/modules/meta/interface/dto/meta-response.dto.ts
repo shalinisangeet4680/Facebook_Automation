@@ -51,6 +51,7 @@ export class AssetListResponseDto {
 
 export class ConnectionResponseDto {
   status: "not_connected" | "active" | "invalid";
+  method: "system_user_token" | "facebook_login" | null;
   systemUser: SystemUserDto | null;
   tokenLast4: string | null;
   connectedAt: string | null;
@@ -58,4 +59,13 @@ export class ConnectionResponseDto {
   permissions: PermissionSummaryDto;
   checks: ConnectionCheckDto[];
   assets: AssetDto[];
+}
+
+export class MetaOAuthStatusDto {
+  facebookLogin: boolean;
+  redirectUri: string;
+}
+
+export class MetaOAuthUrlDto {
+  url: string;
 }

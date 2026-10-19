@@ -4,7 +4,12 @@
 
 Each workspace connects one Meta Business through a **System User access token**. A System User is a non-human user inside the customer's Business portfolio; its token does not expire when chosen as "Never" and only reaches the assets the customer assigns to it.
 
-The customer creates the token themselves, guided by an animated walkthrough in the client. The backend serves the guide content and requirements so web and mobile show the same instructions.
+There are two ways to get that token, recorded on `meta_connections.method`:
+
+- `facebook_login` (the default in the client): **Continue with Facebook** opens Facebook Login for Business with a "System-user access token" configuration (`META_ADS_LOGIN_CONFIG_ID`). The customer picks the ad account, Page, Instagram account and Pixel in Facebook's window, and the code exchange returns a business integration system user token with no expiry, scoped to those assets.
+- `system_user_token` (the "Advanced" option): the customer creates a system user token themselves, guided by an animated walkthrough in the client, and pastes it. The backend serves the guide content and requirements so web and mobile show the same instructions.
+
+Both paths run the same verification and storage (section 4).
 
 ## 2. Customer steps (served by `GET /api/v1/meta/requirements`)
 
@@ -50,6 +55,13 @@ Missing required permissions block the connection with a precise fix message. Mi
 
 The response includes a `checks` array (`token`, `identity`, `permissions`, `ad_accounts`, `pages`, `datasets`) with status and message so clients can animate the verification steps from real results.
 
+## 4a. Continue with Facebook (`/api/v1/meta/oauth/*`)
+
+- `GET /meta/oauth/status` → `{ facebookLogin, redirectUri }`. `facebookLogin` is `false` until `META_ADS_LOGIN_CONFIG_ID` is set (and, outside mock mode, `META_APP_ID` and `META_APP_SECRET`). There is no fallback to `scope=` user tokens, because ads need the system user token.
+- `POST /meta/oauth/start` with `{ next?, origin? }` → `{ url }`. Sets an httpOnly `tv_meta_ads_state` cookie (path `/api/v1/meta/oauth`) with a nonce. The `state` parameter is encrypted and carries the workspace, user, origin (allow-listed with `allowedOrigin`), next path and a 10 minute expiry. The URL is `https://www.facebook.com/<META_GRAPH_VERSION>/dialog/oauth?client_id&redirect_uri&state&response_type=code&config_id=<META_ADS_LOGIN_CONFIG_ID>&override_default_response_type=true`.
+- `GET /meta/oauth/callback?code&state` (public) only accepts a state whose nonce matches the cookie, exchanges the code with `GET /<version>/oauth/access_token?client_id&client_secret&redirect_uri&code`, then runs the section 4 flow from step 2 with `method = facebook_login`. It redirects to `origin + next` with `connected=facebook`, or with `error=<message>` (cancelled, expired link, missing permissions, no ad account or Page shared). `next` defaults to `/setup/start` while onboarding is unfinished, otherwise `/setup/connect-meta`. Extra Meta query parameters (`error_reason`, `error_description`, `error_code`, `granted_scopes`, `denied_scopes`) are accepted.
+- Redirect URI to register in Facebook Login for Business: `https://<each web origin>/api/v1/meta/oauth/callback`.
+
 ## 5. Graph client
 
 - Lives in `modules/meta/infrastructure/graph-api.client.ts`, implementing the `MetaGraph` port.
@@ -62,7 +74,7 @@ The response includes a `checks` array (`token`, `identity`, `permissions`, `ad_
 
 ## 6. Mock mode
 
-`META_MOCK=true` swaps the Graph client for `MockMetaGraph`, which returns realistic businesses, ad accounts, Pages, Instagram accounts, and datasets. A token containing `invalid` triggers the invalid-token path. Used for local UI work and tests.
+`META_MOCK=true` swaps the Graph client for `MockMetaGraph`, which returns realistic businesses, ad accounts, Pages, Instagram accounts, and datasets. A token containing `invalid` triggers the invalid-token path. `MockMetaLogin` makes `oauth/start` return our own callback URL with `code=mock`, and the exchange returns a valid mock token (`code=mocknoads`, `mocknoperms` and similar map to the matching failure tokens). Used for local UI work and tests.
 
 ## 7. Token health
 

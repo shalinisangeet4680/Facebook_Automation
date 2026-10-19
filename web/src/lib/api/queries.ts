@@ -38,6 +38,7 @@ export const keys = {
   tracking: ["tracking"] as const,
   requirements: ["meta", "requirements"] as const,
   connection: ["meta", "connection"] as const,
+  metaOAuth: ["meta", "oauth"] as const,
   assets: ["meta", "assets"] as const,
   job: (id: string) => ["jobs", id] as const,
   authorization: (query: AuthorizationQuery) => ["oauth", "authorization", query] as const,
@@ -116,6 +117,25 @@ export function useMetaConnection() {
   return useQuery({
     queryKey: keys.connection,
     queryFn: () => unwrap(api.GET("/api/v1/meta/connection")),
+  });
+}
+
+export function useMetaOAuthStatus() {
+  return useQuery({
+    queryKey: keys.metaOAuth,
+    queryFn: () => unwrap(api.GET("/api/v1/meta/oauth/status")),
+    staleTime: Infinity,
+  });
+}
+
+export function useStartMetaSignIn() {
+  return useMutation({
+    mutationFn: (next?: string) =>
+      unwrap(
+        api.POST("/api/v1/meta/oauth/start", {
+          body: { origin: window.location.origin, ...(next ? { next } : {}) },
+        }),
+      ),
   });
 }
 

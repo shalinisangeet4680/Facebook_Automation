@@ -5,6 +5,7 @@ export PORT=4100
 export DATABASE_URL="${E2E_DATABASE_URL:-postgres://$(whoami)@localhost:5432/adpilot_e2e}"
 export REDIS_URL="redis://localhost:6379/2"
 export META_MOCK=true
+export META_ADS_LOGIN_CONFIG_ID=mock-ads-login-config
 export PLAY_MOCK=true
 export AI_MOCK=true
 export AUTH_GOOGLE_MOCK=true

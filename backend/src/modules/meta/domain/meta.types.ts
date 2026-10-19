@@ -1,4 +1,7 @@
-import { MetaAssetKind } from "../infrastructure/meta.tables";
+import {
+  MetaAssetKind,
+  MetaConnectionMethod,
+} from "../infrastructure/meta.tables";
 
 export type CheckStatus = "passed" | "warning" | "failed";
 
@@ -20,6 +23,7 @@ export interface AssetView {
 
 export interface ConnectionView {
   status: "not_connected" | "active" | "invalid";
+  method: MetaConnectionMethod | null;
   systemUser: { id: string; name: string } | null;
   tokenLast4: string | null;
   connectedAt: string | null;

@@ -155,6 +155,8 @@ What each variable does:
 | `ANTHROPIC_API_KEY`                        | Needed for AI drafts unless `AI_MOCK=true`                                                                                |
 | `AI_DAILY_DRAFTS`                          | Per-day AI draft limit                                                                                                    |
 | `META_GRAPH_VERSION`, `ADS_MAX_DAILY_BUDGET` | Meta Graph API version and the hard cap on daily ad budget                                                              |
+| `META_APP_ID`, `META_APP_SECRET`           | The one Meta app (Arogya System) used for Autopost and Ads sign-in                                                        |
+| `META_ADS_LOGIN_CONFIG_ID`                 | Facebook Login for Business configuration ("System-user access token") behind "Continue with Facebook" for Ads. Leave empty to offer only the token paste |
 | `OTP_TEST_NUMBERS`                         | Keep empty in production                                                                                                  |
 | `AUTH_GOOGLE_MOCK_EMAIL`                   | Only used when `AUTH_GOOGLE_MOCK=true`                                                                                    |
 | `SENTRY_DSN`, `LOG_LEVEL`                  | Error reporting and log verbosity                                                                                         |
@@ -279,6 +281,20 @@ https://ads.treevook.com/api/v1/business/oauth/callback
 ```
 
 Add each host as an authorised JavaScript origin too. The backend only uses an origin that appears in `APP_URL` or `WEB_ORIGINS`, so keep both lists in sync.
+
+## Meta OAuth redirect URIs
+
+In the Meta app (Arogya System), open Facebook Login for Business → Settings and add these valid OAuth redirect URIs:
+
+```
+https://treevook.com/api/v1/autopost/oauth/callback
+https://instagram.treevook.com/api/v1/autopost/oauth/callback
+https://facebook.treevook.com/api/v1/autopost/oauth/callback
+https://treevook.com/api/v1/meta/oauth/callback
+https://ads.treevook.com/api/v1/meta/oauth/callback
+```
+
+Add the `autopost` ones to Instagram Login as well. `/api/v1/meta/oauth/callback` is the Ads "Continue with Facebook" callback. In Facebook Login for Business → Configurations, create a configuration with the token type "System-user access token", the assets ad accounts, Pages, Instagram accounts and datasets (Pixels), and the Ads permissions from `backend/docs/07-meta-integration.md`, then put its ID in `META_ADS_LOGIN_CONFIG_ID`.
 
 ## Mock flags checklist
 

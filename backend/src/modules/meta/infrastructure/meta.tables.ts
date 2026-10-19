@@ -23,6 +23,11 @@ export const metaConnectionStatus = pgEnum("meta_connection_status", [
   "invalid",
 ]);
 
+export const metaConnectionMethod = pgEnum("meta_connection_method", [
+  "system_user_token",
+  "facebook_login",
+]);
+
 export const metaAssetKind = pgEnum("meta_asset_kind", [
   "business",
   "ad_account",
@@ -46,6 +51,7 @@ export const metaConnections = pgTable("meta_connections", {
     .notNull()
     .default(sql`'{}'::text[]`),
   status: metaConnectionStatus("status").notNull().default("active"),
+  method: metaConnectionMethod("method").notNull().default("system_user_token"),
   checkedAt: timestamp("checked_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -80,4 +86,6 @@ export const metaAssets = pgTable(
 
 export type MetaConnectionRow = typeof metaConnections.$inferSelect;
 export type MetaAssetRow = typeof metaAssets.$inferSelect;
+export type MetaConnectionMethod =
+  (typeof metaConnectionMethod.enumValues)[number];
 export type MetaAssetKind = (typeof metaAssetKind.enumValues)[number];

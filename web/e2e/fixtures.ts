@@ -28,3 +28,9 @@ export async function ensureMetaConnected(request: APIRequestContext) {
   const res = await request.post("/api/v1/meta/connection", { data: { token: VALID_TOKEN } });
   expect(res.ok(), `connect failed: ${res.status()} ${await res.text()}`).toBeTruthy();
 }
+
+export async function openTokenForm(page: Page) {
+  const toggle = page.getByRole("button", { name: "Advanced: connect with a system user token" });
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+}

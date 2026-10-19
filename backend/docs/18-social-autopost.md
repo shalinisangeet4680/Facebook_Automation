@@ -76,5 +76,5 @@ Write tools (changes allowed): `update_brand_kit` (two-step), `plan_social_week`
 1. Meta Business Verification for TreeVook LLP.
 2. App Review for advanced access to every scope above, with a screencast per permission; the privacy policy and data deletion URL are on treevook.com.
 3. Add an Instagram product (Instagram API with Instagram Login) to the Meta app.
-4. Add `https://<each web origin>/api/v1/autopost/oauth/callback` as a valid OAuth redirect URI in both Facebook Login for Business and Instagram Login.
+4. Add `https://<each web origin>/api/v1/autopost/oauth/callback` as a valid OAuth redirect URI in both Facebook Login for Business and Instagram Login. Meta Ads uses the same app, so also add `https://<each web origin>/api/v1/meta/oauth/callback` to Facebook Login for Business (see `07-meta-integration.md`).
 5. Set `META_APP_ID`, `META_APP_SECRET`, `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` and `META_MOCK=false`. Media URLs must be public https (`APP_URL`), because Meta downloads images and videos from them.

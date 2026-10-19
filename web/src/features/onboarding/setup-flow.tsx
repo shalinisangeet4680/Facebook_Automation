@@ -3,10 +3,12 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import {
+  keys,
   useMetaConnection,
   useOnboarding,
   usePlans,
@@ -18,6 +20,8 @@ import {
 } from "@/lib/api/queries";
 import type { Onboarding, OnboardingStep, Settings } from "@/lib/api/types";
 import { TrackingSummary } from "@/features/meta-ads/tracking";
+import { MetaConnectOptions } from "@/features/meta/facebook-connect";
+import { TokenForm } from "@/features/meta/token-form";
 import { MUTED, Pill } from "@/features/meta/ui";
 import {
   GoalStep as GoalPicker,
@@ -84,6 +88,11 @@ const stack: CSSProperties = { display: "flex", flexDirection: "column", gap: 16
 export function SetupFlow() {
   const onboarding = useOnboarding();
   const params = useSearchParams();
+  const toast = useToast();
+  const connected = params.get("connected");
+  useEffect(() => {
+    if (connected) toast("Meta is connected");
+  }, [connected, toast]);
   if (onboarding.isPending)
     return (
       <Frame>
@@ -369,12 +378,18 @@ function Steps({ items }: { items: string[] }) {
 
 function ConnectStep() {
   const connection = useMetaConnection();
+  const client = useQueryClient();
+  const params = useSearchParams();
+  const error = params.get("error");
   if (connection.isPending) return <Skel h={120} r={12} />;
   if (connection.data?.status === "active")
     return (
       <div style={stack}>
         <Done title="Meta is connected">
-          Connected as {connection.data.systemUser?.name ?? "your system user"}.
+          {connection.data.method === "facebook_login"
+            ? "Connected with Facebook"
+            : "Connected with a system user token"}{" "}
+          as {connection.data.systemUser?.name ?? "your system user"}.
         </Done>
         <Link
           href="/setup/connect-meta"
@@ -387,21 +402,37 @@ function ConnectStep() {
     );
   return (
     <div style={stack}>
-      {connection.data?.status === "invalid" ? (
+      {error ? (
+        <Banner tone="error" title="Facebook sign-in didn’t finish">
+          {error}
+        </Banner>
+      ) : connection.data?.status === "invalid" ? (
         <Banner tone="warn" title="Your Meta connection stopped working">
-          Replace the token to keep going.
+          Connect again to keep going.
         </Banner>
       ) : null}
-      <Steps
-        items={[
-          "Open Meta Business settings and create a system user. Our guide shows every click.",
-          "Give it your ad account, Facebook Page and Pixel.",
-          "Create a token and paste it here. It takes about five minutes.",
-        ]}
+      <MetaConnectOptions
+        bare
+        advanced={
+          <div style={stack}>
+            <Steps
+              items={[
+                "Open Meta Business settings and create a system user. Our guide shows every click.",
+                "Give it your ad account, Facebook Page and Pixel.",
+                "Create a token and paste it here. It takes about five minutes.",
+              ]}
+            />
+            <Link
+              href="/setup/connect-meta"
+              className="rp-btn-light"
+              style={{ alignSelf: "flex-start" }}
+            >
+              Open the step-by-step guide <ArrowRight size={14} />
+            </Link>
+            <TokenForm onConnected={(next) => client.setQueryData(keys.connection, next)} />
+          </div>
+        }
       />
-      <Link href="/setup/connect-meta" className="rp-btn" style={{ alignSelf: "flex-start" }}>
-        Connect Meta <ArrowRight size={14} />
-      </Link>
     </div>
   );
 }

@@ -162,6 +162,13 @@
       "when": 1792394087855,
       "tag": "0022_business_basics",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792395165857,
+      "tag": "0023_meta_connection_method",
+      "breakpoints": true
     }
   ]
 }

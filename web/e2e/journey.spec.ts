@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { JOURNEY_PHONES, NO_PERMS_TOKEN, VALID_TOKEN, signInWithGoogle } from "./fixtures";
+import {
+  JOURNEY_PHONES,
+  NO_PERMS_TOKEN,
+  VALID_TOKEN,
+  openTokenForm,
+  signInWithGoogle,
+} from "./fixtures";
 
 test("signs in, connects Meta, chooses accounts and signs out", async ({ page }, testInfo) => {
   const phone = JOURNEY_PHONES[testInfo.project.name]!;
@@ -25,8 +31,11 @@ test("signs in, connects Meta, chooses accounts and signs out", async ({ page },
   await test.step("explains missing permissions", async () => {
     await page.getByRole("link", { name: "Start" }).click();
     await expect(page).toHaveURL(/\/setup\/start\?step=connect_meta$/);
-    await page.getByRole("link", { name: "Connect Meta" }).click();
+    await expect(page.getByRole("button", { name: "Continue with Facebook" })).toBeVisible();
+    await openTokenForm(page);
+    await page.getByRole("link", { name: "Open the step-by-step guide" }).click();
     await expect(page).toHaveURL(/\/setup\/connect-meta$/);
+    await openTokenForm(page);
     await page.getByLabel("System user access token").fill(NO_PERMS_TOKEN);
     await page.getByRole("button", { name: "Connect and verify" }).click();
     await expect(page.getByText("Missing required: ads_management.")).toBeVisible();
