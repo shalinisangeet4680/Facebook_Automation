@@ -104,7 +104,7 @@ Build order. Everything works on `META_MOCK` first and is tested together before
   - Campaigns page with live status and drill-down.
 - [ ] 3. Tracking check: `GET /ads/tracking` (Pixel last fired, events in 24 h, which events), a card on Overview and a step in onboarding.
 - [ ] 4. Guided onboarding: business basics (website, what you sell, city), goal and budget (writes Settings), tracking check, first plan, review & launch; the remaining onboarding steps become real.
-- [ ] 5. "Continue with Facebook" for ads: Facebook Login for Business (system-user token configuration) through the existing **Arogya System** app (`1652483653208979`), configured separately from Autopost as `META_ADS_APP_ID` / `META_ADS_APP_SECRET` / `META_ADS_LOGIN_CONFIG_ID`. Keep the system user token as an advanced option.
+- [ ] 5. "Continue with Facebook" for ads: Facebook Login for Business (system-user token configuration) through the **Treevook AI** app (`1121235283729032`, same as Autopost, now in verification), using `META_APP_ID` / `META_APP_SECRET` plus `META_ADS_LOGIN_CONFIG_ID`. Keep the system user token as an advanced option.
 - [ ] 6. Lead form ads:
   - instant-form leads objective (form builder: questions, privacy URL, thank-you);
   - leads inbox synced from Meta;
@@ -115,4 +115,4 @@ Build order. Everything works on `META_MOCK` first and is tested together before
   - plan service, suggestions and rollback when Meta create fails;
   - REST e2e for plans and campaigns;
   - Playwright for the builder and the manager.
-- [ ] **You:** in the Arogya System app: rename its display name to "TreeVook Ads", connect it to the TreeVook LLP portfolio, create a Facebook Login for Business configuration (system-user token, ad permissions) and App Review for `ads_management`, `ads_read`, `leads_retrieval`, `pages_manage_ads`; set `ANTHROPIC_API_KEY` on the server.
+- [ ] **You:** in the Treevook AI app add the Marketing API use cases, create a Facebook Login for Business configuration (system-user token, ad permissions), and include `ads_management`, `ads_read`, `leads_retrieval` in App Review; set `ANTHROPIC_API_KEY` on the server.
