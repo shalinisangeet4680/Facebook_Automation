@@ -46,8 +46,14 @@ api.qualify.{$DOMAIN} {
 		Strict-Transport-Security "max-age=31536000"
 		-Server
 	}
-	reverse_proxy qualify-api:3100 {
+	reverse_proxy {
+		dynamic a {
+			name qualify-api
+			port 3100
+			refresh 5s
+		}
 		lb_policy least_conn
+		lb_retries 2
 		health_uri /health
 		health_interval 10s
 		fail_duration 30s
