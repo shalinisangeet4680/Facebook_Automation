@@ -42,6 +42,9 @@ main() {
   set_tag "$tag"
   docker compose run --rm api node dist/shared/database/migrate.js
   docker compose up -d --remove-orphans
+  if [ -n "$(git -C .. diff --name-only "$before" "$sha" -- deploy/Caddyfile deploy/Caddyfile.api)" ]; then
+    docker compose up -d --force-recreate --no-deps caddy
+  fi
 
   if ! healthy; then
     echo "Health check failed, rolling back to ${previous:-latest}"
