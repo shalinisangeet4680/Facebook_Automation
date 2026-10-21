@@ -40,3 +40,17 @@ api.{$DOMAIN} {
 		flush_interval -1
 	}
 }
+
+api.qualify.{$DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy qualify-api:3100 {
+		lb_policy least_conn
+		health_uri /health
+		health_interval 10s
+		fail_duration 30s
+		flush_interval -1
+	}
+}
