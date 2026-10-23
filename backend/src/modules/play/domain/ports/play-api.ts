@@ -7,6 +7,16 @@ export interface ServiceAccountKey {
   tokenUri: string;
 }
 
+export interface ManagedAccount {
+  clientEmail: string;
+  projectId: string;
+}
+
+export type PlayCredentials = ServiceAccountKey | ManagedAccount;
+
+export const isKey = (c: PlayCredentials): c is ServiceAccountKey =>
+  "privateKey" in c;
+
 export interface PlayReviewData {
   reviewId: string;
   authorName: string;
@@ -62,28 +72,33 @@ export interface AppListing {
 }
 
 export interface PlayApi {
+  createAccount(
+    accountId: string,
+    displayName: string,
+  ): Promise<ManagedAccount>;
+  deleteAccount(account: ManagedAccount): Promise<void>;
   listReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     bucket: string,
     prefix: string,
   ): Promise<ReportFile[]>;
   downloadReport(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     bucket: string,
     name: string,
   ): Promise<Buffer>;
-  listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]>;
-  verifyKey(key: ServiceAccountKey): Promise<void>;
+  listApps(key: PlayCredentials): Promise<DiscoveredApp[]>;
+  verifyKey(key: PlayCredentials): Promise<void>;
   listReviews(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     options: { translationLanguage?: string },
   ): Promise<PlayReviewData[]>;
   reply(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     reviewId: string,
     text: string,
   ): Promise<{ text: string; lastModified: Date }>;
-  listing(key: ServiceAccountKey, packageName: string): Promise<AppListing>;
+  listing(key: PlayCredentials, packageName: string): Promise<AppListing>;
 }

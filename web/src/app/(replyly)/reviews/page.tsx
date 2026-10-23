@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { DashboardPage } from "@/features/replyly/dashboard-page";
+import { ReviewsHome } from "@/features/replyly/home-page";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default function Page() {
-  return <DashboardPage />;
+  return (
+    <Suspense>
+      <ReviewsHome />
+    </Suspense>
+  );
 }

@@ -1,6 +1,6 @@
 import {
   PlayApiError,
-  ServiceAccountKey,
+  PlayCredentials,
 } from "@modules/play/domain/ports/play-api";
 
 import {
@@ -25,7 +25,7 @@ const ZONE = "America/Los_Angeles";
 type Fetch = typeof fetch;
 
 export interface TokenSource {
-  token(key: ServiceAccountKey, scope: string): Promise<string>;
+  token(key: PlayCredentials, scope: string): Promise<string>;
 }
 
 interface ApiRelease {
@@ -137,7 +137,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   ) {}
 
   private async request<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     url: string,
     scope: string,
@@ -203,7 +203,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   private publisher<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     path: string,
     init?: { method?: string; body?: unknown },
@@ -218,7 +218,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   private reporting<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     path: string,
     init?: { method?: string; body?: unknown },
@@ -235,7 +235,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   private readonly editQueues = new Map<string, Promise<unknown>>();
 
   private withEdit<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     fn: (editId: string) => Promise<T>,
     commit: boolean,
@@ -255,7 +255,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   private async openEdit<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     fn: (editId: string) => Promise<T>,
     commit: boolean,
@@ -286,7 +286,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
     }
   }
 
-  listTracks(key: ServiceAccountKey, packageName: string) {
+  listTracks(key: PlayCredentials, packageName: string) {
     return this.withEdit(
       key,
       packageName,
@@ -305,7 +305,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
     );
   }
 
-  listingLanguages(key: ServiceAccountKey, packageName: string) {
+  listingLanguages(key: PlayCredentials, packageName: string) {
     return this.withEdit(
       key,
       packageName,
@@ -321,7 +321,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
     );
   }
 
-  updateTrack(key: ServiceAccountKey, packageName: string, track: TrackData) {
+  updateTrack(key: PlayCredentials, packageName: string, track: TrackData) {
     return this.withEdit(
       key,
       packageName,
@@ -351,7 +351,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   async vitals(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     metric: "crash" | "anr",
     days: number,
@@ -429,7 +429,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   async errorIssues(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     type: IssueType | null,
   ): Promise<ErrorIssueData[]> {
@@ -469,7 +469,7 @@ export class GooglePlayReleasesClient implements PlayReleasesApi {
   }
 
   async errorReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     id: string,
   ): Promise<ErrorReportData[]> {

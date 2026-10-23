@@ -66,6 +66,7 @@ import {
   PlayInsightsDto,
   PlayAppDetailDto,
   PlayAppListDto,
+  PlayConnectionDto,
   PlayConnectionListDto,
   PlayReviewDto,
   PlayReviewListDto,
@@ -227,6 +228,13 @@ export class PlayController {
     @Body() body: ConnectPlayDto,
   ): Promise<ConnectResultDto> {
     return this.play.connect(actor(ctx), body.key);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
+  @Post("connections/managed")
+  @HttpCode(HttpStatus.OK)
+  managed(@CurrentUser() ctx: TenantContext): Promise<PlayConnectionDto> {
+    return this.play.managedAccount(actor(ctx));
   }
 
   @Throttle({ default: { limit: 30, ttl: 3_600_000 } })

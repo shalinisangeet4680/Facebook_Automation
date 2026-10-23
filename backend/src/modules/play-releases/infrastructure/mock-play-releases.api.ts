@@ -1,6 +1,6 @@
 import {
   PlayApiError,
-  ServiceAccountKey,
+  PlayCredentials,
 } from "@modules/play/domain/ports/play-api";
 
 import {
@@ -181,7 +181,7 @@ const DEVICES = [
 ] as const;
 
 export class MockPlayReleasesApi implements PlayReleasesApi {
-  private check(key: ServiceAccountKey, packageName: string) {
+  private check(key: PlayCredentials, packageName: string) {
     if (
       key.clientEmail.startsWith("noaccess") ||
       packageName.endsWith(".denied")
@@ -192,7 +192,7 @@ export class MockPlayReleasesApi implements PlayReleasesApi {
       );
   }
 
-  private checkVitals(key: ServiceAccountKey, packageName: string) {
+  private checkVitals(key: PlayCredentials, packageName: string) {
     this.check(key, packageName);
     if (key.clientEmail.startsWith("novitals"))
       throw new PlayApiError(
@@ -201,18 +201,18 @@ export class MockPlayReleasesApi implements PlayReleasesApi {
       );
   }
 
-  async listTracks(key: ServiceAccountKey, packageName: string) {
+  async listTracks(key: PlayCredentials, packageName: string) {
     this.check(key, packageName);
     return copy(appTracks(packageName));
   }
 
-  async listingLanguages(key: ServiceAccountKey, packageName: string) {
+  async listingLanguages(key: PlayCredentials, packageName: string) {
     this.check(key, packageName);
     return ["en-US", "hi-IN", "es-419", "pt-BR"];
   }
 
   async updateTrack(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     track: TrackData,
   ) {
@@ -245,7 +245,7 @@ export class MockPlayReleasesApi implements PlayReleasesApi {
   }
 
   async vitals(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     metric: "crash" | "anr",
     days: number,
@@ -269,7 +269,7 @@ export class MockPlayReleasesApi implements PlayReleasesApi {
   }
 
   async errorIssues(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     type: IssueType | null,
   ): Promise<ErrorIssueData[]> {
@@ -283,7 +283,7 @@ export class MockPlayReleasesApi implements PlayReleasesApi {
   }
 
   async errorReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     issueId: string,
   ): Promise<ErrorReportData[]> {

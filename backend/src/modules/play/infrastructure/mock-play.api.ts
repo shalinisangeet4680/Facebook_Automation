@@ -1,10 +1,11 @@
 import {
   DiscoveredApp,
+  ManagedAccount,
   PlayApi,
+  PlayCredentials,
   PlayApiError,
   PlayReviewData,
   ReportFile,
-  ServiceAccountKey,
 } from "../domain/ports/play-api";
 
 const HOUR = 3_600_000;
@@ -207,7 +208,7 @@ const monthOf = (monthsAgo: number) => {
 
 export class MockPlayApi implements PlayApi {
   async listReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     bucket: string,
     prefix: string,
   ): Promise<ReportFile[]> {
@@ -225,7 +226,7 @@ export class MockPlayApi implements PlayApi {
   }
 
   async downloadReport(
-    _key: ServiceAccountKey,
+    _key: PlayCredentials,
     _bucket: string,
     name: string,
   ): Promise<Buffer> {
@@ -235,7 +236,16 @@ export class MockPlayApi implements PlayApi {
     return mockReport(packageName, months);
   }
 
-  async verifyKey(key: ServiceAccountKey): Promise<void> {
+  async createAccount(accountId: string): Promise<ManagedAccount> {
+    return {
+      clientEmail: `${accountId}@treevook-mock.iam.gserviceaccount.com`,
+      projectId: "treevook-mock",
+    };
+  }
+
+  async deleteAccount(): Promise<void> {}
+
+  async verifyKey(key: PlayCredentials): Promise<void> {
     if (key.clientEmail.startsWith("revoked"))
       throw new PlayApiError(
         "auth",
@@ -243,7 +253,7 @@ export class MockPlayApi implements PlayApi {
       );
   }
 
-  private check(key: ServiceAccountKey, packageName: string) {
+  private check(key: PlayCredentials, packageName: string) {
     if (
       key.clientEmail.startsWith("noaccess") ||
       packageName.endsWith(".denied")
@@ -259,7 +269,7 @@ export class MockPlayApi implements PlayApi {
       );
   }
 
-  async listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]> {
+  async listApps(key: PlayCredentials): Promise<DiscoveredApp[]> {
     if (key.clientEmail.startsWith("noreporting"))
       throw new PlayApiError(
         "disabled",
@@ -275,7 +285,7 @@ export class MockPlayApi implements PlayApi {
   }
 
   async listReviews(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
   ): Promise<PlayReviewData[]> {
     this.check(key, packageName);
@@ -286,7 +296,7 @@ export class MockPlayApi implements PlayApi {
   }
 
   async reply(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     reviewId: string,
     text: string,
@@ -301,7 +311,7 @@ export class MockPlayApi implements PlayApi {
     return stored.reply;
   }
 
-  async listing(key: ServiceAccountKey, packageName: string) {
+  async listing(key: PlayCredentials, packageName: string) {
     this.check(key, packageName);
     return {
       title: titleOf(packageName),

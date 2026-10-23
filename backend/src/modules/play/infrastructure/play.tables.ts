@@ -34,6 +34,10 @@ export const playConnectionStatus = pgEnum("play_connection_status", [
   "active",
   "error",
 ]);
+export const playConnectionKind = pgEnum("play_connection_kind", [
+  "key",
+  "managed",
+]);
 export const playTemplateCategory = pgEnum(
   "play_template_category",
   TEMPLATE_CATEGORIES,
@@ -54,7 +58,8 @@ export const playConnections = pgTable(
     workspaceId: workspaceId(),
     clientEmail: text("client_email").notNull(),
     projectId: text("project_id").notNull(),
-    keyCiphertext: text("key_ciphertext").notNull(),
+    kind: playConnectionKind("kind").notNull().default("key"),
+    keyCiphertext: text("key_ciphertext"),
     status: playConnectionStatus("status").notNull().default("active"),
     error: text("error"),
     checkedAt: timestamp("checked_at", { withTimezone: true }),

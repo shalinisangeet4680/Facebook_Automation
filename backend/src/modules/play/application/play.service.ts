@@ -6,7 +6,7 @@ import { AppConfig, appUrl } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
-import { PlayApiError, ServiceAccountKey } from "../domain/ports/play-api";
+import { PlayApiError, PlayCredentials } from "../domain/ports/play-api";
 import {
   ACTIVE_REPLY_STATUSES,
   ReplySettings,
@@ -236,6 +236,7 @@ export class PlayService {
     return {
       data: rows.map((c) => ({
         id: c.id,
+        kind: c.kind,
         clientEmail: c.clientEmail,
         projectId: c.projectId,
         status: c.status,
@@ -317,10 +318,56 @@ export class PlayService {
     });
     return {
       id: row.id,
+      kind: row.kind,
       clientEmail: row.clientEmail,
       projectId: row.projectId,
       status: row.status,
       discovery: { ...discovery, errorKind: undefined },
+    };
+  }
+
+  async managedAccount(actor: PlayActor) {
+    const existing = (await this.repo.connections(actor.workspaceId)).find(
+      (c) => c.kind === "managed",
+    );
+    const row =
+      existing ??
+      (await (async () => {
+        let account;
+        try {
+          account = await this.engine.api.createAccount(
+            `tv-${actor.workspaceId.replace(/-/g, "").slice(0, 24)}`,
+            `TreeVook ${actor.workspaceId}`,
+          );
+        } catch (err) {
+          throw new ValidationError(
+            err instanceof PlayApiError
+              ? err.message
+              : "TreeVook couldn't create your service account. Try again.",
+          );
+        }
+        const created = await this.repo.insertManagedConnection({
+          workspaceId: actor.workspaceId,
+          kind: "managed",
+          clientEmail: account.clientEmail,
+          projectId: account.projectId,
+          createdBy: actor.userId,
+        });
+        await this.record(actor, "play.managed_account_created", created.id, {
+          clientEmail: created.clientEmail,
+        });
+        return created;
+      })());
+    const apps = (await this.repo.apps(actor.workspaceId)).filter(
+      (a) => a.connectionId === row.id,
+    );
+    return {
+      id: row.id,
+      kind: row.kind,
+      clientEmail: row.clientEmail,
+      projectId: row.projectId,
+      status: row.status,
+      apps: apps.length,
     };
   }
 
@@ -329,6 +376,13 @@ export class PlayService {
     if (!row)
       throw new NotFoundError("This Google Play connection doesn't exist.");
     await this.repo.deleteConnection(id);
+    if (row.kind === "managed")
+      await this.engine.api
+        .deleteAccount({
+          clientEmail: row.clientEmail,
+          projectId: row.projectId,
+        })
+        .catch(() => undefined);
     await this.record(actor, "play.disconnected", id, {
       clientEmail: row.clientEmail,
     });
@@ -486,9 +540,7 @@ export class PlayService {
         );
       try {
         await this.engine.api.listReports(
-          JSON.parse(
-            this.crypto.decrypt(connection.keyCiphertext),
-          ) as ServiceAccountKey,
+          this.engine.credentialsOf(connection),
           bucket,
           "reviews/reviews_",
         );
@@ -525,9 +577,7 @@ export class PlayService {
       throw new ValidationError(
         "Add your Play Console reports URI first (gs://pubsite_prod_…/reviews/).",
       );
-    const key = JSON.parse(
-      this.crypto.decrypt(connection.keyCiphertext),
-    ) as ServiceAccountKey;
+    const key = this.engine.credentialsOf(connection);
     const result = {
       files: 0,
       changed: 0,
@@ -803,9 +853,7 @@ export class PlayService {
         );
       return restored;
     }
-    const key = JSON.parse(
-      this.crypto.decrypt(connection.keyCiphertext),
-    ) as ServiceAccountKey;
+    const key = this.engine.credentialsOf(connection);
     let app: PlayAppRow;
     try {
       app = await this.createApp(
@@ -820,6 +868,7 @@ export class PlayService {
         err instanceof PlayApiError
           ? err.message
           : "The app couldn't be reached.",
+        err instanceof PlayApiError ? { code: err.kind } : undefined,
       );
     }
     const sync = await this.engine.sync(app).catch(() => null);
@@ -830,7 +879,7 @@ export class PlayService {
   private async createApp(
     actor: PlayActor,
     connectionId: string,
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     title?: string | null,
   ): Promise<PlayAppRow> {
@@ -879,9 +928,7 @@ export class PlayService {
     );
     if (!connection)
       throw new NotFoundError("This Google Play connection doesn't exist.");
-    const key = JSON.parse(
-      this.crypto.decrypt(connection.keyCiphertext),
-    ) as ServiceAccountKey;
+    const key = this.engine.credentialsOf(connection);
     const result = {
       found: 0,
       added: [] as { id: string; packageName: string; title: string }[],

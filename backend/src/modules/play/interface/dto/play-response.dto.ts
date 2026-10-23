@@ -15,6 +15,8 @@ import { REVIEW_STATES } from "../../application/play.service";
 
 export class PlayConnectionDto {
   id: string;
+  @ApiProperty({ enum: ["key", "managed"] })
+  kind: "key" | "managed";
   clientEmail: string;
   projectId: string;
   status: "active" | "error";

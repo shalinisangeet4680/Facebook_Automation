@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError, errorMessage } from "@/lib/api/errors";
 import { useAddPlayApp, useConnectPlay } from "@/lib/api/queries";
 
+import { ManagedConnect } from "./managed-connect";
 import { useConnected } from "./shell";
 import { Select } from "./select";
 import { StateArt, type ArtKind } from "./state-art";
@@ -73,9 +74,15 @@ function readEmail(text: string) {
 }
 
 export function ConnectPage() {
+  const params = useSearchParams();
+  return params.get("method") === "key" ? <KeyConnect /> : <ManagedConnect />;
+}
+
+function KeyConnect() {
   const router = useRouter();
   const toast = useToast();
   const { connected, connections } = useConnected();
+  const ownKey = connections.some((c) => c.kind === "key");
   const connect = useConnectPlay();
   const [step, setStep] = useState(0);
   const [file, setFile] = useState<{ name: string; text: string; email: string | null } | null>(
@@ -88,7 +95,7 @@ export function ConnectPage() {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const [sawConnected, setSawConnected] = useState(false);
-  if (connected && !sawConnected) {
+  if (ownKey && !sawConnected) {
     setSawConnected(true);
     if (step === 0) setStep(1);
   }
@@ -188,12 +195,19 @@ export function ConnectPage() {
 
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      <Link
+        href="/reviews/connect"
+        className="rp-btn-quiet"
+        style={{ alignSelf: "flex-start", textDecoration: "none" }}
+      >
+        ← Use TreeVook&apos;s service account instead
+      </Link>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 620 }}>
         <span
           className="rp-mono"
           style={{ fontSize: 11.5, color: "#6C6962", letterSpacing: ".04em" }}
         >
-          SETUP · ABOUT 5 MINUTES
+          OWN SERVICE ACCOUNT · ABOUT 5 MINUTES
         </span>
         <h1
           className="rp-serif"

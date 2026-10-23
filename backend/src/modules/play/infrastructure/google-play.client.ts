@@ -3,7 +3,10 @@ import { createSign } from "crypto";
 
 import {
   DiscoveredApp,
+  isKey,
+  ManagedAccount,
   PlayApi,
+  PlayCredentials,
   PlayApiError,
   PlayReviewData,
   ReportFile,
@@ -19,6 +22,10 @@ const REPORTING = "https://playdeveloperreporting.googleapis.com/v1beta1";
 const MAX_PAGES = 20;
 const STORAGE_SCOPE = "https://www.googleapis.com/auth/devstorage.read_only";
 const STORAGE = "https://storage.googleapis.com/storage/v1/b";
+const CLOUD_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+const IAM = "https://iam.googleapis.com/v1/projects";
+const IAM_CREDENTIALS =
+  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts";
 
 type Fetch = typeof fetch;
 
@@ -96,12 +103,16 @@ export class GooglePlayClient implements PlayApi {
     { token: string; expires: number }
   >();
 
-  constructor(private readonly http: Fetch = fetch) {}
+  constructor(
+    private readonly http: Fetch = fetch,
+    private readonly platform: ServiceAccountKey | null = null,
+  ) {}
 
-  async token(key: ServiceAccountKey, scope = SCOPE): Promise<string> {
+  async token(key: PlayCredentials, scope = SCOPE): Promise<string> {
     const cacheKey = `${key.clientEmail} ${scope}`;
     const cached = this.tokens.get(cacheKey);
     if (cached && cached.expires > Date.now() + 60_000) return cached.token;
+    if (!isKey(key)) return this.impersonate(key, scope, cacheKey);
     const now = Math.floor(Date.now() / 1000);
     const unsigned = `${b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }))}.${b64url(
       JSON.stringify({
@@ -153,8 +164,131 @@ export class GooglePlayClient implements PlayApi {
     return body.access_token;
   }
 
+  private platformKey(): ServiceAccountKey {
+    if (!this.platform)
+      throw new PlayApiError(
+        "unavailable",
+        "TreeVook-managed Google Play access isn't set up on this server yet.",
+      );
+    return this.platform;
+  }
+
+  private async impersonate(
+    account: ManagedAccount,
+    scope: string,
+    cacheKey: string,
+  ): Promise<string> {
+    const platform = await this.token(this.platformKey(), CLOUD_SCOPE);
+    const res = await this.http(
+      `${IAM_CREDENTIALS}/${encodeURIComponent(account.clientEmail)}:generateAccessToken`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${platform}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ scope: [scope], lifetime: "3600s" }),
+      },
+    ).catch(() => {
+      throw new PlayApiError(
+        "unavailable",
+        "Google couldn't be reached. Try again.",
+      );
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      accessToken?: string;
+      expireTime?: string;
+      error?: { message?: string };
+    };
+    if (!res.ok || !body.accessToken) {
+      if (res.status >= 500)
+        throw new PlayApiError(
+          "unavailable",
+          `Google had a problem: ${body.error?.message ?? `HTTP ${res.status}`}`,
+        );
+      throw new PlayApiError(
+        "auth",
+        `TreeVook's service account ${account.clientEmail} couldn't sign in to Google. Reconnect Google Play to get a new one.`,
+      );
+    }
+    const expires = body.expireTime
+      ? new Date(body.expireTime).getTime()
+      : Date.now() + 3_600_000;
+    this.tokens.set(cacheKey, { token: body.accessToken, expires });
+    return body.accessToken;
+  }
+
+  private async iam(method: string, url: string, body?: unknown) {
+    const token = await this.token(this.platformKey(), CLOUD_SCOPE);
+    const res = await this.http(url, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...(body ? { "content-type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    }).catch(() => {
+      throw new PlayApiError(
+        "unavailable",
+        "Google Cloud couldn't be reached. Try again.",
+      );
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      email?: string;
+      error?: { message?: string };
+    };
+    return { status: res.status, ok: res.ok, json };
+  }
+
+  async createAccount(
+    accountId: string,
+    displayName: string,
+  ): Promise<ManagedAccount> {
+    const projectId = this.platformKey().projectId;
+    const res = await this.iam(
+      "POST",
+      `${IAM}/${encodeURIComponent(projectId)}/serviceAccounts`,
+      {
+        accountId,
+        serviceAccount: {
+          displayName: displayName.slice(0, 100),
+          description: "TreeVook Play Reviews access for one workspace",
+        },
+      },
+    );
+    if (res.ok && res.json.email)
+      return { clientEmail: res.json.email, projectId };
+    if (res.status === 409)
+      return {
+        clientEmail: `${accountId}@${projectId}.iam.gserviceaccount.com`,
+        projectId,
+      };
+    throw new PlayApiError(
+      res.status === 429
+        ? "quota"
+        : res.status >= 500
+          ? "unavailable"
+          : "invalid",
+      `TreeVook couldn't create your service account: ${res.json.error?.message ?? `HTTP ${res.status}`}`,
+    );
+  }
+
+  async deleteAccount(account: ManagedAccount): Promise<void> {
+    const res = await this.iam(
+      "DELETE",
+      `${IAM}/${encodeURIComponent(account.projectId)}/serviceAccounts/${encodeURIComponent(account.clientEmail)}`,
+    );
+    if (!res.ok && res.status !== 404)
+      throw new PlayApiError(
+        res.status >= 500 ? "unavailable" : "invalid",
+        res.json.error?.message ?? `HTTP ${res.status}`,
+      );
+    for (const k of this.tokens.keys())
+      if (k.startsWith(`${account.clientEmail} `)) this.tokens.delete(k);
+  }
+
   private async call<T>(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     path: string,
     init: { method?: string; body?: unknown } = {},
@@ -209,7 +343,7 @@ export class GooglePlayClient implements PlayApi {
     throw new PlayApiError("invalid", detail);
   }
 
-  private async storage(key: ServiceAccountKey, bucket: string, url: string) {
+  private async storage(key: PlayCredentials, bucket: string, url: string) {
     const token = await this.token(key, STORAGE_SCOPE);
     const res = await this.http(url, {
       headers: { authorization: `Bearer ${token}` },
@@ -246,7 +380,7 @@ export class GooglePlayClient implements PlayApi {
   }
 
   async listReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     bucket: string,
     prefix: string,
   ): Promise<ReportFile[]> {
@@ -281,7 +415,7 @@ export class GooglePlayClient implements PlayApi {
   }
 
   async downloadReport(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     bucket: string,
     name: string,
   ): Promise<Buffer> {
@@ -293,12 +427,12 @@ export class GooglePlayClient implements PlayApi {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  async verifyKey(key: ServiceAccountKey): Promise<void> {
+  async verifyKey(key: PlayCredentials): Promise<void> {
     this.tokens.delete(`${key.clientEmail} ${SCOPE}`);
     await this.token(key);
   }
 
-  async listApps(key: ServiceAccountKey): Promise<DiscoveredApp[]> {
+  async listApps(key: PlayCredentials): Promise<DiscoveredApp[]> {
     const token = await this.token(key, REPORTING_SCOPE);
     const apps: DiscoveredApp[] = [];
     let page: string | undefined;
@@ -356,7 +490,7 @@ export class GooglePlayClient implements PlayApi {
   }
 
   async listReviews(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     options: { translationLanguage?: string },
   ): Promise<PlayReviewData[]> {
@@ -382,7 +516,7 @@ export class GooglePlayClient implements PlayApi {
   }
 
   async reply(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     reviewId: string,
     text: string,
@@ -401,7 +535,7 @@ export class GooglePlayClient implements PlayApi {
     };
   }
 
-  async listing(key: ServiceAccountKey, packageName: string) {
+  async listing(key: PlayCredentials, packageName: string) {
     let editId: string | undefined;
     try {
       const edit = await this.call<{ id?: string }>(

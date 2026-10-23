@@ -872,4 +872,57 @@ describe("Play review replies", () => {
     )[0]!;
     expect(row.firstSyncedAt).toBeTruthy();
   });
+
+  it("gives each workspace its own TreeVook service account to invite", async () => {
+    const first = await api("POST", "/connections/managed", {}, other);
+    expect(first.statusCode).toBe(200);
+    expect(first.body).toMatchObject({ kind: "managed", apps: 0 });
+    expect(first.body.clientEmail).toMatch(
+      /^tv-[0-9a-f]{24}@treevook-mock\.iam\.gserviceaccount\.com$/,
+    );
+    const again = await api("POST", "/connections/managed", {}, other);
+    expect(again.body.id).toBe(first.body.id);
+    const mine = await api("POST", "/connections/managed", {});
+    expect(mine.body.clientEmail).not.toBe(first.body.clientEmail);
+
+    const denied = await api(
+      "POST",
+      "/apps",
+      { connectionId: first.body.id, packageName: "com.other.denied" },
+      other,
+    );
+    expect(denied.statusCode).toBe(400);
+    expect(denied.body.details).toMatchObject({ code: "access" });
+    expect(denied.body.message).toContain(first.body.clientEmail);
+
+    const added = await api(
+      "POST",
+      "/apps",
+      {
+        connectionId: first.body.id,
+        packageName: "com.other.notes",
+        title: "Other Notes",
+      },
+      other,
+    );
+    expect(added.statusCode).toBe(201);
+    expect(added.body).toMatchObject({
+      title: "Other Notes",
+      connectionEmail: first.body.clientEmail,
+    });
+    const list = await api("GET", "/connections", undefined, other);
+    expect(list.body.data).toEqual([
+      expect.objectContaining({ id: first.body.id, kind: "managed", apps: 1 }),
+    ]);
+
+    expect(
+      (await api("DELETE", `/apps/${added.body.id}`, undefined, other))
+        .statusCode,
+    ).toBe(204);
+    expect(
+      (await api("DELETE", `/connections/${first.body.id}`, undefined, other))
+        .statusCode,
+    ).toBe(204);
+    await api("DELETE", `/connections/${mine.body.id}`);
+  });
 });

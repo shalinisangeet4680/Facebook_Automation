@@ -1,4 +1,4 @@
-import { ServiceAccountKey } from "@modules/play/domain/ports/play-api";
+import { PlayCredentials } from "@modules/play/domain/ports/play-api";
 
 export const PLAY_RELEASES_API = Symbol("PLAY_RELEASES_API");
 
@@ -61,29 +61,29 @@ export interface ErrorReportData {
 }
 
 export interface PlayReleasesApi {
-  listTracks(key: ServiceAccountKey, packageName: string): Promise<TrackData[]>;
+  listTracks(key: PlayCredentials, packageName: string): Promise<TrackData[]>;
   listingLanguages(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
   ): Promise<string[]>;
   updateTrack(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     track: TrackData,
   ): Promise<TrackData>;
   vitals(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     metric: "crash" | "anr",
     days: number,
   ): Promise<VitalsRow[]>;
   errorIssues(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     type: IssueType | null,
   ): Promise<ErrorIssueData[]>;
   errorReports(
-    key: ServiceAccountKey,
+    key: PlayCredentials,
     packageName: string,
     issueId: string,
   ): Promise<ErrorReportData[]>;

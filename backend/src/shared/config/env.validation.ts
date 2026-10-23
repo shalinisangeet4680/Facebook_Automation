@@ -54,6 +54,14 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+  PLAY_PLATFORM_SA_KEY: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined),
+  PLAY_GCP_PROJECT_ID: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined),
   GBP_MOCK: z
     .string()
     .default("false")

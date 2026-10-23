@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { DropdownMenu } from "radix-ui";
 import { Suspense, type ComponentType, type ReactNode } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/api/queries";
 
 import { APP_COLORS } from "./tokens";
-import { ToastProvider, cx, useToast } from "./ui";
+import { Spinner, ToastProvider, cx, useToast } from "./ui";
 
 const NAV = [
   ["dashboard", "Dashboard", "/reviews"],
@@ -168,10 +169,22 @@ function Footer() {
   );
 }
 
-function AccountLinks({ mobile }: { mobile?: boolean }) {
+function useSignOutNow() {
   const router = useRouter();
   const signOut = useSignOut();
   const toast = useToast();
+  return {
+    pending: signOut.isPending,
+    run: () =>
+      signOut.mutate(undefined, {
+        onSuccess: () => router.replace("/login"),
+        onError: (err) => toast(errorMessage(err)),
+      }),
+  };
+}
+
+function AccountLinks({ mobile }: { mobile?: boolean }) {
+  const signOut = useSignOutNow();
   const pathname = usePathname();
   return (
     <div style={mobile ? { display: "flex", gap: 4 } : { display: "flex", gap: 2, marginTop: -22 }}>
@@ -187,16 +200,133 @@ function AccountLinks({ mobile }: { mobile?: boolean }) {
         type="button"
         className="rp-nav rp-nav-small"
         style={mobile ? { flexShrink: 0 } : undefined}
-        disabled={signOut.isPending}
-        onClick={() =>
-          signOut.mutate(undefined, {
-            onSuccess: () => router.replace("/login"),
-            onError: (err) => toast(errorMessage(err)),
-          })
-        }
+        disabled={signOut.pending}
+        onClick={signOut.run}
       >
         Sign out
       </button>
+    </div>
+  );
+}
+
+const MENU = [
+  ["Templates", "/reviews/templates"],
+  ["Releases", "/reviews/releases"],
+  ["Health", "/reviews/health"],
+  ["Store listing", "/store"],
+  ["MCP", "/reviews/mcp"],
+  ["Settings", "/settings"],
+  ["All TreeVook products", "/home"],
+] as const;
+
+function TopMenu({ setup }: { setup: boolean }) {
+  const signOut = useSignOutNow();
+  if (setup)
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <Link href="/home" className="rp-nav rp-nav-small">
+          All products
+        </Link>
+        <button
+          type="button"
+          className="rp-nav rp-nav-small"
+          disabled={signOut.pending}
+          onClick={signOut.run}
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <Link href="/reviews/connect" className="rp-btn-light">
+        Add another app
+      </Link>
+      <DropdownMenu.Root modal={false}>
+        <DropdownMenu.Trigger className="rp-dd" aria-label="Menu">
+          <span>Menu</span>
+          <span className="rp-dd-chev" aria-hidden>
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path
+                d="M2 3.5 5 6.5 8 3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content
+          className="rp-dd-menu"
+          align="end"
+          sideOffset={6}
+          style={{ minWidth: 200, padding: 4 }}
+        >
+          {MENU.map(([label, href]) => (
+            <DropdownMenu.Item key={href} asChild className="rp-dd-item">
+              <Link href={href} style={{ color: "inherit", textDecoration: "none" }}>
+                {label}
+              </Link>
+            </DropdownMenu.Item>
+          ))}
+          <DropdownMenu.Separator style={{ height: 1, background: "#EFEDE8", margin: 4 }} />
+          <DropdownMenu.Item
+            className="rp-dd-item"
+            disabled={signOut.pending}
+            onSelect={signOut.run}
+          >
+            Sign out
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
+    </div>
+  );
+}
+
+function BareShell({
+  children,
+  fontClass,
+  setup,
+  ready,
+}: {
+  children: ReactNode;
+  fontClass: string;
+  setup: boolean;
+  ready: boolean;
+}) {
+  return (
+    <div className={`rp rp-bare ${fontClass}`}>
+      <ToastProvider>
+        <header className="rp-topbar">
+          <Link
+            href="/reviews"
+            aria-label="Play Reviews home"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
+            <Logo product="Play Reviews" />
+          </Link>
+          <Suspense>
+            <TopMenu setup={setup} />
+          </Suspense>
+        </header>
+        <main className="rp-main">
+          <div className="rp-wrap">
+            {ready ? (
+              children
+            ) : (
+              <div
+                role="status"
+                aria-label="Loading"
+                style={{ display: "flex", justifyContent: "center", padding: "96px 0" }}
+              >
+                <Spinner size={18} dark />
+              </div>
+            )}
+          </div>
+        </main>
+      </ToastProvider>
     </div>
   );
 }
@@ -253,10 +383,26 @@ export function ProductShell({
   );
 }
 
-export function ReplylyShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
+export function SetupShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
   return (
-    <ProductShell fontClass={fontClass} product="Play Reviews" Nav={NavLinks} Footer={Footer}>
+    <BareShell fontClass={fontClass} setup ready>
       {children}
-    </ProductShell>
+    </BareShell>
+  );
+}
+
+export function ReplylyShell({ children, fontClass }: { children: ReactNode; fontClass: string }) {
+  const apps = usePlayApps();
+  const count = apps.data?.data.length;
+  if (apps.isError || (count ?? 0) >= 2)
+    return (
+      <ProductShell fontClass={fontClass} product="Play Reviews" Nav={NavLinks} Footer={Footer}>
+        {children}
+      </ProductShell>
+    );
+  return (
+    <BareShell fontClass={fontClass} setup={false} ready={count !== undefined}>
+      {children}
+    </BareShell>
   );
 }

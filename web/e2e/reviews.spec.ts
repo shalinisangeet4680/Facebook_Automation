@@ -42,15 +42,54 @@ const toast = (page: Page, text: string | RegExp) =>
 
 test.describe.configure({ mode: "serial" });
 
-test("connects Google Play step by step and explains a bad key", async ({ page }, info) => {
+test("sets up Google Play with TreeVook's service account and opens the app", async ({
+  page,
+}, info) => {
   await reset(page);
   await page.goto("/reviews");
   await expect(page).toHaveURL(/\/reviews\/connect$/);
   await expect(page.getByRole("heading", { name: /Connect Google Play/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Templates" })).toHaveAttribute(
-    "aria-disabled",
-    "true",
+  await expect(page.locator(".rp-aside")).toHaveCount(0);
+  const email = page.getByTestId("managed-email").first();
+  await expect(email).toHaveText(/^tv-[0-9a-f]{24}@treevook-mock\.iam\.gserviceaccount\.com$/);
+  await audit(page);
+
+  await page.getByRole("button", { name: "Next: give it access" }).click();
+  await expect(page.getByRole("heading", { name: "Invite it in Play Console" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Play Console ↗" })).toBeVisible();
+  await page.getByRole("button", { name: "I've sent the invite" }).click();
+
+  await page.getByRole("textbox", { name: "App name" }).fill("Pulse Notes");
+  await page.getByRole("textbox", { name: "Package name" }).fill("com.pulse.denied");
+  await page.getByRole("button", { name: "Add app" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    "TreeVook can't see this app yet",
   );
+  await audit(page);
+
+  await page.getByRole("textbox", { name: "Package name" }).fill("com.pulse.notes");
+  await page.getByRole("button", { name: "Add app" }).click();
+  await expect(page).toHaveURL(/\/reviews\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Pulse Notes" })).toBeVisible();
+  await expect(page.locator(".rp-aside")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "← All apps" })).toHaveCount(0);
+
+  await page.goto("/reviews");
+  await expect(page.getByRole("heading", { name: "Pulse Notes" })).toBeVisible();
+  await expect(page.locator(".rp-aside")).toHaveCount(0);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("menuitem", { name: "Templates" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await audit(page);
+  await page.screenshot({ path: info.outputPath("single-app.png"), fullPage: true });
+});
+
+test("connects Google Play with an own key and explains a bad key", async ({ page }, info) => {
+  await reset(page);
+  await page.goto("/reviews/connect");
+  await page.getByRole("link", { name: "Use your own service account key instead →" }).click();
+  await expect(page).toHaveURL(/method=key/);
+  await expect(page.locator(".rp-aside")).toHaveCount(0);
   await audit(page);
 
   await page.getByRole("button", { name: "Done, next step" }).click();

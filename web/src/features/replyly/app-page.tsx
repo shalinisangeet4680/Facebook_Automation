@@ -38,8 +38,9 @@ const KIND_TEXT: Record<string, string> = {
     "Google’s daily quota was reached. Syncing and replies resume automatically when it resets.",
 };
 
-export function AppPage() {
-  const { id } = useParams<{ id: string }>();
+export function AppPage({ appId }: { appId?: string }) {
+  const route = useParams<{ id?: string }>();
+  const id = appId ?? route.id ?? "";
   const router = useRouter();
   const params = useSearchParams();
   const param = params.get("tab");
@@ -50,13 +51,18 @@ export function AppPage() {
         ? "overview"
         : "reviews";
   const app = usePlayApp(id);
-  const { color } = useAppColors();
+  const { color, apps } = useAppColors();
+  const many = apps.length > 1;
 
   if (app.error)
     return (
       <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Link href="/reviews/apps" className="rp-btn-quiet" style={{ alignSelf: "flex-start" }}>
-          ← All apps
+        <Link
+          href={many ? "/reviews/apps" : "/reviews/connect"}
+          className="rp-btn-quiet"
+          style={{ alignSelf: "flex-start" }}
+        >
+          {many ? "← All apps" : "← Set up Google Play"}
         </Link>
         <Banner tone="error">{errorMessage(app.error)}</Banner>
       </div>
@@ -66,13 +72,15 @@ export function AppPage() {
   const noAccess = a?.mode === "needs_access";
   return (
     <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <Link
-        href="/reviews/apps"
-        className="rp-btn-quiet"
-        style={{ alignSelf: "flex-start", textDecoration: "none" }}
-      >
-        ← All apps
-      </Link>
+      {many ? (
+        <Link
+          href="/reviews/apps"
+          className="rp-btn-quiet"
+          style={{ alignSelf: "flex-start", textDecoration: "none" }}
+        >
+          ← All apps
+        </Link>
+      ) : null}
       <div
         style={{
           display: "flex",

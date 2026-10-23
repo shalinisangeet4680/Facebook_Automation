@@ -12,7 +12,9 @@ export type ArtKind =
   | "inbox_zero"
   | "reply_failed"
   | "step_sa"
-  | "step_invite";
+  | "step_invite"
+  | "step_ours"
+  | "step_app";
 
 const A = "#0F6B4A";
 const L = "#D9D6CF";
@@ -1246,6 +1248,186 @@ export function StateArt({
             >
               Invite user
             </span>
+          </div>
+        </div>
+      ) : null}
+
+      {kind === "step_ours" ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 26 }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: 16,
+                background: "#191917",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 10px 24px -14px rgba(25,25,23,.6)",
+              }}
+            >
+              <svg viewBox="0 0 32 32" width="30" height="30">
+                <path
+                  d="M16 24V8.5M16 18.5l-5.5-5.5M16 15.5l5.5-5.5"
+                  fill="none"
+                  stroke="#fff"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <Link on dot />
+            <div
+              style={{
+                position: "relative",
+                width: 200,
+                padding: "12px 14px",
+                ...card,
+                boxShadow: shadow(18, 36),
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                animation: "sa-float 2.6s ease-in-out infinite",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: "#E7F1EC",
+                    color: A,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" width="12" height="12">
+                    <circle
+                      cx="5.5"
+                      cy="8"
+                      r="3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                    <path
+                      d="M8.5 8H14M12 8v2.5M14 8v2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 600 }}>Service account</span>
+              </div>
+              <div
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  background: "#F7F6F3",
+                  fontFamily: MONO,
+                  fontSize: 9.5,
+                  color: "#55534E",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {sa}
+              </div>
+              <Bar w="70%" h={6} />
+              <Check />
+            </div>
+          </div>
+          <Pill dot>made for your workspace · no key to download</Pill>
+        </div>
+      ) : null}
+
+      {kind === "step_app" ? (
+        <div
+          style={{
+            position: "relative",
+            width: 280,
+            borderRadius: 12,
+            background: "#fff",
+            border: "1px solid #E6E4DF",
+            boxShadow: shadow(18, 36),
+          }}
+        >
+          <BrowserChrome url="treevook · add app" />
+          <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: A,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: SERIF,
+                  fontSize: 17,
+                  flexShrink: 0,
+                }}
+              >
+                {(caption || "A").trim().charAt(0).toUpperCase() || "A"}
+              </span>
+              <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {caption || "Your app"}
+                </span>
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 9.5,
+                    color: "#6C6962",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {detail || "com.yourcompany.app"}
+                </span>
+              </span>
+            </div>
+            {[5, 4, 2].map((n, i) => (
+              <div
+                key={n}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 5,
+                  padding: 8,
+                  borderRadius: 6,
+                  background: "#F7F6F3",
+                  opacity: s > 0 ? 1 : 0.55 - i * 0.12,
+                  transition: "opacity .3s",
+                }}
+              >
+                <span style={{ fontSize: 9, color: n > 3 ? A : "#B42318", letterSpacing: 1 }}>
+                  {"★".repeat(n)}
+                  <span style={{ color: L }}>{"★".repeat(5 - n)}</span>
+                </span>
+                <Bar w={`${88 - i * 18}%`} h={5} />
+              </div>
+            ))}
+          </div>
+          <div style={{ position: "absolute", right: 12, bottom: -16 }}>
+            <Pill dot>{s > 0 ? "syncing reviews" : "waiting for your app"}</Pill>
           </div>
         </div>
       ) : null}

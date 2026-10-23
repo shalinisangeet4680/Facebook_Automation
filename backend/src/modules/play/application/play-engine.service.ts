@@ -24,6 +24,7 @@ import {
   PLAY_API,
   PlayApi,
   PlayApiError,
+  PlayCredentials,
   PlayReviewData,
   ServiceAccountKey,
 } from "../domain/ports/play-api";
@@ -47,6 +48,7 @@ import {
 import { PlayRepository } from "../infrastructure/play.repository";
 import {
   PlayAppRow,
+  PlayConnectionRow,
   PlayReplyRow,
   PlayReviewRow,
   PlayRuleRow,
@@ -234,13 +236,22 @@ export class PlayEngine {
     );
   }
 
-  async keyFor(app: PlayAppRow): Promise<ServiceAccountKey> {
-    const connection = await this.repo.connectionById(app.connectionId);
-    if (!connection)
-      throw new NotFoundError("This app's Google Play connection was removed.");
+  credentialsOf(connection: PlayConnectionRow): PlayCredentials {
+    if (connection.kind === "managed" || !connection.keyCiphertext)
+      return {
+        clientEmail: connection.clientEmail,
+        projectId: connection.projectId,
+      };
     return JSON.parse(
       this.crypto.decrypt(connection.keyCiphertext),
     ) as ServiceAccountKey;
+  }
+
+  async keyFor(app: PlayAppRow): Promise<PlayCredentials> {
+    const connection = await this.repo.connectionById(app.connectionId);
+    if (!connection)
+      throw new NotFoundError("This app's Google Play connection was removed.");
+    return this.credentialsOf(connection);
   }
 
   values(

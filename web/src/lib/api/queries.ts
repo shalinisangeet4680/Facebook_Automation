@@ -68,6 +68,7 @@ export const keys = {
   store: ["store"] as const,
   play: ["play"] as const,
   playConnections: ["play", "connections"] as const,
+  playManaged: ["play", "managed"] as const,
   playApps: ["play", "apps"] as const,
   playApp: (id: string) => ["play", "apps", id] as const,
   playReviews: (id: string, filters: PlayReviewFilters) =>
@@ -839,6 +840,20 @@ export function usePlayConnections() {
   return useQuery({
     queryKey: keys.playConnections,
     queryFn: () => unwrap(api.GET("/api/v1/play/connections")),
+  });
+}
+
+export function useManagedPlayAccount() {
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: keys.playManaged,
+    queryFn: async () => {
+      const account = await unwrap(api.POST("/api/v1/play/connections/managed"));
+      void client.invalidateQueries({ queryKey: keys.playConnections });
+      return account;
+    },
+    staleTime: Infinity,
+    retry: false,
   });
 }
 

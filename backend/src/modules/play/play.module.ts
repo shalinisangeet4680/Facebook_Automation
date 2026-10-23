@@ -12,7 +12,7 @@ import { PlayInboxService } from "./application/play-inbox.service";
 import { PlayWorkspaceService } from "./application/play-workspace.service";
 import { PlayService } from "./application/play.service";
 import { PLAY_API } from "./domain/ports/play-api";
-import { GooglePlayClient } from "./infrastructure/google-play.client";
+import { googlePlayClient } from "./infrastructure/google-play.factory";
 import { MockPlayApi } from "./infrastructure/mock-play.api";
 import { PlayRepository } from "./infrastructure/play.repository";
 import { PlayController } from "./interface/play.controller";
@@ -33,7 +33,7 @@ import { PlayController } from "./interface/play.controller";
       useFactory: (config: ConfigService<Env, true>) =>
         config.get("PLAY_MOCK", { infer: true })
           ? new MockPlayApi()
-          : new GooglePlayClient(),
+          : googlePlayClient(config),
     },
   ],
   exports: [

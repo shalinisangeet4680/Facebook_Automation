@@ -113,6 +113,22 @@
   flex: 1;
   min-width: 0;
 }
+.rp-bare {
+  flex-direction: column;
+}
+.rp-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 32px;
+  background: rgba(247, 246, 243, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e6e4df;
+}
 .rp-wrap {
   max-width: 1080px;
   margin: 0 auto;
@@ -384,6 +400,9 @@
   }
   .rp-wrap {
     padding: 24px 16px 64px;
+  }
+  .rp-topbar {
+    padding: 10px 16px;
   }
   .rp-span2 {
     grid-column: auto !important;

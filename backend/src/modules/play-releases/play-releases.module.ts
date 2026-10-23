@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { EngineModule } from "@modules/engine/engine.module";
 import { PlayModule } from "@modules/play/play.module";
-import { GooglePlayClient } from "@modules/play/infrastructure/google-play.client";
+import { googlePlayClient } from "@modules/play/infrastructure/google-play.factory";
 import { Env } from "@shared/config/env.validation";
 
 import { PlayReleasesService } from "./application/play-releases.service";
@@ -27,7 +27,7 @@ import { PlayReleasesController } from "./interface/play-releases.controller";
       useFactory: (config: ConfigService<Env, true>) =>
         config.get("PLAY_MOCK", { infer: true })
           ? new MockPlayReleasesApi()
-          : new GooglePlayReleasesClient(new GooglePlayClient()),
+          : new GooglePlayReleasesClient(googlePlayClient(config)),
     },
   ],
   exports: [PlayReleasesService, RolloutGuardian],

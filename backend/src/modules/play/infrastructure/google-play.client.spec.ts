@@ -302,4 +302,88 @@ describe("GooglePlayClient", () => {
       "https://console.cloud.google.com/apis/library/playdeveloperreporting.googleapis.com?project=acme-play",
     );
   });
+
+  it("signs in as a managed workspace account through impersonation", async () => {
+    const managed = {
+      clientEmail: "tv-abc@treevook-play.iam.gserviceaccount.com",
+      projectId: "treevook-play",
+    };
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const http = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      if (url === key.tokenUri)
+        return json({ access_token: "platform", expires_in: 3600 });
+      if (url.includes(":generateAccessToken"))
+        return json({
+          accessToken: "workspace",
+          expireTime: new Date(Date.now() + 3_600_000).toISOString(),
+        });
+      return json({ reviews: [apiReview("r1", 5)] });
+    });
+    const client = new GooglePlayClient(http as unknown as typeof fetch, key);
+    await client.listReviews(managed, "com.acme.shop", {});
+    await client.listReviews(managed, "com.acme.shop", {});
+
+    const claims = new URLSearchParams(calls[0]!.init!.body as URLSearchParams)
+      .get("assertion")!
+      .split(".")[1]!;
+    expect(JSON.parse(Buffer.from(claims, "base64url").toString()).scope).toBe(
+      "https://www.googleapis.com/auth/cloud-platform",
+    );
+    expect(calls[1]!.url).toBe(
+      "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/tv-abc%40treevook-play.iam.gserviceaccount.com:generateAccessToken",
+    );
+    expect(JSON.parse(calls[1]!.init!.body as string)).toEqual({
+      scope: ["https://www.googleapis.com/auth/androidpublisher"],
+      lifetime: "3600s",
+    });
+    expect(
+      (calls[2]!.init!.headers as Record<string, string>).authorization,
+    ).toBe("Bearer workspace");
+    expect(
+      calls.filter((c) => c.url.includes(":generateAccessToken")),
+    ).toHaveLength(1);
+  });
+
+  it("refuses managed accounts when no platform key is configured", async () => {
+    const client = new GooglePlayClient(vi.fn() as unknown as typeof fetch);
+    await expect(
+      client.listReviews(
+        { clientEmail: "tv-abc@p.iam.gserviceaccount.com", projectId: "p" },
+        "com.acme.shop",
+        {},
+      ),
+    ).rejects.toMatchObject({ kind: "unavailable" });
+  });
+
+  it("creates workspace accounts in the platform project and reuses existing ones", async () => {
+    let exists = false;
+    const http = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === key.tokenUri)
+        return json({ access_token: "platform", expires_in: 3600 });
+      if (init?.method === "POST" && url.endsWith("/serviceAccounts")) {
+        if (exists) return json({ error: { message: "exists" } }, 409);
+        exists = true;
+        const body = JSON.parse(init.body as string) as { accountId: string };
+        return json({
+          email: `${body.accountId}@acme-play.iam.gserviceaccount.com`,
+        });
+      }
+      return json({ error: { message: "nope" } }, 403);
+    });
+    const client = new GooglePlayClient(http as unknown as typeof fetch, key);
+    const expected = {
+      clientEmail: "tv-abc123@acme-play.iam.gserviceaccount.com",
+      projectId: "acme-play",
+    };
+    await expect(
+      client.createAccount("tv-abc123", "TreeVook"),
+    ).resolves.toEqual(expected);
+    await expect(
+      client.createAccount("tv-abc123", "TreeVook"),
+    ).resolves.toEqual(expected);
+    expect(http.mock.calls[1]![0]).toBe(
+      "https://iam.googleapis.com/v1/projects/acme-play/serviceAccounts",
+    );
+  });
 });

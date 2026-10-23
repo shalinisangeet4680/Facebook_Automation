@@ -108,6 +108,28 @@ export class PlayRepository {
     return row!;
   }
 
+  async insertManagedConnection(values: typeof playConnections.$inferInsert) {
+    const [row] = await this.db
+      .insert(playConnections)
+      .values(values)
+      .onConflictDoNothing({
+        target: [playConnections.workspaceId, playConnections.clientEmail],
+      })
+      .returning();
+    if (row) return row;
+    const [existing] = await this.db
+      .select()
+      .from(playConnections)
+      .where(
+        and(
+          eq(playConnections.workspaceId, values.workspaceId),
+          eq(playConnections.clientEmail, values.clientEmail),
+        ),
+      )
+      .limit(1);
+    return existing!;
+  }
+
   async updateConnection(
     id: string,
     values: Partial<typeof playConnections.$inferInsert>,
