@@ -58,6 +58,7 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+  GBP_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(300),
   AUTH_GOOGLE_MOCK: z
     .string()
     .default("false")

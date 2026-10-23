@@ -1,7 +1,10 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
 
 import { EngineModule } from "@modules/engine/engine.module";
+import { RateLimiter } from "@shared/cache/rate-limiter";
+import { REDIS } from "@shared/cache/redis";
 import { Env } from "@shared/config/env.validation";
 
 import { BusinessEngine } from "./application/business-engine.service";
@@ -26,13 +29,18 @@ import { BusinessController } from "./interface/business.controller";
     BusinessProfilesService,
     {
       provide: BUSINESS_API,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) =>
+      inject: [ConfigService, REDIS],
+      useFactory: (config: ConfigService<Env, true>, redis: Redis) =>
         config.get("GBP_MOCK", { infer: true })
           ? new MockBusinessApi()
           : new GoogleBusinessClient(
               config.get("GOOGLE_CLIENT_ID", { infer: true }) ?? "",
               config.get("GOOGLE_CLIENT_SECRET", { infer: true }) ?? "",
+              new RateLimiter(
+                redis,
+                "gbp",
+                config.get("GBP_REQUESTS_PER_MINUTE", { infer: true }),
+              ),
             ),
     },
   ],

@@ -58,6 +58,7 @@ import {
   GbpConnectionListDto,
   GbpLocationDetailDto,
   GbpLocationListDto,
+  GbpPhotoListDto,
   GbpPostDto,
   GbpPostListDto,
   GbpReviewDto,
@@ -223,6 +224,14 @@ export class BusinessController {
     @Param("id", id) locationId: string,
   ): Promise<LocationInfoDto> {
     return this.business.info(ctx.workspaceId, locationId);
+  }
+
+  @Get("locations/:id/photos")
+  photos(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) locationId: string,
+  ): Promise<GbpPhotoListDto> {
+    return this.business.photos(ctx.workspaceId, locationId);
   }
 
   @Post("locations/:id/info/preview")

@@ -12,6 +12,7 @@ The owner signs in with Google (OAuth, offline access) and grants the `business.
 | Locations and info | Business Information v1 | Reads the name, description, phone, website, address, categories and hours, and edits the first five |
 | Reviews | My Business v4 `accounts.locations.reviews` | Syncs every 30 minutes, then replies, edits replies and deletes replies |
 | Posts | My Business v4 `localPosts` | Publishes updates, offers and events, now or on a schedule |
+| Photos | My Business v4 `accounts.locations.media` | Shows the owner's photos (logo and cover first) on the Photos tab and the logo in the location header. `GET /business/locations/:id/photos` reads them live from Google, cached for an hour; Sync clears the cache |
 | Insights | Business Profile Performance v1 | Daily views (Search and Maps), calls, website clicks, direction requests, messages and bookings |
 
 | Categories, search and creation | Business Information v1 `categories.list`, `googleLocations.search`, `accounts.locations.create` | Finds a business already on Maps, looks up categories and creates new profiles |
@@ -50,7 +51,9 @@ The Business Profile APIs are gated, and a new Cloud project's quota is 0 until 
 5. Create an OAuth client (Web application) and add this redirect URI: `https://treevook.com/api/v1/business/oauth/callback`. Locally, add `http://localhost:3200/api/v1/business/oauth/callback` as well.
 6. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and set `GBP_MOCK=false`.
 
-Until then, `GBP_MOCK=true` serves two sample dental clinic locations, with reviews, posts and insights, so the whole product can be used and tested. The mock also has a fixed category list, three Google Maps listings to search ("Sharma Dental", "Gupta"), dry-run rejection of any name containing `REJECT_ON_GOOGLE`, idempotent creation by `requestId`, business groups, and verification by text, call, email or postcard where the code is always `123456`.
+TreeVook's project is approved with Google's standard quota of 300 requests per minute for each Business Profile API. `GoogleBusinessClient` waits for a slot before every call, using a sliding one-minute window in Redis per API host, so all API replicas and the background job share one budget. The limit is `GBP_REQUESTS_PER_MINUTE` (default 300); raise it when Google grants more. A call that would wait longer than two minutes fails with a `quota` error instead.
+
+Without credentials, `GBP_MOCK=true` serves two sample dental clinic locations, with reviews, posts and insights, so the whole product can be used and tested. The mock also has a fixed category list, three Google Maps listings to search ("Sharma Dental", "Gupta"), dry-run rejection of any name containing `REJECT_ON_GOOGLE`, idempotent creation by `requestId`, business groups, and verification by text, call, email or postcard where the code is always `123456`.
 
 ## Background work
 

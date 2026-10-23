@@ -16,6 +16,10 @@ import {
   WEEKDAYS,
 } from "../../domain/business.types";
 import {
+  PHOTO_CATEGORIES,
+  PhotoCategory,
+} from "../../domain/ports/business-api";
+import {
   VERIFICATION_METHODS,
   VERIFICATION_STATES,
 } from "../../domain/profile.types";
@@ -374,6 +378,23 @@ export class LocationInfoDto {
   mapsUri: string | null;
   newReviewUri: string | null;
   verified: boolean;
+}
+
+export class GbpPhotoDto {
+  name: string;
+  @ApiProperty({ enum: PHOTO_CATEGORIES })
+  category: PhotoCategory;
+  url: string;
+  thumbnailUrl: string;
+  width: number | null;
+  height: number | null;
+  views: number | null;
+  createTime: string;
+}
+
+export class GbpPhotoListDto {
+  photos: GbpPhotoDto[];
+  error: string | null;
 }
 
 export class InfoPreviewDto {

@@ -354,6 +354,19 @@ describe("Google Business automation", () => {
     });
   });
 
+  it("lists the business's photos with the logo and cover first", async () => {
+    const res = await api("GET", `/locations/${main.id}/photos`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.error).toBeNull();
+    const photos = res.body.photos as Json[];
+    expect(photos.map((p) => p.category).slice(0, 2)).toEqual([
+      "LOGO",
+      "COVER",
+    ]);
+    expect(photos).toHaveLength(6);
+    expect(photos[0]!.url).toMatch(/^data:image\/svg\+xml,/);
+  });
+
   it("reports profile insights and review analytics", async () => {
     const insights = (
       await api("GET", `/insights?locationId=${main.id}&days=30`)

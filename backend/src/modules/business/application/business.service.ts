@@ -12,6 +12,7 @@ import {
   suggestFromListing,
   suggestFromReplies,
 } from "@modules/engine/domain/variable-suggestions";
+import { CacheService } from "@shared/cache/cache.service";
 import { AppConfig, appUrl, webOrigins } from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
@@ -25,7 +26,11 @@ import {
   emptyMetrics,
   infoChanges,
 } from "../domain/business.types";
-import { BusinessApiError, GbpLocation } from "../domain/ports/business-api";
+import {
+  BusinessApiError,
+  GbpLocation,
+  PhotoCategory,
+} from "../domain/ports/business-api";
 import { BUSINESS_PRESETS } from "../domain/presets";
 import {
   GbpConnectionRow,
@@ -45,6 +50,11 @@ import {
 
 const STATE_TTL_MS = 15 * 60_000;
 const DAY = 86_400_000;
+const PHOTOS_TTL = 60 * 60;
+const PHOTO_ORDER: PhotoCategory[] = ["LOGO", "COVER", "PROFILE"];
+const photoRank = (c: PhotoCategory) =>
+  PHOTO_ORDER.includes(c) ? PHOTO_ORDER.indexOf(c) : PHOTO_ORDER.length;
+const photosKey = (locationId: string) => `gbp:photos:${locationId}`;
 
 const KEY_MAP: Record<string, string> = {
   developer_name: "team_name",
@@ -80,6 +90,7 @@ export class BusinessService {
     private readonly engine: BusinessEngine,
     private readonly reviews: BusinessReviewsService,
     private readonly crypto: CryptoService,
+    private readonly cache: CacheService,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -538,6 +549,7 @@ export class BusinessService {
 
   async sync(actor: BusinessActor, id: string) {
     const l = await this.locationRow(actor.workspaceId, id);
+    await this.cache.del(photosKey(l.id));
     const result = await this.engine.sync(l);
     if (!result.archived) {
       try {
@@ -859,6 +871,35 @@ export class BusinessService {
       newReviewUri: l.newReviewUri,
       verified: l.verified,
     };
+  }
+
+  async photos(workspaceId: string, id: string) {
+    const l = await this.locationRow(workspaceId, id);
+    try {
+      const photos = await this.cache.wrap(
+        photosKey(l.id),
+        PHOTOS_TTL,
+        async () =>
+          (
+            await this.engine.api.photos(
+              await this.engine.tokenFor(l),
+              l.accountName,
+              l.locationName,
+            )
+          )
+            .sort(
+              (a, b) =>
+                photoRank(a.category) - photoRank(b.category) ||
+                b.createTime.getTime() - a.createTime.getTime(),
+            )
+            .map((p) => ({ ...p, createTime: p.createTime.toISOString() })),
+      );
+      return { photos, error: null };
+    } catch (err) {
+      await this.engine.failConnection(l.connectionId, err);
+      if (!(err instanceof BusinessApiError)) throw err;
+      return { photos: [], error: err.message };
+    }
   }
 
   async previewInfo(workspaceId: string, id: string, patch: InfoPatch) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +11,7 @@ import {
   type GbpLocationDetail,
   useBusinessAnalytics,
   useLocation,
+  useLocationPhotos,
   useLocationReviews,
   useSyncLocation,
 } from "@/lib/api/business";
@@ -21,12 +23,13 @@ import { Banner, Seg, Skel, Spinner, useToast } from "@/features/replyly/ui";
 import { InfoTab } from "./info-tab";
 import { InsightsPanel } from "./insights-panel";
 import { LocationTile } from "./location-tile";
+import { PhotosPanel, logoOf } from "./photos-panel";
 import { PostsPanel } from "./posts-panel";
 import { BusinessReviewCard } from "./review-card";
 import { SettingsTab } from "./settings-tab";
 import { useLocationColors } from "./shell";
 
-const TABS = ["reviews", "posts", "insights", "info", "settings"] as const;
+const TABS = ["reviews", "posts", "photos", "insights", "info", "settings"] as const;
 type Tab = (typeof TABS)[number];
 const MUTED = "#6C6962";
 
@@ -40,6 +43,7 @@ export function LocationPage() {
   const { color } = useLocationColors();
   const toast = useToast();
   const sync = useSyncLocation(id);
+  const logo = logoOf(useLocationPhotos(id).data?.photos);
   const [now] = useState(() => Date.now());
 
   if (location.error)
@@ -76,7 +80,21 @@ export function LocationPage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          {l ? <LocationTile color={color(l.id)} size={52} /> : <Skel h={52} w={52} r={14} />}
+          {l && logo ? (
+            <Image
+              unoptimized
+              src={logo.thumbnailUrl}
+              alt=""
+              width={52}
+              height={52}
+              referrerPolicy="no-referrer"
+              style={{ width: 52, height: 52, borderRadius: 14, objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : l ? (
+            <LocationTile color={color(l.id)} size={52} />
+          ) : (
+            <Skel h={52} w={52} r={14} />
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <h1 className="rp-serif" style={{ fontSize: 34, lineHeight: 1 }}>
               {l?.title ?? " "}
@@ -144,6 +162,7 @@ export function LocationPage() {
             options={[
               { id: "reviews", label: "Reviews" },
               { id: "posts", label: "Posts" },
+              { id: "photos", label: "Photos" },
               { id: "insights", label: "Insights" },
               { id: "info", label: "Info" },
               { id: "settings", label: "Settings" },
@@ -193,6 +212,8 @@ export function LocationPage() {
             <ReviewsTab location={l} color={color(l.id)} />
           ) : tab === "posts" ? (
             <PostsPanel locationId={l.id} />
+          ) : tab === "photos" ? (
+            <PhotosPanel locationId={l.id} mapsUri={l.mapsUri} />
           ) : tab === "insights" ? (
             <InsightsTab location={l} />
           ) : tab === "info" ? (

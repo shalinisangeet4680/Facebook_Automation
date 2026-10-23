@@ -17,6 +17,7 @@ import {
   GbpDailyMetric,
   GbpGoogleMatch,
   GbpLocation,
+  GbpPhoto,
   GbpPost,
   GbpReview,
   GbpReviewPage,
@@ -25,9 +26,24 @@ import {
   GbpVerifyRequest,
   GbpVoiceOfMerchant,
   GoogleGrant,
+  PhotoCategory,
 } from "../domain/ports/business-api";
 
 const ACCOUNT = "accounts/1001";
+
+const MOCK_PHOTOS: [PhotoCategory, string, string][] = [
+  ["LOGO", "#2F6B5E", "Logo"],
+  ["COVER", "#C9A227", "Cover"],
+  ["EXTERIOR", "#5B7FA6", "Outside"],
+  ["INTERIOR", "#8A6FB0", "Reception"],
+  ["AT_WORK", "#B5654A", "At work"],
+  ["TEAMS", "#4F8A4B", "Our team"],
+];
+
+const mockImage = (color: string, label: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="${color}"/><text x="400" y="320" font-family="sans-serif" font-size="56" fill="#fff" text-anchor="middle">${label}</text></svg>`,
+  )}`;
 const DAY = 86_400_000;
 export const MOCK_VERIFICATION_PIN = "123456";
 
@@ -445,6 +461,26 @@ export class MockBusinessApi implements BusinessApi {
   deletePost(refreshToken: string, postName: string): Promise<void> {
     this.state(refreshToken).posts.delete(postName);
     return Promise.resolve();
+  }
+
+  photos(
+    refreshToken: string,
+    _account: string,
+    location: string,
+  ): Promise<GbpPhoto[]> {
+    this.mine(refreshToken, location);
+    return Promise.resolve(
+      MOCK_PHOTOS.map(([category, color, label], i) => ({
+        name: `${location}/media/${i + 1}`,
+        category,
+        url: mockImage(color, label),
+        thumbnailUrl: mockImage(color, label),
+        width: 800,
+        height: 600,
+        views: 120 * (i + 1),
+        createTime: new Date(Date.UTC(2025, i, 1)),
+      })),
+    );
   }
 
   metrics(

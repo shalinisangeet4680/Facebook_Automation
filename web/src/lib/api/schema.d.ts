@@ -2180,6 +2180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/business/locations/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BusinessController_photos_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/business/locations/{id}/info/preview": {
         parameters: {
             query?: never;
@@ -5466,6 +5482,21 @@ export interface components {
         };
         BusinessSuggestionListDto: {
             data: components["schemas"]["BusinessSuggestionDto"][];
+        };
+        GbpPhotoDto: {
+            name: string;
+            /** @enum {string} */
+            category: "COVER" | "PROFILE" | "LOGO" | "EXTERIOR" | "INTERIOR" | "PRODUCT" | "AT_WORK" | "FOOD_AND_DRINK" | "MENU" | "COMMON_AREA" | "ROOMS" | "TEAMS" | "ADDITIONAL";
+            url: string;
+            thumbnailUrl: string;
+            width: number | null;
+            height: number | null;
+            views: number | null;
+            createTime: string;
+        };
+        GbpPhotoListDto: {
+            photos: components["schemas"]["GbpPhotoDto"][];
+            error: string | null;
         };
         LocationInfoDto: {
             info: components["schemas"]["BusinessInfoDto"];
@@ -11334,6 +11365,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LocationInfoDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_photos_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpPhotoListDto"];
                 };
             };
             default: {

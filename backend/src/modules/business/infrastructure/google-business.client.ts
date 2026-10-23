@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { RateLimiter } from "@shared/cache/rate-limiter";
+
 import {
   BusinessAddress,
   BusinessInfo,
@@ -26,6 +28,7 @@ import {
   GbpDailyMetric,
   GbpGoogleMatch,
   GbpLocation,
+  GbpPhoto,
   GbpPost,
   GbpReview,
   GbpReviewPage,
@@ -35,6 +38,8 @@ import {
   GbpVerifyRequest,
   GbpVoiceOfMerchant,
   GoogleGrant,
+  PHOTO_CATEGORIES,
+  PhotoCategory,
 } from "../domain/ports/business-api";
 
 const OAUTH = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -114,6 +119,34 @@ interface GoogleLocation {
     hasVoiceOfMerchant?: boolean;
   };
 }
+
+interface GoogleMediaItem {
+  name: string;
+  mediaFormat?: string;
+  googleUrl?: string;
+  thumbnailUrl?: string;
+  createTime?: string;
+  locationAssociation?: { category?: string };
+  dimensions?: { widthPixels?: number; heightPixels?: number };
+  insights?: { viewCount?: string };
+}
+
+const toPhoto = (m: GoogleMediaItem): GbpPhoto | null => {
+  if (m.mediaFormat !== "PHOTO" || !m.googleUrl) return null;
+  const category = m.locationAssociation?.category;
+  return {
+    name: m.name,
+    category: PHOTO_CATEGORIES.includes(category as PhotoCategory)
+      ? (category as PhotoCategory)
+      : "ADDITIONAL",
+    url: m.googleUrl,
+    thumbnailUrl: m.thumbnailUrl ?? m.googleUrl,
+    width: m.dimensions?.widthPixels ?? null,
+    height: m.dimensions?.heightPixels ?? null,
+    views: m.insights?.viewCount ? Number(m.insights.viewCount) : null,
+    createTime: m.createTime ? new Date(m.createTime) : new Date(0),
+  };
+};
 
 interface GoogleReview {
   name: string;
@@ -406,6 +439,7 @@ export class GoogleBusinessClient implements BusinessApi {
   constructor(
     private readonly clientId: string,
     private readonly clientSecret: string,
+    private readonly limiter?: RateLimiter,
   ) {}
 
   authUrl(redirectUri: string, state: string): string {
@@ -493,12 +527,25 @@ export class GoogleBusinessClient implements BusinessApi {
     return data.access_token;
   }
 
+  private async throttle(url: string) {
+    if (!this.limiter) return;
+    try {
+      await this.limiter.acquire(new URL(url).host);
+    } catch {
+      throw new BusinessApiError(
+        "quota",
+        "Google's rate limit was reached. TreeVook will try again shortly.",
+      );
+    }
+  }
+
   private async call<T>(
     refreshToken: string,
     url: string,
     init: { method?: string; body?: unknown } = {},
   ): Promise<T> {
     const token = await this.accessToken(refreshToken);
+    await this.throttle(url);
     const res = await fetch(url, {
       method: init.method ?? "GET",
       headers: {
@@ -663,6 +710,32 @@ export class GoogleBusinessClient implements BusinessApi {
 
   async deletePost(refreshToken: string, postName: string) {
     await this.call(refreshToken, `${V4}/${postName}`, { method: "DELETE" });
+  }
+
+  async photos(
+    refreshToken: string,
+    account: string,
+    location: string,
+  ): Promise<GbpPhoto[]> {
+    const photos: GbpPhoto[] = [];
+    let pageToken = "";
+    let pages = 0;
+    do {
+      const data = await this.call<{
+        mediaItems?: GoogleMediaItem[];
+        nextPageToken?: string;
+      }>(
+        refreshToken,
+        `${V4}/${account}/${location}/media?pageSize=100${pageToken ? `&pageToken=${pageToken}` : ""}`,
+      );
+      for (const m of data.mediaItems ?? []) {
+        const photo = toPhoto(m);
+        if (photo) photos.push(photo);
+      }
+      pageToken = data.nextPageToken ?? "";
+      pages++;
+    } while (pageToken && pages < 5);
+    return photos;
   }
 
   async metrics(

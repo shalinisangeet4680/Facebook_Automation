@@ -63,6 +63,35 @@ export interface GbpPost {
   state: string;
 }
 
+export const PHOTO_CATEGORIES = [
+  "COVER",
+  "PROFILE",
+  "LOGO",
+  "EXTERIOR",
+  "INTERIOR",
+  "PRODUCT",
+  "AT_WORK",
+  "FOOD_AND_DRINK",
+  "MENU",
+  "COMMON_AREA",
+  "ROOMS",
+  "TEAMS",
+  "ADDITIONAL",
+] as const;
+
+export type PhotoCategory = (typeof PHOTO_CATEGORIES)[number];
+
+export interface GbpPhoto {
+  name: string;
+  category: PhotoCategory;
+  url: string;
+  thumbnailUrl: string;
+  width: number | null;
+  height: number | null;
+  views: number | null;
+  createTime: Date;
+}
+
 export interface GbpDailyMetric extends DailyMetrics {
   day: string;
 }
@@ -153,6 +182,11 @@ export interface BusinessApi {
     post: PostContent,
   ): Promise<GbpPost>;
   deletePost(refreshToken: string, postName: string): Promise<void>;
+  photos(
+    refreshToken: string,
+    account: string,
+    location: string,
+  ): Promise<GbpPhoto[]>;
   metrics(
     refreshToken: string,
     location: string,

@@ -18,6 +18,7 @@ export type GbpPost = Schemas["GbpPostDto"];
 export type GbpPostContent = Schemas["PostContentDto"];
 export type GbpPostInput = Schemas["CreateGbpPostDto"];
 export type GbpInfo = Schemas["BusinessInfoDto"];
+export type GbpPhoto = Schemas["GbpPhotoDto"];
 export type GbpInfoPatch = Schemas["InfoPatchDto"];
 export type GbpOpeningPeriod = Schemas["OpeningPeriodDto"];
 export type GbpInsights = Schemas["BusinessInsightsDto"];
@@ -49,6 +50,7 @@ export const businessKeys = {
   reviews: (id: string, stars?: number) =>
     [...root, "locations", id, "reviews", stars ?? "any"] as const,
   info: (id: string) => [...root, "locations", id, "info"] as const,
+  photos: (id: string) => [...root, "locations", id, "photos"] as const,
   suggestions: (id: string) => [...root, "locations", id, "suggestions"] as const,
   inbox: (filter: string, locationId?: string, stars?: number) =>
     [...root, "inbox", filter, locationId ?? "all", stars ?? "any"] as const,
@@ -401,6 +403,15 @@ export function useDeleteBusinessPost() {
     mutationFn: (id: string) =>
       unwrap(api.DELETE("/api/v1/business/posts/{id}", { params: { path: { id } } })),
     onSettled: invalidate,
+  });
+}
+
+export function useLocationPhotos(id: string) {
+  return useQuery({
+    queryKey: businessKeys.photos(id),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/business/locations/{id}/photos", { params: { path: { id } } })),
+    staleTime: 10 * 60_000,
   });
 }
 
