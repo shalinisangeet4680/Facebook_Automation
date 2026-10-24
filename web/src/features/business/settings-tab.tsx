@@ -14,11 +14,13 @@ import {
   useUpdateLocation,
 } from "@/lib/api/business";
 import { Select } from "@/features/replyly/select";
-import { DELAYS, MODE_DESC, MODES, stars, TONES } from "@/features/replyly/tokens";
-import { Section, Seg, SettingRow, Spinner, Toggle, useToast } from "@/features/replyly/ui";
+import { DELAYS, MODE_DESC, MODES, TONES } from "@/features/replyly/tokens";
+import { useToast } from "@/features/replyly/ui";
 import { useRouter } from "next/navigation";
 
-const MUTED = "#6C6962";
+import { Section, SettingRow, Spin } from "./location-ui";
+import { Seg, Stars, Switch } from "./ui";
+
 const MODE_NAME = { auto: "Auto", approval: "Approval", manual: "Manual" } as const;
 const HOURS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`);
 const PLACEHOLDERS = [
@@ -58,33 +60,22 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 860 }}>
+    <div className="gb-lp-col gb-narrow" style={{ gap: 28 }}>
       <Section
         title="Reply rules by rating"
         desc="Pick how each star rating is answered and which template the AI starts from."
       >
-        <div className="rp-card" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="gb-card">
           {[...s.ratingRules]
             .sort((a, b) => b.rating - a.rating)
-            .map((r, i) => (
-              <div
-                key={r.rating}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "12px 16px",
-                  borderTop: i ? "1px solid #EFEDE8" : "none",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ color: "#C9A227", letterSpacing: 1, width: 80 }}>
-                  {stars(r.rating)}
+            .map((r) => (
+              <div key={r.rating} className="gb-lp-rule gb-row">
+                <span className="gb-lp-rule-stars">
+                  <Stars n={r.rating} />
                 </span>
                 <Seg
                   label={`${r.rating}-star mode`}
                   value={r.mode}
-                  small
                   onChange={(m) => rule(r, { mode: m })}
                   options={MODES.map((m) => ({ id: m, label: MODE_NAME[m] }))}
                 />
@@ -101,18 +92,17 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
               </div>
             ))}
         </div>
-        <span style={{ fontSize: 12.5, color: MUTED }}>
+        <span className="gb-faint">
           {MODES.map((m) => `${MODE_NAME[m]}: ${MODE_DESC[m]}`).join(" ")}
         </span>
       </Section>
 
       <Section title="Voice">
-        <div className="rp-card">
-          <SettingRow first label="Tone" desc="How replies sound.">
+        <div className="gb-card">
+          <SettingRow label="Tone" desc="How replies sound.">
             <Seg
               label="Tone"
               value={s.tone}
-              small
               onChange={(tone) => setting({ tone })}
               options={TONES.map(([id, label]) => ({ id, label }))}
             />
@@ -121,7 +111,7 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             label="Personalize"
             desc="AI mentions what the customer said instead of sending the template word for word."
           >
-            <Toggle
+            <Switch
               on={s.personalize}
               label="Personalize"
               onChange={() => setting({ personalize: !s.personalize })}
@@ -131,7 +121,7 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             label="Reply in the customer’s language"
             desc="Hindi reviews get Hindi replies."
           >
-            <Toggle
+            <Switch
               on={s.translate}
               label="Reply in the customer’s language"
               onChange={() => setting({ translate: !s.translate })}
@@ -147,27 +137,22 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             />
           </SettingRow>
           <SettingRow label="Skip star-only reviews" desc="Don’t reply to ratings without text.">
-            <Toggle
+            <Switch
               on={s.skipEmpty}
               label="Skip star-only reviews"
               onChange={() => setting({ skipEmpty: !s.skipEmpty })}
             />
           </SettingRow>
         </div>
-        <span style={{ fontSize: 12.5, color: MUTED }}>
+        <span className="gb-faint">
           AI drafting, the daily AI draft limit and the Slack channel are shared across TreeVook.
-          Change them in{" "}
-          <Link href="/settings#ai" style={{ color: "#0F6B4A" }}>
-            Settings → AI & automation
-          </Link>
-          .
+          Change them in <Link href="/settings#ai">Settings → AI & automation</Link>.
         </span>
       </Section>
 
       <Section title="Safeguards">
-        <div className="rp-card">
+        <div className="gb-card">
           <SettingRow
-            first
             label="Quiet hours"
             desc={
               s.quietHours
@@ -196,7 +181,7 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
                   />
                 </>
               ) : null}
-              <Toggle
+              <Switch
                 on={Boolean(s.quietHours)}
                 label="Quiet hours"
                 onChange={() =>
@@ -224,7 +209,7 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             label="Safety pause"
             desc="If the rating drops sharply in a day, auto-replies wait for approval for 24 hours."
           >
-            <Toggle
+            <Switch
               on={s.autoPause}
               label="Safety pause"
               onChange={() => setting({ autoPause: !s.autoPause })}
@@ -234,7 +219,7 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             label="Alert on 1–2 star reviews"
             desc="Send them to your Slack channel with the AI draft."
           >
-            <Toggle
+            <Switch
               on={s.escalate}
               label="Alert on low ratings"
               onChange={() => setting({ escalate: !s.escalate })}
@@ -245,8 +230,9 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
             desc="These always wait for you."
           >
             <input
-              className="rp-input"
-              style={{ minWidth: 260 }}
+              className="gb-input"
+              aria-label="Never auto-reply when a review mentions"
+              style={{ width: 260, maxWidth: "100%" }}
               value={words}
               onChange={(e) => setWords(e.target.value)}
               onBlur={() => {
@@ -263,35 +249,20 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
       </Section>
 
       <Section title="Placeholders" desc="Values templates fill in, like {team_name} and {phone}.">
-        <div
-          className="rp-card"
-          style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}
-        >
+        <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 12 }}>
           {PLACEHOLDERS.map(([key, labelText, hint]) => {
             const suggestion = suggestions.data?.data.find(
               (x) => x.key === key && x.value !== vars[key],
             );
             return (
-              <label
-                key={key}
-                className="rp-field"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "140px 1fr",
-                  gap: 12,
-                  alignItems: "center",
-                }}
-              >
+              <label key={key} className="gb-lp-placeholder">
                 <span style={{ display: "flex", flexDirection: "column" }}>
-                  <span className="rp-label">{labelText}</span>
-                  <span
-                    className="rp-mono"
-                    style={{ fontSize: 11, color: MUTED }}
-                  >{`{${key}}`}</span>
+                  <span className="gb-lp-label">{labelText}</span>
+                  <span className="gb-lp-key">{`{${key}}`}</span>
                 </span>
                 <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <input
-                    className="rp-input"
+                    className="gb-input"
                     value={vars[key] ?? ""}
                     placeholder={hint}
                     onChange={(e) => setVars((v) => ({ ...v, [key]: e.target.value }))}
@@ -299,8 +270,8 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
                   {suggestion && !vars[key] ? (
                     <button
                       type="button"
-                      className="rp-btn-text"
-                      style={{ alignSelf: "flex-start", fontSize: 12 }}
+                      className="gb-link"
+                      style={{ alignSelf: "flex-start", fontSize: 12, color: "var(--gb-green)" }}
                       onClick={() => setVars((v) => ({ ...v, [key]: suggestion.value }))}
                     >
                       Use “{suggestion.value}” from{" "}
@@ -311,17 +282,16 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
               </label>
             );
           })}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div className="gb-lp-actions">
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "8px 14px" }}
+              className="gb-btn gb-btn-dark"
               disabled={
                 update.isPending || JSON.stringify(vars) === JSON.stringify(location.variables)
               }
               onClick={() => save({ variables: vars }, "Placeholders saved")}
             >
-              {update.isPending ? <Spinner size={11} /> : null}
+              {update.isPending ? <Spin /> : null}
               Save placeholders
             </button>
           </div>
@@ -335,8 +305,8 @@ export function SettingsTab({ location }: { location: GbpLocationDetail }) {
         <div>
           <button
             type="button"
-            className="rp-btn-danger"
-            style={{ padding: "8px 14px" }}
+            className="gb-btn"
+            style={{ color: "var(--gb-red)" }}
             disabled={remove.isPending}
             onClick={() => {
               if (window.confirm(`Remove ${location.title} from TreeVook?`))

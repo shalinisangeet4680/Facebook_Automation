@@ -44,7 +44,7 @@ Locally `APP_URL` is a Cloudflare quick tunnel to the web dev server on port 320
 
 `oauth_clients` stores every client Claude uses.
 
-- DCR: `POST /oauth/register` with `redirect_uris`, `client_name`, `token_endpoint_auth_method`. Public clients (`none`) get no secret; `client_secret_post` and `client_secret_basic` get a secret stored as a SHA-256 hash. Redirect URIs must be `https`, or `http` on `localhost` / `127.0.0.1`.
+- DCR: `POST /oauth/register` with `redirect_uris`, `client_name`, `token_endpoint_auth_method`. Public clients (`none`) get no secret; `client_secret_post` and `client_secret_basic` get a secret stored as a SHA-256 hash. Redirect URIs must be `https`, or `http` on `localhost` / `127.0.0.1`. The one custom scheme allowed is Cursor's exact `cursor://anysphere.cursor-mcp/oauth/callback`.
 - CIMD: when `client_id` is an `https` URL we fetch the document (5 s timeout, 64 KB limit, no redirects, public hosts only), require its `client_id` to equal the URL, and cache it in the table for 24 hours.
 
 ### Authorization
@@ -104,6 +104,12 @@ Money in Meta budgets is in the currency's minor unit. Tools take and return maj
 
 - `/oauth/authorize`: a consent screen in the auth layout. It shows the client name and redirect host, the workspace and its Meta business, the permissions (read always, changes optional) and the Allow and Cancel buttons.
 - `/settings/claude`: how to connect (copy the MCP URL, steps for claude.ai and Claude Code), plus the connected apps list with last use and Disconnect.
+- `/business/mcp` (Google Business) and `/reviews/mcp` (Play Reviews) share one setup component: server URL, the workspace access token (`rk_live_…`, reveal, rotate), the posting switch and connected clients, with steps per client:
+  - ChatGPT: Settings → Apps & Connectors → Advanced → Developer mode, then a connector with the MCP URL and OAuth. ChatGPT registers with DCR or CIMD and redirects to `https://chatgpt.com/connector/oauth/{id}`.
+  - Claude (claude.ai, Desktop, mobile): Settings → Connectors → Add custom connector with the MCP URL (OAuth).
+  - Claude Code: `claude mcp add --transport http <name> <url>`, then `/mcp` to sign in (OAuth).
+  - Cursor (`~/.cursor/mcp.json`), VS Code (`.vscode/mcp.json`) and other clients (`mcp-remote` over stdio): the URL with an `Authorization: Bearer rk_live_…` header.
+- Every client reaches the same server and tool set; the token or grant decides the workspace.
 - The proxy keeps the query string in `next`, and its matcher excludes `mcp`, `.well-known` and `oauth/token|register|revoke`.
 
 ## Testing

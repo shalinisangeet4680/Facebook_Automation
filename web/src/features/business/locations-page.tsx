@@ -5,14 +5,123 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
-import { useLocations, useSyncAllLocations } from "@/lib/api/business";
-import { ago, MODE_LABEL, MODE_STYLE } from "@/features/replyly/tokens";
-import { Banner, PageHead, Skel, Spinner, useToast } from "@/features/replyly/ui";
+import {
+  type GbpLocation,
+  useDiscoverLocations,
+  useLocation,
+  useLocations,
+  useUpdateLocation,
+} from "@/lib/api/business";
+import { useToast } from "@/features/replyly/ui";
 
-import { LocationTile } from "./location-tile";
-import { useGoogleConnected, useLocationColors } from "./shell";
+import { useGoogleConnected, useLocationColors, useLocationFilter } from "./shell";
+import { Notice, Skel, Swatch } from "./ui";
+import "./locations.css";
 
-const MUTED = "#6C6962";
+type Pick = "auto" | "approval";
+
+const MODES: [Pick, string][] = [
+  ["auto", "Auto"],
+  ["approval", "Approve"],
+];
+
+function Row({ l, color }: { l: GbpLocation; color: string }) {
+  const router = useRouter();
+  const toast = useToast();
+  const { setLoc } = useLocationFilter();
+  const detail = useLocation(l.id);
+  const update = useUpdateLocation(l.id);
+  const rules = detail.data?.settings.ratingRules;
+  const waiting = l.needsReply;
+
+  const pick = (mode: Pick, label: string) => {
+    if (!rules || l.mode === mode) return;
+    update.mutate(
+      { ratingRules: rules.map((r) => ({ rating: r.rating, mode, templateId: r.templateId })) },
+      {
+        onSuccess: () => toast(`${l.title}: ${label}`),
+        onError: (err) => toast(errorMessage(err)),
+      },
+    );
+  };
+
+  return (
+    <div className="gb-locations-row">
+      <div className="gb-locations-who">
+        <Swatch color={color} label={l.title} />
+        <div style={{ minWidth: 0 }}>
+          <div className="gb-locations-name">
+            <Link href={`/business/${l.id}`} className="gb-locations-link">
+              {l.title}
+            </Link>
+            {!l.verified ? (
+              <Link
+                href={`/business/${l.id}/verify`}
+                className={`gb-pill ${l.verificationState === "pending" ? "gb-pill-amber" : "gb-pill-grey"}`}
+              >
+                {l.verificationState === "pending" ? "Pending" : "Unverified"}
+              </Link>
+            ) : null}
+            {l.pauseReason ? (
+              <span className="gb-pill gb-pill-amber" title={l.pauseReason}>
+                Paused
+              </span>
+            ) : null}
+          </div>
+          {l.syncError ? (
+            <div className="gb-locations-sub gb-locations-error" title={l.syncError}>
+              Sync failed: {l.syncError}
+            </div>
+          ) : (
+            <div className="gb-locations-sub">{l.category ?? l.address ?? ""}</div>
+          )}
+        </div>
+      </div>
+      <span className="gb-locations-num gb-desk">
+        {l.rating === null ? (
+          <span className="gb-faint">—</span>
+        ) : (
+          <>
+            {l.rating.toFixed(1)} <span style={{ color: "var(--gb-star)" }}>★</span>
+          </>
+        )}
+      </span>
+      <span className="gb-locations-total gb-desk">{l.totalReviews.toLocaleString()}</span>
+      <button
+        type="button"
+        className={waiting ? "gb-locations-wait gb-locations-wait-on" : "gb-locations-wait"}
+        aria-label={
+          waiting ? `${waiting} waiting at ${l.title}, open reviews` : `None waiting at ${l.title}`
+        }
+        onClick={() => {
+          setLoc(l.id);
+          router.push("/business/reviews");
+        }}
+      >
+        {waiting ? `${waiting} waiting` : "None"}
+      </button>
+      <div className="gb-locations-mode">
+        <div className="gb-seg gb-seg-fill" role="group" aria-label={`Replies for ${l.title}`}>
+          {MODES.map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={l.mode === m}
+              className="gb-seg-btn"
+              disabled={!rules || update.isPending}
+              onClick={() => pick(m, label)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {l.mode === "manual" || l.mode === "mixed" ? (
+          <span className="gb-locations-hint">{l.mode === "manual" ? "Manual" : "Mixed"}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function LocationsPage() {
   const router = useRouter();
@@ -20,7 +129,7 @@ export function LocationsPage() {
   const { connected, loading } = useGoogleConnected();
   const locations = useLocations();
   const { color } = useLocationColors();
-  const sync = useSyncAllLocations();
+  const discover = useDiscoverLocations();
 
   useEffect(() => {
     if (!loading && !connected) router.replace("/business/connect");
@@ -28,168 +137,71 @@ export function LocationsPage() {
 
   const list = locations.data?.data ?? [];
 
+  const find = () => {
+    if (discover.isPending) return;
+    discover.mutate(undefined, {
+      onSuccess: (r) => {
+        if (r.error) return toast(r.error);
+        const n = r.added.length + r.restored.length;
+        toast(n ? `Found ${n} new location${n === 1 ? "" : "s"}` : "No new locations found");
+      },
+      onError: (err) => toast(errorMessage(err)),
+    });
+  };
+
   return (
-    <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <PageHead
-        title="Locations"
-        sub={`${list.length} location${list.length === 1 ? "" : "s"} on Google. New reviews sync every 30 minutes.`}
-        actions={
-          <>
-            <Link href="/business/create" className="rp-btn" style={{ padding: "8px 14px" }}>
-              Create a profile
-            </Link>
-            <button
-              type="button"
-              className="rp-btn-light"
-              style={{ padding: "8px 14px" }}
-              disabled={sync.isPending}
-              onClick={() =>
-                sync.mutate(undefined, {
-                  onSuccess: (r) =>
-                    toast(
-                      r.error
-                        ? r.error
-                        : `Synced ${r.synced} location${r.synced === 1 ? "" : "s"}${r.added + r.restored ? ` · ${r.added + r.restored} new` : ""}`,
-                    ),
-                  onError: (err) => toast(errorMessage(err)),
-                })
-              }
-            >
-              {sync.isPending ? <Spinner size={11} dark /> : null}
-              Sync now
-            </button>
-          </>
-        }
-      />
-      {locations.error ? <Banner tone="error">{errorMessage(locations.error)}</Banner> : null}
-      {locations.isPending ? (
-        <Skel h={200} />
-      ) : !list.length ? (
-        <div
-          className="rp-card"
-          style={{
-            padding: 28,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 12,
-          }}
-        >
-          <span style={{ fontWeight: 600, fontSize: 15 }}>No locations yet</span>
-          <span style={{ fontSize: 13.5, color: MUTED, maxWidth: 560 }}>
-            This Google account doesn’t manage a Business Profile yet. Create one here, or claim
-            your business if it’s already on Google Maps.
-          </span>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/business/create" className="rp-btn" style={{ padding: "9px 16px" }}>
-              Create a Business Profile
-            </Link>
-            <Link href="/business/connect" className="rp-btn-light" style={{ padding: "9px 16px" }}>
-              Use another Google account
-            </Link>
+    <div className="gb-locations">
+      {locations.error ? <Notice tone="error">{errorMessage(locations.error)}</Notice> : null}
+      <div className="gb-card gb-locations-card">
+        <div className="gb-locations-head gb-desk">
+          <span>Location</span>
+          <span>Rating</span>
+          <span>Reviews</span>
+          <span>Waiting</span>
+          <span>Replies</span>
+        </div>
+        {locations.isPending ? (
+          [0, 1].map((i) => (
+            <div key={i} className="gb-locations-row">
+              <div className="gb-locations-who">
+                <Skel h={36} w={36} r={9} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <Skel h={14} w="60%" />
+                  <Skel h={12} w="40%" />
+                </div>
+              </div>
+              <Skel h={24} w={64} r={12} />
+            </div>
+          ))
+        ) : !list.length && !locations.error ? (
+          <div className="gb-locations-empty">
+            <span className="gb-title">No locations yet</span>
+            <span className="gb-sub">
+              This Google account doesn’t manage a Business Profile yet. Find one on Google or
+              create a new profile.
+            </span>
           </div>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
-            gap: 16,
-          }}
+        ) : (
+          list.map((l) => <Row key={l.id} l={l} color={color(l.id)} />)
+        )}
+        <button
+          type="button"
+          className="gb-locations-add"
+          disabled={discover.isPending}
+          onClick={find}
         >
-          {list.map((l) => {
-            const label = MODE_LABEL[l.mode];
-            const [bg, fg] = l.verified
-              ? (MODE_STYLE[label] ?? ["#EFEDE8", "#55534E"])
-              : ["#FBF3E2", "#8A5A00"];
-            return (
-              <Link
-                key={l.id}
-                href={`/business/${l.id}`}
-                className="rp-card rp-row"
-                style={{
-                  padding: 18,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 14,
-                  color: "#191917",
-                }}
-              >
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <LocationTile color={color(l.id)} />
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                      minWidth: 0,
-                      flex: 1,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {l.title}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: MUTED,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {[l.category, l.address].filter(Boolean).join(" · ")}
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      padding: "3px 9px",
-                      borderRadius: 999,
-                      background: bg,
-                      color: fg,
-                      fontSize: 11.5,
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {l.verified ? label : "Unverified"}
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                  {[
-                    ["Rating", l.rating === null ? "—" : `${l.rating.toFixed(1)}★`],
-                    ["Reviews", l.totalReviews.toLocaleString()],
-                    ["Needs reply", l.needsReply.toLocaleString()],
-                  ].map(([k, v]) => (
-                    <span key={k} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      <span style={{ fontSize: 11.5, color: MUTED }}>{k}</span>
-                      <span className="rp-mono" style={{ fontSize: 18 }}>
-                        {v}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-                <span style={{ fontSize: 12, color: l.syncError ? "#B42318" : MUTED }}>
-                  {l.syncError ??
-                    (l.pauseReason ? "Safety pause is on" : `Synced ${ago(l.lastSyncedAt)}`)}
-                  {!l.verified
-                    ? l.verificationState === "pending"
-                      ? " · Waiting for your Google code"
-                      : " · Finish verification on Google"
-                    : ""}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+          <span aria-hidden style={{ fontSize: 16 }}>
+            +
+          </span>
+          {discover.isPending ? "Looking on Google…" : "Find more locations"}
+        </button>
+      </div>
+      <p className="gb-locations-foot">
+        Not on Google yet?{" "}
+        <Link href="/business/create" className="gb-link">
+          Create a new profile
+        </Link>
+      </p>
     </div>
   );
 }

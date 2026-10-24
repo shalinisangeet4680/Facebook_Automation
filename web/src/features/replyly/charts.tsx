@@ -200,35 +200,38 @@ export function TrendChart({
           <span key={i}>{d ? fmtDay(d) : ""}</span>
         ))}
       </div>
-      <table
+      <div
         style={{
           position: "absolute",
+          whiteSpace: "nowrap",
           width: 1,
           height: 1,
           overflow: "hidden",
           clip: "rect(0 0 0 0)",
         }}
       >
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th>Day</th>
-            <th>Reviews</th>
-            <th>Replied</th>
-            {rating ? <th>Average rating</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {series.map((p) => (
-            <tr key={p.day}>
-              <td>{p.day}</td>
-              <td>{p.reviews}</td>
-              <td>{p.replied}</td>
-              {rating ? <td>{p.rating ?? ""}</td> : null}
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Reviews</th>
+              <th>Replied</th>
+              {rating ? <th>Average rating</th> : null}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {series.map((p) => (
+              <tr key={p.day}>
+                <td>{p.day}</td>
+                <td>{p.reviews}</td>
+                <td>{p.replied}</td>
+                {rating ? <td>{p.rating ?? ""}</td> : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

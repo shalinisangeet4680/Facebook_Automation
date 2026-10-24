@@ -24,7 +24,13 @@ import {
   TONES,
 } from "@modules/engine/domain/engine.types";
 
-import { CTA_TYPES, POST_TYPES, WEEKDAYS } from "../../domain/business.types";
+import {
+  BUSINESS_DRAFT_TONES,
+  BusinessDraftTone,
+  CTA_TYPES,
+  POST_TYPES,
+  WEEKDAYS,
+} from "../../domain/business.types";
 import { REVIEW_STATES } from "../../application/business-reviews.service";
 
 export class BusinessQuietHoursDto {
@@ -253,6 +259,10 @@ export class BusinessDraftDto {
   @IsOptional()
   @IsBoolean()
   rewrite?: boolean;
+
+  @IsOptional()
+  @IsIn(BUSINESS_DRAFT_TONES)
+  tone?: BusinessDraftTone;
 }
 
 export class BusinessTemplateBodyDto {

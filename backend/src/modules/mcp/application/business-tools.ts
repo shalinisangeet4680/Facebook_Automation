@@ -15,6 +15,10 @@ import {
 import { CTA_TYPES, WEEKDAYS } from "@modules/business/domain/business.types";
 import { VERIFICATION_METHODS } from "@modules/business/domain/profile.types";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
+import {
+  AgentPermission,
+  agentPermissions,
+} from "@modules/engine/domain/engine.types";
 import { appUrl, AppConfig } from "@shared/config/app-config";
 
 type Confirmed = (
@@ -228,6 +232,15 @@ export function registerBusinessWriteTools(
     .uuid()
     .describe("A location id from list_business_locations");
   const url = (path = "") => `${appUrl(deps.config)}/business${path}`;
+  const blocked = async (permission: AgentPermission, label: string) => {
+    const settings = await deps.workspaceAi.settings(ws);
+    if (agentPermissions(settings?.agentPermissions)[permission]) return null;
+    return {
+      status: "not_allowed",
+      message: `The owner turned off "${label}" for AI assistants. They can turn it back on in TreeVook under Google Business → AI assistants.`,
+      url: url("/ai"),
+    };
+  };
   server.registerTool(
     "save_business_review_drafts",
     {
@@ -254,6 +267,8 @@ export function registerBusinessWriteTools(
     },
     (a) =>
       run(async () => {
+        const denied = await blocked("gbpDrafts", "Draft replies");
+        if (denied) return denied;
         const saved = [];
         for (const d of a.drafts) {
           const view = await reviews.saveDraft(actor, d.review_id, {
@@ -351,6 +366,8 @@ export function registerBusinessWriteTools(
     },
     ({ confirm_token, ...a }) =>
       run(async () => {
+        const denied = await blocked("gbpPosts", "Create and schedule posts");
+        if (denied) return denied;
         const input = {
           locationId: a.location_id,
           when: a.when,
@@ -435,6 +452,8 @@ export function registerBusinessWriteTools(
     },
     ({ confirm_token, location_id, ...patch }) =>
       run(async () => {
+        const denied = await blocked("gbpInfo", "Edit business info");
+        if (denied) return denied;
         const preview = await business.previewInfo(ws, location_id, patch);
         if (preview.problems.length)
           return { status: "invalid", problems: preview.problems };
@@ -490,7 +509,12 @@ export function registerBusinessWriteTools(
       },
     },
     ({ confirm_token, ...a }) =>
-      run(() => {
+      run(async () => {
+        const denied = await blocked(
+          "gbpReplySettings",
+          "Change reply settings",
+        );
+        if (denied) return denied;
         const settings = Object.fromEntries(
           Object.entries({
             tone: a.tone,
@@ -599,6 +623,11 @@ export function registerBusinessWriteTools(
     },
     ({ confirm_token, ...a }) =>
       run(async () => {
+        const denied = await blocked(
+          "gbpProfiles",
+          "Create and verify profiles",
+        );
+        if (denied) return denied;
         const region = a.address?.country ?? a.service_country;
         const pick = async (text: string) => {
           const found = (await profiles.categories(ws, text, region)).data;
@@ -711,6 +740,11 @@ export function registerBusinessWriteTools(
     },
     ({ confirm_token, ...a }) =>
       run(async () => {
+        const denied = await blocked(
+          "gbpProfiles",
+          "Create and verify profiles",
+        );
+        if (denied) return denied;
         const status = await profiles.status(ws, a.location_id);
         if (status.verified)
           return {
@@ -779,6 +813,11 @@ export function registerBusinessWriteTools(
     },
     ({ confirm_token, ...a }) =>
       run(async () => {
+        const denied = await blocked(
+          "gbpProfiles",
+          "Create and verify profiles",
+        );
+        if (denied) return denied;
         const status = await profiles.status(ws, a.location_id);
         if (status.verified)
           return {

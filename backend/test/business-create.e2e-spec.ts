@@ -108,7 +108,7 @@ describe("Google Business: create and verify profiles", () => {
     const url = new URL(start.body.url as string);
     const done = await call(app, "GET", `${url.pathname}${url.search}`);
     expect(done.headers.location).toBe(
-      "http://localhost:3200/business?connected=2",
+      "http://localhost:3200/business/connect?connected=2",
     );
     const accounts = (await api("GET", "/accounts")).body.data as Json[];
     expect(accounts).toEqual([

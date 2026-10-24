@@ -179,33 +179,36 @@ export function RateChart({
           <span key={i}>{day ? fmtDay(day) : ""}</span>
         ))}
       </div>
-      <table
+      <div
         style={{
           position: "absolute",
+          whiteSpace: "nowrap",
           width: 1,
           height: 1,
           overflow: "hidden",
           clip: "rect(0 0 0 0)",
         }}
       >
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th>Day</th>
-            <th>Rate (%)</th>
-            <th>Users</th>
-          </tr>
-        </thead>
-        <tbody>
-          {series.map((p) => (
-            <tr key={p.day}>
-              <td>{p.day}</td>
-              <td>{p.rate ?? ""}</td>
-              <td>{p.users}</td>
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Rate (%)</th>
+              <th>Users</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {series.map((p) => (
+              <tr key={p.day}>
+                <td>{p.day}</td>
+                <td>{p.rate ?? ""}</td>
+                <td>{p.users}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

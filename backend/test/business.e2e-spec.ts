@@ -1,3 +1,4 @@
+import { Resvg } from "@resvg/resvg-js";
 import { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { eq, inArray } from "drizzle-orm";
 import Redis from "ioredis";
@@ -10,11 +11,27 @@ import { users, workspaces } from "@modules/iam/infrastructure/iam.tables";
 import { DATABASE, Database } from "@shared/database/database";
 
 import { createApp } from "../src/app.factory";
-import { call } from "./helpers";
+import { call, multipartFields } from "./helpers";
 
 const OWNER = "9000000018";
 
 type Json = Record<string, any>;
+
+function noisyPng(width: number, height: number): Buffer {
+  let seed = 7;
+  const next = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const dots = Array.from({ length: 600 }, () => {
+    const c = Math.floor(next() * 0xffffff)
+      .toString(16)
+      .padStart(6, "0");
+    return `<circle cx="${Math.round(next() * width)}" cy="${Math.round(next() * height)}" r="${2 + Math.round(next() * 9)}" fill="#${c}"/>`;
+  }).join("");
+  return new Resvg(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="#f4efe6"/>${dots}</svg>`,
+  )
+    .render()
+    .asPng();
+}
 
 describe("Google Business automation", () => {
   let app: NestFastifyApplication;
@@ -104,7 +121,7 @@ describe("Google Business automation", () => {
     const done = await call(app, "GET", `${url.pathname}${url.search}`);
     expect(done.statusCode).toBe(302);
     expect(done.headers.location).toBe(
-      "http://localhost:3200/business?connected=2",
+      "http://localhost:3200/business/connect?connected=2",
     );
 
     const connections = (await api("GET", "/connections")).body.data as Json[];
@@ -193,6 +210,49 @@ describe("Google Business automation", () => {
     expect(
       (await api("GET", `/locations/${main.id}/reviews?stars=0`)).statusCode,
     ).toBe(400);
+  });
+
+  it("rewrites a draft in the tone the owner picks", async () => {
+    const inbox = (
+      await api("GET", `/inbox?filter=pending&locationId=${main.id}`)
+    ).body;
+    const review = (inbox.data as Json[]).find((r) => r.state === "waiting")!;
+    const first = (review.authorName as string).split(" ")[0];
+
+    const shorter = await api("POST", `/reviews/${review.id}/ai-draft`, {
+      tone: "shorter",
+    });
+    expect(shorter.statusCode).toBe(200);
+    expect(shorter.body.draft).toMatchObject({ source: "ai" });
+    expect(shorter.body.draft.text).toBe(
+      review.stars >= 4
+        ? `Thank you, ${first}! See you soon.`
+        : `Sorry, ${first}. Please get in touch so we can help.`,
+    );
+
+    const formal = await api("POST", `/reviews/${review.id}/ai-draft`, {
+      tone: "formal",
+    });
+    expect(formal.body.draft.text).toMatch(
+      new RegExp(`^Dear ${first}, thank you for your review\\.`),
+    );
+    const warmer = await api("POST", `/reviews/${review.id}/ai-draft`, {
+      tone: "warmer",
+    });
+    expect(warmer.body.draft.text).toContain(
+      `${first}, thank you so much for taking the time to write this.`,
+    );
+
+    const plain = await api("POST", `/reviews/${review.id}/ai-draft`, {
+      tone: "default",
+    });
+    expect(plain.statusCode).toBe(200);
+    expect(plain.body.draft.text).not.toMatch(/^Dear |See you soon\.$/);
+
+    const bad = await api("POST", `/reviews/${review.id}/ai-draft`, {
+      tone: "angry",
+    });
+    expect(bad.statusCode).toBe(400);
   });
 
   it("auto-replies to new reviews when the owner turns on auto for a rating", async () => {
@@ -354,17 +414,66 @@ describe("Google Business automation", () => {
     });
   });
 
-  it("lists the business's photos with the logo and cover first", async () => {
-    const res = await api("GET", `/locations/${main.id}/photos`);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.error).toBeNull();
-    const photos = res.body.photos as Json[];
-    expect(photos.map((p) => p.category).slice(0, 2)).toEqual([
-      "LOGO",
-      "COVER",
-    ]);
-    expect(photos).toHaveLength(6);
-    expect(photos[0]!.url).toMatch(/^data:image\/svg\+xml,/);
+  it("lists photos and videos, adds a photo and deletes it again", async () => {
+    const all = await api("GET", "/media");
+    expect(all.statusCode).toBe(200);
+    expect(all.body.error).toBeNull();
+    const items = all.body.items as Json[];
+    expect(new Set(items.map((m) => m.locationId)).size).toBe(2);
+    const mine = (await api("GET", `/media?locationId=${main.id}`)).body
+      .items as Json[];
+    expect(mine.filter((m) => m.format === "VIDEO")).toHaveLength(2);
+    expect(mine.filter((m) => m.source === "customer")[0]).toMatchObject({
+      author: expect.any(String),
+      category: null,
+    });
+    expect(mine.find((m) => m.category === "LOGO")).toBeDefined();
+
+    const upload = (file: Buffer, category = "EXTERIOR") => {
+      const body = multipartFields(file, "image/png", "storefront.png", {
+        category,
+      });
+      return app.inject({
+        method: "POST",
+        url: `/api/v1/business/locations/${main.id as string}/media`,
+        headers: { ...owner, "content-type": body.contentType },
+        payload: body.payload,
+      });
+    };
+    const tiny = await upload(noisyPng(120, 120));
+    expect(tiny.statusCode).toBe(400);
+    const bad = await upload(noisyPng(400, 400), "SELFIE");
+    expect(bad.statusCode).toBe(400);
+    const added = await upload(noisyPng(400, 400));
+    expect(added.statusCode).toBe(201);
+    const photo = added.json<Json>();
+    expect(photo).toMatchObject({
+      format: "PHOTO",
+      category: "EXTERIOR",
+      source: "owner",
+      locationId: main.id,
+    });
+    expect(mock.addedPhotos.at(-1)?.sourceUrl).toMatch(/\/media\/gbp-.+\.png$/);
+    const after = (await api("GET", `/media?locationId=${main.id}`)).body
+      .items as Json[];
+    expect(after[0]!.id).toBe(photo.id);
+
+    const customer = mine.find((m) => m.source === "customer")!;
+    expect(
+      (
+        await api(
+          "DELETE",
+          `/locations/${main.id}/media/${customer.id as string}`,
+        )
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (await api("DELETE", `/locations/${main.id}/media/${photo.id as string}`))
+        .statusCode,
+    ).toBe(204);
+    const final = (await api("GET", `/media?locationId=${main.id}`)).body
+      .items as Json[];
+    expect(final.some((m) => m.id === photo.id)).toBe(false);
   });
 
   it("reports profile insights and review analytics", async () => {

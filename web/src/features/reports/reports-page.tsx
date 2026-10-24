@@ -193,25 +193,28 @@ function BarChart({
           </div>
         ) : null}
       </div>
-      <table
+      <div
         style={{
           position: "absolute",
+          whiteSpace: "nowrap",
           width: 1,
           height: 1,
           overflow: "hidden",
           clip: "rect(0 0 0 0)",
         }}
       >
-        <caption>{title}</caption>
-        <tbody>
-          {data.map((d) => (
-            <tr key={d.date}>
-              <th scope="row">{d.date}</th>
-              <td>{format(d.value)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <table>
+          <caption>{title}</caption>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.date}>
+                <th scope="row">{d.date}</th>
+                <td>{format(d.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

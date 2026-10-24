@@ -8,6 +8,7 @@ import {
   ReplyAiError,
   ReplyAiInput,
   ReplyAiResult,
+  ReplyStyle,
 } from "../domain/ports/reply-ai";
 
 export const REPLY_MODEL = "claude-opus-5";
@@ -43,10 +44,20 @@ const TONES = {
   concise: "short and direct, one or two sentences",
 };
 
-function system(input: ReplyAiInput) {
+const STYLES: Record<ReplyStyle, string> = {
+  warmer:
+    "For this reply, be warmer and more personal than usual: thank the reviewer sincerely and acknowledge what they said.",
+  shorter:
+    "For this reply, be as brief as possible: one or two short sentences.",
+  formal:
+    "For this reply, use a formal, courteous register: address the reviewer respectfully, no slang and no contractions.",
+};
+
+export function replySystem(input: ReplyAiInput) {
   return [
     SUBJECT[input.channel](input.subjectName),
     `Voice: ${TONES[input.tone]}.`,
+    input.style ? STYLES[input.style] : "",
     `Hard limits: plain text, no markdown, no emoji unless the reviewer used them, at most ${input.maxLength} characters.`,
     "Never promise refunds, dates or fixes that the facts below don't state, and never ask for passwords or payment details.",
     input.supportEmail
@@ -101,7 +112,7 @@ export class AnthropicReplyAi implements ReplyAi {
         max_tokens: 4000,
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
-        system: system(input),
+        system: replySystem(input),
         messages: [{ role: "user", content: prompt(input) }],
         output_config: {
           effort: "low",

@@ -338,6 +338,79 @@ describe("Google Business tools over MCP", () => {
     );
   });
 
+  it("blocks each Google Business capability the owner turns off for AI", async () => {
+    const off = await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: { agentPermissions: { gbpPosts: false, gbpDrafts: false } },
+    });
+    expect(off.statusCode).toBe(200);
+    expect(off.body.agentPermissions).toEqual({
+      gbpDrafts: false,
+      gbpPosts: false,
+      gbpInfo: true,
+      gbpReplySettings: true,
+      gbpProfiles: true,
+    });
+
+    const post = await tool("create_business_post", {
+      location_id: main.id,
+      text: "Blocked post",
+      when: "draft",
+    });
+    expect(post.data).toMatchObject({
+      status: "not_allowed",
+      message: expect.stringContaining("Create and schedule posts"),
+    });
+    const review = (
+      await tool("list_business_reviews", { location_id: main.id })
+    ).data.reviews[0] as Json;
+    const drafts = await tool("save_business_review_drafts", {
+      drafts: [{ review_id: review.review_id, text: "Thanks!" }],
+    });
+    expect(drafts.data.status).toBe("not_allowed");
+
+    await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: { agentPermissions: { gbpReplySettings: false } },
+    });
+    const one = await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: { agentPermissions: { gbpProfiles: false } },
+    });
+    expect(one.body.agentPermissions).toMatchObject({
+      gbpReplySettings: false,
+      gbpProfiles: false,
+      gbpPosts: false,
+      gbpDrafts: false,
+    });
+    await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: {
+        agentPermissions: { gbpReplySettings: true, gbpProfiles: true },
+      },
+    });
+
+    const bad = await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: { agentPermissions: { gbpEverything: true } },
+    });
+    expect(bad.statusCode).toBe(400);
+
+    const on = await call(app, "PUT", "/api/v1/automation/settings", {
+      headers: session,
+      body: { agentPermissions: { gbpPosts: true, gbpDrafts: true } },
+    });
+    expect(Object.values(on.body.agentPermissions as Json)).toEqual(
+      Array(5).fill(true),
+    );
+    const allowed = await tool("create_business_post", {
+      location_id: main.id,
+      text: "Allowed draft",
+      when: "draft",
+    });
+    expect(allowed.data.status).toBe("saved");
+  });
+
   it("finds a business on Google before creating one", async () => {
     const found = await tool("find_business_on_google", { name: "Gupta" });
     expect(found.data.matches).toHaveLength(2);

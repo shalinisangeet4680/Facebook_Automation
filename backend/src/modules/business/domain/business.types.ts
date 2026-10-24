@@ -3,6 +3,14 @@ import { REPLY_LIMITS } from "@modules/engine/domain/engine.types";
 export const BUSINESS_REPLY_MAX = REPLY_LIMITS.google_business.max;
 export const POST_SUMMARY_MAX = 1500;
 
+export const BUSINESS_DRAFT_TONES = [
+  "default",
+  "warmer",
+  "shorter",
+  "formal",
+] as const;
+export type BusinessDraftTone = (typeof BUSINESS_DRAFT_TONES)[number];
+
 export const POST_TYPES = ["STANDARD", "EVENT", "OFFER"] as const;
 export type PostType = (typeof POST_TYPES)[number];
 

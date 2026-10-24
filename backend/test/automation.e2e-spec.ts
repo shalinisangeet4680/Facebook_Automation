@@ -86,6 +86,13 @@ describe("Workspace AI and automation settings", () => {
       slackConnected: false,
       slackChannel: null,
       agentsCanPost: false,
+      agentPermissions: {
+        gbpDrafts: true,
+        gbpPosts: true,
+        gbpInfo: true,
+        gbpReplySettings: true,
+        gbpProfiles: true,
+      },
       notifyNewLeads: true,
     });
 

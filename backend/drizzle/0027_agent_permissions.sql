@@ -1,0 +1,1 @@
+ALTER TABLE "play_workspace_settings" ADD COLUMN "agent_permissions" jsonb DEFAULT '{}'::jsonb NOT NULL;

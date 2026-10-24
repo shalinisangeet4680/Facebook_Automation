@@ -276,70 +276,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/oauth/authorization": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AuthorizationController_context_v1"];
-        put?: never;
-        post: operations["AuthorizationController_decide_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/connector": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AuthorizationController_connector_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/connected-apps": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AuthorizationController_list_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/connected-apps/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["AuthorizationController_disconnect_v1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -444,22 +380,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["AdsController_customAudiences_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReportsController_overview_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -676,214 +596,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/social/channels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["SocialController_channels_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/social/library": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["SocialController_library_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["SocialController_list_v1"];
-        put?: never;
-        post: operations["SocialController_create_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts/{id}/retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["SocialController_retry_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts/{id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["SocialController_cancel_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inbox": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["InboxController_list_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inbox/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["InboxController_refresh_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inbox/suggestions/{id}/apply": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["InboxController_apply_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inbox/suggestions/{id}/dismiss": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["InboxController_dismiss_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inbox/suggestions/{id}/snooze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["InboxController_snooze_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ProfileController_checkup_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/profile/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["ProfileController_saveDraft_v1"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/profile/facebook/apply": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["ProfileController_apply_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/campaign-plans": {
         parameters: {
             query?: never;
@@ -1086,6 +798,294 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["MetaOAuthController_start_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_context_v1"];
+        put?: never;
+        post: operations["AuthorizationController_decide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_connector_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connected-apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthorizationController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connected-apps/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["AuthorizationController_disconnect_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportsController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_channels_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_library_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SocialController_list_v1"];
+        put?: never;
+        post: operations["SocialController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/posts/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SocialController_retry_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/posts/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SocialController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InboxController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_refresh_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_apply_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_dismiss_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inbox/suggestions/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InboxController_snooze_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProfileController_checkup_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ProfileController_saveDraft_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/facebook/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ProfileController_apply_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2196,17 +2196,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/business/locations/{id}/photos": {
+    "/api/v1/business/media": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["BusinessController_photos_v1"];
+        get: operations["BusinessController_media_v1"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BusinessController_addPhoto_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/business/locations/{id}/media/{mediaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["BusinessController_deleteMedia_v1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3230,13 +3262,13 @@ export interface components {
             key: string;
             label: string;
             /** @enum {string} */
-            status: "failed" | "passed" | "warning";
+            status: "failed" | "warning" | "passed";
             message: string;
         };
         AssetDto: {
             id: string;
             /** @enum {string} */
-            kind: "instagram" | "page" | "business" | "ad_account" | "dataset";
+            kind: "business" | "ad_account" | "page" | "instagram" | "dataset";
             externalId: string;
             name: string;
             isPrimary: boolean;
@@ -3246,7 +3278,7 @@ export interface components {
         };
         ConnectionResponseDto: {
             /** @enum {string} */
-            status: "not_connected" | "active" | "invalid";
+            status: "active" | "invalid" | "not_connected";
             /** @enum {string|null} */
             method: "system_user_token" | "facebook_login" | null;
             systemUser: components["schemas"]["SystemUserDto"] | null;
@@ -3304,61 +3336,7 @@ export interface components {
             totalCount: number;
             isComplete: boolean;
             /** @enum {string|null} */
-            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
-        };
-        AuthorizationClientDto: {
-            name: string;
-            /** @enum {string} */
-            kind: "dcr" | "cimd";
-            clientUri: string | null;
-            logoUri: string | null;
-        };
-        AuthorizationWorkspaceDto: {
-            id: string;
-            name: string;
-        };
-        AuthorizationAdAccountDto: {
-            id: string;
-            name: string;
-        };
-        AuthorizationContextDto: {
-            client: components["schemas"]["AuthorizationClientDto"];
-            redirectHost: string;
-            workspace: components["schemas"]["AuthorizationWorkspaceDto"];
-            adAccount: components["schemas"]["AuthorizationAdAccountDto"] | null;
-            writeRequested: boolean;
-        };
-        AuthorizationDecisionDto: {
-            response_type: string;
-            client_id: string;
-            redirect_uri: string;
-            code_challenge: string;
-            code_challenge_method: string;
-            state?: string;
-            scope?: string;
-            resource?: string;
-            approve: boolean;
-            allowWrite?: boolean;
-        };
-        AuthorizationRedirectDto: {
-            redirectTo: string;
-        };
-        ConnectorInfoDto: {
-            mcpUrl: string;
-            maxDailyBudget: number;
-        };
-        ConnectedAppDto: {
-            id: string;
-            name: string;
-            /** @enum {string} */
-            kind: "dcr" | "cimd";
-            clientUri: string | null;
-            scopes: string[];
-            connectedAt: string;
-            lastUsedAt: string | null;
-        };
-        ConnectedAppListDto: {
-            data: components["schemas"]["ConnectedAppDto"][];
+            goal: "leads" | "traffic" | "instant_leads" | "sales" | "awareness" | null;
         };
         SettingsWorkspaceDto: {
             id: string;
@@ -3376,7 +3354,7 @@ export interface components {
             monthlyBudget: number | null;
             targetCostPerResult: number | null;
             /** @enum {string|null} */
-            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness" | null;
+            goal: "leads" | "traffic" | "instant_leads" | "sales" | "awareness" | null;
         };
         BusinessBasicsDto: {
             websiteUrl: string | null;
@@ -3437,7 +3415,7 @@ export interface components {
         };
         TrackingGoalDto: {
             /** @enum {string} */
-            goal: "traffic" | "leads" | "instant_leads" | "sales" | "awareness";
+            goal: "leads" | "traffic" | "instant_leads" | "sales" | "awareness";
             ready: boolean;
             needs: string[];
             message: string;
@@ -3447,7 +3425,7 @@ export interface components {
             selected: boolean;
             pixel: components["schemas"]["TrackingPixelDto"] | null;
             /** @enum {string} */
-            status: "warning" | "healthy" | "missing";
+            status: "warning" | "missing" | "healthy";
             reasons: string[];
             fixes: string[];
             warnings: string[];
@@ -3468,59 +3446,6 @@ export interface components {
         CustomAudienceListDto: {
             data: components["schemas"]["CustomAudienceDto"][];
         };
-        ReportPeriodDto: {
-            since: string;
-            until: string;
-        };
-        ReportKpisDto: {
-            spend: number;
-            results: number;
-            costPerResult: number | null;
-            impressions: number;
-            reach: number;
-            linkClicks: number;
-            ctr: number | null;
-            cpm: number | null;
-        };
-        ReportDayDto: {
-            date: string;
-            spend: number;
-            results: number;
-            linkClicks: number;
-        };
-        ReportCampaignDto: {
-            id: string;
-            name: string;
-            objective: string | null;
-            status: string;
-            spend: number;
-            results: number;
-            resultType: string | null;
-            costPerResult: number | null;
-            impressions: number;
-            ctr: number | null;
-        };
-        ReportAdDto: {
-            id: string;
-            name: string;
-            spend: number;
-            results: number;
-            costPerResult: number | null;
-            ctr: number;
-        };
-        ReportOverviewDto: {
-            currency: string;
-            /** @enum {string} */
-            preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
-            period: components["schemas"]["ReportPeriodDto"];
-            previousPeriod: components["schemas"]["ReportPeriodDto"];
-            kpis: components["schemas"]["ReportKpisDto"];
-            previousKpis: components["schemas"]["ReportKpisDto"];
-            daily: components["schemas"]["ReportDayDto"][];
-            campaigns: components["schemas"]["ReportCampaignDto"][];
-            topAds: components["schemas"]["ReportAdDto"][];
-            targetCostPerResult: number | null;
-        };
         TargetingOptionDto: {
             key: string;
             name: string;
@@ -3531,6 +3456,52 @@ export interface components {
         };
         TargetingResultsDto: {
             results: components["schemas"]["TargetingOptionDto"][];
+        };
+        KeyedOptionDto: {
+            key: string;
+            name: string;
+        };
+        CityOptionDto: {
+            key: string;
+            name: string;
+            radiusKm?: number | null;
+        };
+        InterestOptionDto: {
+            id: string;
+            name: string;
+        };
+        PlanTargetingDto: {
+            countries: string[];
+            regions: components["schemas"]["KeyedOptionDto"][];
+            cities: components["schemas"]["CityOptionDto"][];
+            ageMin: number;
+            ageMax: number;
+            /** @enum {string} */
+            genders: "all" | "male" | "female";
+            interests: components["schemas"]["InterestOptionDto"][];
+            workPositions: components["schemas"]["InterestOptionDto"][];
+            industries: components["schemas"]["InterestOptionDto"][];
+            behaviors: components["schemas"]["InterestOptionDto"][];
+            customAudiences?: components["schemas"]["InterestOptionDto"][];
+            excludedCustomAudiences?: components["schemas"]["InterestOptionDto"][];
+        };
+        SavedAudienceDto: {
+            id: string;
+            name: string;
+            targeting: components["schemas"]["PlanTargetingDto"];
+            createdAt: string;
+            updatedAt: string;
+        };
+        SavedAudienceListDto: {
+            data: components["schemas"]["SavedAudienceDto"][];
+        };
+        SaveAudienceDto: {
+            name: string;
+            targeting: components["schemas"]["PlanTargetingDto"];
+        };
+        ActiveAdAccountDto: {
+            id: string;
+            name: string;
         };
         CampaignPeriodDto: {
             since: string;
@@ -3610,7 +3581,7 @@ export interface components {
         AdCreativeViewDto: {
             id: string | null;
             /** @enum {string} */
-            kind: "link" | "video" | "post" | "other";
+            kind: "link" | "video" | "other" | "post";
             editable: boolean;
             videoId: string | null;
             primaryText: string | null;
@@ -3709,215 +3680,6 @@ export interface components {
         CreativeListDto: {
             data: components["schemas"]["CreativeDto"][];
         };
-        ChannelDto: {
-            id: string;
-            name?: string;
-            username?: string;
-        };
-        ChannelsDto: {
-            facebook: components["schemas"]["ChannelDto"] | null;
-            instagram: components["schemas"]["ChannelDto"] | null;
-        };
-        LibraryPostDto: {
-            id: string;
-            /** @enum {string} */
-            platform: "instagram" | "facebook";
-            text: string | null;
-            imageUrl: string | null;
-            permalink: string | null;
-            createdAt: string;
-            likes: number | null;
-            comments: number | null;
-            mediaType: string | null;
-        };
-        LibraryDto: {
-            connected: boolean;
-            data: components["schemas"]["LibraryPostDto"][];
-        };
-        PlatformResultDto: {
-            postId?: string | null;
-            mediaId?: string | null;
-            permalink: string | null;
-            error: string | null;
-        };
-        SocialPostDto: {
-            id: string;
-            creativeId: string | null;
-            imageUrl: string;
-            /** @enum {string} */
-            mediaType: "image" | "video";
-            platforms: ("instagram" | "facebook")[];
-            facebookCaption: string | null;
-            instagramCaption: string | null;
-            /** @enum {string} */
-            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
-            scheduledAt: string;
-            publishedAt: string | null;
-            facebook: components["schemas"]["PlatformResultDto"] | null;
-            instagram: components["schemas"]["PlatformResultDto"] | null;
-            source: string;
-            createdAt: string;
-        };
-        SocialPostListDto: {
-            data: components["schemas"]["SocialPostDto"][];
-        };
-        CreatePostDto: {
-            /** Format: uuid */
-            creativeId: string;
-            platforms: ("facebook" | "instagram")[];
-            facebookCaption?: string | null;
-            instagramCaption?: string | null;
-            scheduledAt?: string | null;
-        };
-        SuggestionDto: {
-            id: string;
-            rule: string;
-            /** @enum {string} */
-            severity: "critical" | "warning" | "opportunity";
-            entityType: string;
-            entityId: string;
-            entityName: string;
-            title: string;
-            body: string;
-            evidence: {
-                [key: string]: unknown;
-            };
-            action: {
-                [key: string]: unknown;
-            };
-            /** @enum {string} */
-            status: "open" | "applied" | "dismissed" | "snoozed" | "expired";
-            snoozedUntil: string | null;
-            createdAt: string;
-        };
-        PlanToReviewDto: {
-            id: string;
-            name: string;
-            source: string;
-            createdAt: string;
-        };
-        FailedPostDto: {
-            id: string;
-            /** @enum {string} */
-            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
-            facebookError: string | null;
-            instagramError: string | null;
-            caption: string;
-            updatedAt: string;
-        };
-        InboxDto: {
-            suggestions: components["schemas"]["SuggestionDto"][];
-            plansToReview: components["schemas"]["PlanToReviewDto"][];
-            failedPosts: components["schemas"]["FailedPostDto"][];
-        };
-        RefreshResultDto: {
-            created: number;
-            open: number;
-        };
-        FacebookProfileDto: {
-            id: string;
-            name: string;
-            username: string | null;
-            link: string | null;
-            about: string | null;
-            description: string | null;
-            website: string | null;
-            phone: string | null;
-            email: string | null;
-            category: string | null;
-            pictureUrl: string | null;
-            pictureIsDefault: boolean;
-            coverUrl: string | null;
-            followers: number | null;
-        };
-        ProfileCheckDto: {
-            key: string;
-            label: string;
-            /** @enum {string} */
-            status: "missing" | "done" | "weak";
-            hint: string;
-        };
-        FacebookCheckupDto: {
-            profile: components["schemas"]["FacebookProfileDto"];
-            checks: components["schemas"]["ProfileCheckDto"][];
-            score: number;
-        };
-        InstagramProfileDto: {
-            id: string;
-            username: string;
-            name: string | null;
-            biography: string | null;
-            website: string | null;
-            pictureUrl: string | null;
-            followers: number | null;
-            posts: number | null;
-        };
-        InstagramCheckupDto: {
-            profile: components["schemas"]["InstagramProfileDto"];
-            checks: components["schemas"]["ProfileCheckDto"][];
-            score: number;
-        };
-        DraftImageDto: {
-            id: string;
-            name: string;
-            url: string;
-        };
-        FacebookDraftDto: {
-            about: string | null;
-            description: string | null;
-            website: string | null;
-            phone: string | null;
-            email: string | null;
-            picture: components["schemas"]["DraftImageDto"] | null;
-            cover: components["schemas"]["DraftImageDto"] | null;
-        };
-        InstagramDraftDto: {
-            name: string | null;
-            bio: string | null;
-            website: string | null;
-            picture: components["schemas"]["DraftImageDto"] | null;
-        };
-        ProfileDraftDto: {
-            facebook: components["schemas"]["FacebookDraftDto"];
-            instagram: components["schemas"]["InstagramDraftDto"];
-        };
-        ProfileCheckupDto: {
-            facebook: components["schemas"]["FacebookCheckupDto"] | null;
-            instagram: components["schemas"]["InstagramCheckupDto"] | null;
-            draft: components["schemas"]["ProfileDraftDto"];
-        };
-        FacebookDraftInputDto: {
-            about?: string | null;
-            description?: string | null;
-            website?: string | null;
-            phone?: string | null;
-            email?: string | null;
-            pictureCreativeId?: string | null;
-            coverCreativeId?: string | null;
-        };
-        InstagramDraftInputDto: {
-            name?: string | null;
-            bio?: string | null;
-            website?: string | null;
-            pictureCreativeId?: string | null;
-        };
-        SaveProfileDraftDto: {
-            facebook?: components["schemas"]["FacebookDraftInputDto"];
-            instagram?: components["schemas"]["InstagramDraftInputDto"];
-        };
-        ApplyFacebookDto: {
-            parts: ("about" | "description" | "website" | "phone" | "email" | "picture" | "cover")[];
-        };
-        ApplyResultDto: {
-            /** @enum {string} */
-            part: "phone" | "email" | "description" | "website" | "picture" | "about" | "cover";
-            ok: boolean;
-            error: string | null;
-        };
-        ApplyFacebookResponseDto: {
-            results: components["schemas"]["ApplyResultDto"][];
-            checkup: components["schemas"]["ProfileCheckupDto"];
-        };
         PlanSummaryDto: {
             id: string;
             /** @enum {string} */
@@ -3931,55 +3693,9 @@ export interface components {
         PlanListResponseDto: {
             data: components["schemas"]["PlanSummaryDto"][];
         };
-        KeyedOptionDto: {
-            key: string;
-            name: string;
-        };
-        CityOptionDto: {
-            key: string;
-            name: string;
-            radiusKm?: number | null;
-        };
-        InterestOptionDto: {
-            id: string;
-            name: string;
-        };
-        PlanTargetingDto: {
-            countries: string[];
-            regions: components["schemas"]["KeyedOptionDto"][];
-            cities: components["schemas"]["CityOptionDto"][];
-            ageMin: number;
-            ageMax: number;
-            /** @enum {string} */
-            genders: "all" | "male" | "female";
-            interests: components["schemas"]["InterestOptionDto"][];
-            workPositions: components["schemas"]["InterestOptionDto"][];
-            industries: components["schemas"]["InterestOptionDto"][];
-            behaviors: components["schemas"]["InterestOptionDto"][];
-            customAudiences?: components["schemas"]["InterestOptionDto"][];
-            excludedCustomAudiences?: components["schemas"]["InterestOptionDto"][];
-        };
-        SavedAudienceDto: {
-            id: string;
-            name: string;
-            targeting: components["schemas"]["PlanTargetingDto"];
-            createdAt: string;
-            updatedAt: string;
-        };
-        SavedAudienceListDto: {
-            data: components["schemas"]["SavedAudienceDto"][];
-        };
-        SaveAudienceDto: {
-            name: string;
-            targeting: components["schemas"]["PlanTargetingDto"];
-        };
-        ActiveAdAccountDto: {
-            id: string;
-            name: string;
-        };
         PlanPostDto: {
             /** @enum {string} */
-            platform: "facebook" | "instagram";
+            platform: "instagram" | "facebook";
             id: string;
             permalink?: string | null;
             imageUrl?: string | null;
@@ -4029,7 +3745,7 @@ export interface components {
             name: string;
             locale: string;
             intro: components["schemas"]["LeadFormIntroDto"];
-            questions: ("FULL_NAME" | "EMAIL" | "PHONE" | "CITY")[];
+            questions: ("EMAIL" | "FULL_NAME" | "PHONE" | "CITY")[];
             customQuestions: components["schemas"]["LeadFormCustomQuestionDto"][];
             privacyPolicyUrl: string;
             thankYou: components["schemas"]["LeadFormThankYouDto"];
@@ -4269,6 +3985,322 @@ export interface components {
         MetaOAuthUrlDto: {
             url: string;
         };
+        AuthorizationClientDto: {
+            name: string;
+            /** @enum {string} */
+            kind: "dcr" | "cimd";
+            clientUri: string | null;
+            logoUri: string | null;
+        };
+        AuthorizationWorkspaceDto: {
+            id: string;
+            name: string;
+        };
+        AuthorizationAdAccountDto: {
+            id: string;
+            name: string;
+        };
+        AuthorizationContextDto: {
+            client: components["schemas"]["AuthorizationClientDto"];
+            redirectHost: string;
+            workspace: components["schemas"]["AuthorizationWorkspaceDto"];
+            adAccount: components["schemas"]["AuthorizationAdAccountDto"] | null;
+            writeRequested: boolean;
+        };
+        AuthorizationDecisionDto: {
+            response_type: string;
+            client_id: string;
+            redirect_uri: string;
+            code_challenge: string;
+            code_challenge_method: string;
+            state?: string;
+            scope?: string;
+            resource?: string;
+            approve: boolean;
+            allowWrite?: boolean;
+        };
+        AuthorizationRedirectDto: {
+            redirectTo: string;
+        };
+        ConnectorInfoDto: {
+            mcpUrl: string;
+            maxDailyBudget: number;
+        };
+        ConnectedAppDto: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "dcr" | "cimd";
+            clientUri: string | null;
+            scopes: string[];
+            connectedAt: string;
+            lastUsedAt: string | null;
+        };
+        ConnectedAppListDto: {
+            data: components["schemas"]["ConnectedAppDto"][];
+        };
+        ReportPeriodDto: {
+            since: string;
+            until: string;
+        };
+        ReportKpisDto: {
+            spend: number;
+            results: number;
+            costPerResult: number | null;
+            impressions: number;
+            reach: number;
+            linkClicks: number;
+            ctr: number | null;
+            cpm: number | null;
+        };
+        ReportDayDto: {
+            date: string;
+            spend: number;
+            results: number;
+            linkClicks: number;
+        };
+        ReportCampaignDto: {
+            id: string;
+            name: string;
+            objective: string | null;
+            status: string;
+            spend: number;
+            results: number;
+            resultType: string | null;
+            costPerResult: number | null;
+            impressions: number;
+            ctr: number | null;
+        };
+        ReportAdDto: {
+            id: string;
+            name: string;
+            spend: number;
+            results: number;
+            costPerResult: number | null;
+            ctr: number;
+        };
+        ReportOverviewDto: {
+            currency: string;
+            /** @enum {string} */
+            preset: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            period: components["schemas"]["ReportPeriodDto"];
+            previousPeriod: components["schemas"]["ReportPeriodDto"];
+            kpis: components["schemas"]["ReportKpisDto"];
+            previousKpis: components["schemas"]["ReportKpisDto"];
+            daily: components["schemas"]["ReportDayDto"][];
+            campaigns: components["schemas"]["ReportCampaignDto"][];
+            topAds: components["schemas"]["ReportAdDto"][];
+            targetCostPerResult: number | null;
+        };
+        ChannelDto: {
+            id: string;
+            name?: string;
+            username?: string;
+        };
+        ChannelsDto: {
+            facebook: components["schemas"]["ChannelDto"] | null;
+            instagram: components["schemas"]["ChannelDto"] | null;
+        };
+        LibraryPostDto: {
+            id: string;
+            /** @enum {string} */
+            platform: "instagram" | "facebook";
+            text: string | null;
+            imageUrl: string | null;
+            permalink: string | null;
+            createdAt: string;
+            likes: number | null;
+            comments: number | null;
+            mediaType: string | null;
+        };
+        LibraryDto: {
+            connected: boolean;
+            data: components["schemas"]["LibraryPostDto"][];
+        };
+        PlatformResultDto: {
+            postId?: string | null;
+            mediaId?: string | null;
+            permalink: string | null;
+            error: string | null;
+        };
+        SocialPostDto: {
+            id: string;
+            creativeId: string | null;
+            imageUrl: string;
+            /** @enum {string} */
+            mediaType: "image" | "video";
+            platforms: ("instagram" | "facebook")[];
+            facebookCaption: string | null;
+            instagramCaption: string | null;
+            /** @enum {string} */
+            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
+            scheduledAt: string;
+            publishedAt: string | null;
+            facebook: components["schemas"]["PlatformResultDto"] | null;
+            instagram: components["schemas"]["PlatformResultDto"] | null;
+            source: string;
+            createdAt: string;
+        };
+        SocialPostListDto: {
+            data: components["schemas"]["SocialPostDto"][];
+        };
+        CreatePostDto: {
+            /** Format: uuid */
+            creativeId: string;
+            platforms: ("facebook" | "instagram")[];
+            facebookCaption?: string | null;
+            instagramCaption?: string | null;
+            scheduledAt?: string | null;
+        };
+        SuggestionDto: {
+            id: string;
+            rule: string;
+            /** @enum {string} */
+            severity: "critical" | "warning" | "opportunity";
+            entityType: string;
+            entityId: string;
+            entityName: string;
+            title: string;
+            body: string;
+            evidence: {
+                [key: string]: unknown;
+            };
+            action: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            status: "open" | "applied" | "dismissed" | "snoozed" | "expired";
+            snoozedUntil: string | null;
+            createdAt: string;
+        };
+        PlanToReviewDto: {
+            id: string;
+            name: string;
+            source: string;
+            createdAt: string;
+        };
+        FailedPostDto: {
+            id: string;
+            /** @enum {string} */
+            status: "scheduled" | "publishing" | "published" | "partially_published" | "failed" | "cancelled";
+            facebookError: string | null;
+            instagramError: string | null;
+            caption: string;
+            updatedAt: string;
+        };
+        InboxDto: {
+            suggestions: components["schemas"]["SuggestionDto"][];
+            plansToReview: components["schemas"]["PlanToReviewDto"][];
+            failedPosts: components["schemas"]["FailedPostDto"][];
+        };
+        RefreshResultDto: {
+            created: number;
+            open: number;
+        };
+        FacebookProfileDto: {
+            id: string;
+            name: string;
+            username: string | null;
+            link: string | null;
+            about: string | null;
+            description: string | null;
+            website: string | null;
+            phone: string | null;
+            email: string | null;
+            category: string | null;
+            pictureUrl: string | null;
+            pictureIsDefault: boolean;
+            coverUrl: string | null;
+            followers: number | null;
+        };
+        ProfileCheckDto: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            status: "missing" | "done" | "weak";
+            hint: string;
+        };
+        FacebookCheckupDto: {
+            profile: components["schemas"]["FacebookProfileDto"];
+            checks: components["schemas"]["ProfileCheckDto"][];
+            score: number;
+        };
+        InstagramProfileDto: {
+            id: string;
+            username: string;
+            name: string | null;
+            biography: string | null;
+            website: string | null;
+            pictureUrl: string | null;
+            followers: number | null;
+            posts: number | null;
+        };
+        InstagramCheckupDto: {
+            profile: components["schemas"]["InstagramProfileDto"];
+            checks: components["schemas"]["ProfileCheckDto"][];
+            score: number;
+        };
+        DraftImageDto: {
+            id: string;
+            name: string;
+            url: string;
+        };
+        FacebookDraftDto: {
+            about: string | null;
+            description: string | null;
+            website: string | null;
+            phone: string | null;
+            email: string | null;
+            picture: components["schemas"]["DraftImageDto"] | null;
+            cover: components["schemas"]["DraftImageDto"] | null;
+        };
+        InstagramDraftDto: {
+            name: string | null;
+            bio: string | null;
+            website: string | null;
+            picture: components["schemas"]["DraftImageDto"] | null;
+        };
+        ProfileDraftDto: {
+            facebook: components["schemas"]["FacebookDraftDto"];
+            instagram: components["schemas"]["InstagramDraftDto"];
+        };
+        ProfileCheckupDto: {
+            facebook: components["schemas"]["FacebookCheckupDto"] | null;
+            instagram: components["schemas"]["InstagramCheckupDto"] | null;
+            draft: components["schemas"]["ProfileDraftDto"];
+        };
+        FacebookDraftInputDto: {
+            about?: string | null;
+            description?: string | null;
+            website?: string | null;
+            phone?: string | null;
+            email?: string | null;
+            pictureCreativeId?: string | null;
+            coverCreativeId?: string | null;
+        };
+        InstagramDraftInputDto: {
+            name?: string | null;
+            bio?: string | null;
+            website?: string | null;
+            pictureCreativeId?: string | null;
+        };
+        SaveProfileDraftDto: {
+            facebook?: components["schemas"]["FacebookDraftInputDto"];
+            instagram?: components["schemas"]["InstagramDraftInputDto"];
+        };
+        ApplyFacebookDto: {
+            parts: ("about" | "description" | "website" | "phone" | "email" | "picture" | "cover")[];
+        };
+        ApplyResultDto: {
+            /** @enum {string} */
+            part: "phone" | "email" | "description" | "website" | "picture" | "about" | "cover";
+            ok: boolean;
+            error: string | null;
+        };
+        ApplyFacebookResponseDto: {
+            results: components["schemas"]["ApplyResultDto"][];
+            checkup: components["schemas"]["ProfileCheckupDto"];
+        };
         StoreChoiceDto: {
             /** @enum {string} */
             style: "callouts" | "light" | "bold" | "minimal";
@@ -4350,6 +4382,13 @@ export interface components {
         AddedCreativesDto: {
             data: components["schemas"]["CreativeDto"][];
         };
+        AgentPermissionsDto: {
+            gbpDrafts: boolean;
+            gbpPosts: boolean;
+            gbpInfo: boolean;
+            gbpReplySettings: boolean;
+            gbpProfiles: boolean;
+        };
         WorkspaceSettingsViewDto: {
             /** @enum {string} */
             aiMode: "platform" | "own" | "off";
@@ -4362,6 +4401,7 @@ export interface components {
             slackConnected: boolean;
             slackChannel: string | null;
             agentsCanPost: boolean;
+            agentPermissions: components["schemas"]["AgentPermissionsDto"];
             mcpUrl: string;
             token: string | null;
             tokenCreatedAt: string | null;
@@ -4546,6 +4586,8 @@ export interface components {
             error: string | null;
         };
         ConnectResultDto: {
+            /** @enum {string} */
+            kind: "key" | "managed";
             id: string;
             clientEmail: string;
             projectId: string;
@@ -5011,7 +5053,15 @@ export interface components {
             slackConnected: boolean;
             slackChannel: string | null;
             agentsCanPost: boolean;
+            agentPermissions: components["schemas"]["AgentPermissionsDto"];
             notifyNewLeads: boolean;
+        };
+        AgentPermissionsInputDto: {
+            gbpDrafts?: boolean;
+            gbpPosts?: boolean;
+            gbpInfo?: boolean;
+            gbpReplySettings?: boolean;
+            gbpProfiles?: boolean;
         };
         UpdateAutomationSettingsDto: {
             /** @enum {string} */
@@ -5020,6 +5070,7 @@ export interface components {
             slackWebhook?: string | null;
             slackChannel?: string | null;
             agentsCanPost?: boolean;
+            agentPermissions?: components["schemas"]["AgentPermissionsInputDto"];
             notifyNewLeads?: boolean;
         };
         ReleasesAppDto: {
@@ -5501,26 +5552,34 @@ export interface components {
         BusinessSuggestionListDto: {
             data: components["schemas"]["BusinessSuggestionDto"][];
         };
-        GbpPhotoDto: {
-            name: string;
+        LocationInfoDto: {
+            info: components["schemas"]["BusinessInfoDto"];
+            mapsUri: string | null;
+            newReviewUri: string | null;
+            verified: boolean;
+        };
+        GbpMediaDto: {
             /** @enum {string} */
-            category: "COVER" | "PROFILE" | "LOGO" | "EXTERIOR" | "INTERIOR" | "PRODUCT" | "AT_WORK" | "FOOD_AND_DRINK" | "MENU" | "COMMON_AREA" | "ROOMS" | "TEAMS" | "ADDITIONAL";
+            format: "PHOTO" | "VIDEO";
+            /** @enum {string|null} */
+            category: "COVER" | "PROFILE" | "LOGO" | "EXTERIOR" | "INTERIOR" | "PRODUCT" | "AT_WORK" | "FOOD_AND_DRINK" | "MENU" | "COMMON_AREA" | "ROOMS" | "TEAMS" | "ADDITIONAL" | null;
+            /** @enum {string} */
+            source: "owner" | "customer";
+            id: string;
+            name: string;
+            locationId: string;
             url: string;
             thumbnailUrl: string;
             width: number | null;
             height: number | null;
             views: number | null;
             createTime: string;
+            author: string | null;
+            authorPhoto: string | null;
         };
-        GbpPhotoListDto: {
-            photos: components["schemas"]["GbpPhotoDto"][];
+        GbpMediaListDto: {
+            items: components["schemas"]["GbpMediaDto"][];
             error: string | null;
-        };
-        LocationInfoDto: {
-            info: components["schemas"]["BusinessInfoDto"];
-            mapsUri: string | null;
-            newReviewUri: string | null;
-            verified: boolean;
         };
         OpeningPeriodDto: {
             /** @enum {string} */
@@ -5625,6 +5684,8 @@ export interface components {
         };
         BusinessDraftDto: {
             rewrite?: boolean;
+            /** @enum {string} */
+            tone?: "default" | "warmer" | "shorter" | "formal";
         };
         BusinessApproveAllDto: {
             replyIds: string[];
@@ -7145,154 +7206,6 @@ export interface operations {
             };
         };
     };
-    AuthorizationController_context_v1: {
-        parameters: {
-            query: {
-                response_type: string;
-                client_id: string;
-                redirect_uri: string;
-                code_challenge: string;
-                code_challenge_method: string;
-                state?: string;
-                scope?: string;
-                resource?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthorizationContextDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AuthorizationController_decide_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthorizationDecisionDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthorizationRedirectDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AuthorizationController_connector_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectorInfoDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AuthorizationController_list_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectedAppListDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AuthorizationController_disconnect_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
     SettingsController_get_v1: {
         parameters: {
             query?: never;
@@ -7486,35 +7399,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomAudienceListDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    ReportsController_overview_v1: {
-        parameters: {
-            query?: {
-                preset?: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportOverviewDto"];
                 };
             };
             default: {
@@ -8053,408 +7937,6 @@ export interface operations {
             };
         };
     };
-    SocialController_channels_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChannelsDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    SocialController_library_v1: {
-        parameters: {
-            query: {
-                platform: "facebook" | "instagram";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LibraryDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    SocialController_list_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialPostListDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    SocialController_create_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePostDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialPostDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    SocialController_retry_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialPostDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    SocialController_cancel_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialPostDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    InboxController_list_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InboxDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    InboxController_refresh_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RefreshResultDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    InboxController_apply_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuggestionDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    InboxController_dismiss_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuggestionDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    InboxController_snooze_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuggestionDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    ProfileController_checkup_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProfileCheckupDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    ProfileController_saveDraft_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SaveProfileDraftDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProfileDraftDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    ProfileController_apply_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplyFacebookDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplyFacebookResponseDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
     PlansController_list_v1: {
         parameters: {
             query?: never;
@@ -8923,6 +8405,585 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetaOAuthUrlDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_context_v1: {
+        parameters: {
+            query: {
+                response_type: string;
+                client_id: string;
+                redirect_uri: string;
+                code_challenge: string;
+                code_challenge_method: string;
+                state?: string;
+                scope?: string;
+                resource?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationContextDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_decide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationDecisionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationRedirectDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_connector_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorInfoDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectedAppListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthorizationController_disconnect_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ReportsController_overview_v1: {
+        parameters: {
+            query?: {
+                preset?: "last_7d" | "last_14d" | "last_30d" | "this_month" | "last_month";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOverviewDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_channels_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelsDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_library_v1: {
+        parameters: {
+            query: {
+                platform: "facebook" | "instagram";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_retry_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SocialController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialPostDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_refresh_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResultDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_apply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_dismiss_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    InboxController_snooze_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_checkup_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCheckupDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_saveDraft_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveProfileDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileDraftDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_apply_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyFacebookDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyFacebookResponseDto"];
                 };
             };
             default: {
@@ -11422,35 +11483,6 @@ export interface operations {
             };
         };
     };
-    BusinessController_photos_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GbpPhotoListDto"];
-                };
-            };
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
     BusinessController_updateInfo_v1: {
         parameters: {
             query?: never;
@@ -11473,6 +11505,101 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LocationInfoDto"];
                 };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_media_v1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpMediaListDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_addPhoto_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    /** @enum {string} */
+                    category?: "COVER" | "PROFILE" | "LOGO" | "EXTERIOR" | "INTERIOR" | "PRODUCT" | "AT_WORK" | "FOOD_AND_DRINK" | "MENU" | "COMMON_AREA" | "ROOMS" | "TEAMS" | "ADDITIONAL";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GbpMediaDto"];
+                };
+            };
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BusinessController_deleteMedia_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                mediaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: {
                 headers: {

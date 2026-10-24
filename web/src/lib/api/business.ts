@@ -18,7 +18,8 @@ export type GbpPost = Schemas["GbpPostDto"];
 export type GbpPostContent = Schemas["PostContentDto"];
 export type GbpPostInput = Schemas["CreateGbpPostDto"];
 export type GbpInfo = Schemas["BusinessInfoDto"];
-export type GbpPhoto = Schemas["GbpPhotoDto"];
+export type GbpMedia = Schemas["GbpMediaDto"];
+export type GbpPhotoCategory = NonNullable<GbpMedia["category"]>;
 export type GbpInfoPatch = Schemas["InfoPatchDto"];
 export type GbpOpeningPeriod = Schemas["OpeningPeriodDto"];
 export type GbpInsights = Schemas["BusinessInsightsDto"];
@@ -50,7 +51,7 @@ export const businessKeys = {
   reviews: (id: string, stars?: number) =>
     [...root, "locations", id, "reviews", stars ?? "any"] as const,
   info: (id: string) => [...root, "locations", id, "info"] as const,
-  photos: (id: string) => [...root, "locations", id, "photos"] as const,
+  media: (locationId?: string) => [...root, "media", locationId ?? "all"] as const,
   suggestions: (id: string) => [...root, "locations", id, "suggestions"] as const,
   inbox: (filter: string, locationId?: string, stars?: number) =>
     [...root, "inbox", filter, locationId ?? "all", stars ?? "any"] as const,
@@ -273,13 +274,18 @@ export function useBusinessSaveDraft() {
 }
 
 export function useBusinessAiDraft() {
-  return useReviewMutation((input: { reviewId: string; rewrite?: boolean }) =>
-    unwrap(
-      api.POST("/api/v1/business/reviews/{id}/ai-draft", {
-        params: { path: { id: input.reviewId } },
-        body: { rewrite: input.rewrite },
-      }),
-    ),
+  return useReviewMutation(
+    (input: {
+      reviewId: string;
+      rewrite?: boolean;
+      tone?: "default" | "warmer" | "shorter" | "formal";
+    }) =>
+      unwrap(
+        api.POST("/api/v1/business/reviews/{id}/ai-draft", {
+          params: { path: { id: input.reviewId } },
+          body: { rewrite: input.rewrite, tone: input.tone },
+        }),
+      ),
   );
 }
 
@@ -406,12 +412,52 @@ export function useDeleteBusinessPost() {
   });
 }
 
-export function useLocationPhotos(id: string) {
+export function useBusinessMedia(locationId?: string) {
   return useQuery({
-    queryKey: businessKeys.photos(id),
-    queryFn: () =>
-      unwrap(api.GET("/api/v1/business/locations/{id}/photos", { params: { path: { id } } })),
+    queryKey: businessKeys.media(locationId),
+    queryFn: () => unwrap(api.GET("/api/v1/business/media", { params: { query: { locationId } } })),
     staleTime: 10 * 60_000,
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useAddBusinessPhoto() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      locationId,
+      file,
+      category,
+    }: {
+      locationId: string;
+      file: File;
+      category: GbpPhotoCategory;
+    }) => {
+      const form = new FormData();
+      form.append("category", category);
+      form.append("file", file);
+      return unwrap(
+        api.POST("/api/v1/business/locations/{id}/media", {
+          params: { path: { id: locationId } },
+          body: form as unknown as { file: string; category?: GbpPhotoCategory },
+          bodySerializer: (body) => body as unknown as FormData,
+        }),
+      );
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: [...root, "media"] }),
+  });
+}
+
+export function useDeleteBusinessMedia() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ locationId, mediaId }: { locationId: string; mediaId: string }) =>
+      unwrap(
+        api.DELETE("/api/v1/business/locations/{id}/media/{mediaId}", {
+          params: { path: { id: locationId, mediaId } },
+        }),
+      ),
+    onSuccess: () => void client.invalidateQueries({ queryKey: [...root, "media"] }),
   });
 }
 
@@ -559,4 +605,29 @@ export function useCompleteVerification(id: string) {
       }),
     ),
   );
+}
+
+export function useApplyReplyMode() {
+  const invalidate = useBusinessInvalidate();
+  return useMutation({
+    mutationFn: async ({ ids, mode }: { ids: string[]; mode: "auto" | "approval" }) => {
+      for (const id of ids) {
+        const l = await unwrap(
+          api.GET("/api/v1/business/locations/{id}", { params: { path: { id } } }),
+        );
+        const rules = l.settings.ratingRules.length
+          ? l.settings.ratingRules
+          : [5, 4, 3, 2, 1].map((rating) => ({ rating, templateId: null }));
+        await unwrap(
+          api.PUT("/api/v1/business/locations/{id}", {
+            params: { path: { id } },
+            body: {
+              ratingRules: rules.map((r) => ({ rating: r.rating, mode, templateId: r.templateId })),
+            },
+          }),
+        );
+      }
+    },
+    onSettled: invalidate,
+  });
 }

@@ -1,0 +1,167 @@
+.gb .gb-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gb .gb-templates-card {
+  overflow: hidden;
+}
+.gb .gb-templates-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--gb-line-soft);
+  transition: opacity 0.2s;
+}
+.gb .gb-templates-line {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+}
+.gb .gb-templates-stars {
+  width: 78px;
+  flex-shrink: 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gb .gb-templates-range {
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--gb-faint);
+}
+.gb .gb-templates-main {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.gb .gb-templates-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gb-ink);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.gb .gb-templates-tag {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.gb .gb-templates-text {
+  font-size: 13px;
+  color: var(--gb-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.gb .gb-templates-edit {
+  padding: 0 20px 16px 114px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: gb-pop 0.2s ease;
+}
+.gb .gb-templates-name {
+  font-weight: 600;
+}
+.gb .gb-templates-for {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.gb .gb-templates-for > .gb-faint:first-child {
+  margin-right: 4px;
+}
+.gb .gb-templates-chip,
+.gb .gb-templates-var {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: none;
+  background: var(--gb-line-soft);
+  font-size: 11px;
+  color: var(--gb-muted);
+  cursor: pointer;
+}
+.gb .gb-templates-chip[aria-pressed="true"] {
+  background: var(--gb-ink);
+  color: #fff;
+}
+.gb .gb-templates-note {
+  margin-left: auto;
+  font-size: 12px;
+}
+.gb .gb-templates-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gb .gb-templates-vars,
+.gb .gb-templates-save {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.gb .gb-templates-small {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.gb .gb-templates-add {
+  width: 100%;
+  height: 52px;
+  border: none;
+  background: #fbfbf9;
+  font-size: 13px;
+  color: var(--gb-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.gb .gb-templates-add:hover {
+  background: #f6f6f3;
+  color: var(--gb-ink);
+}
+@media (max-width: 759px) {
+  .gb .gb-templates-line {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .gb .gb-templates-stars {
+    width: 64px;
+    font-size: 11px;
+  }
+  .gb .gb-templates-edit {
+    padding: 0 16px 16px;
+  }
+}
+.gb .gb-templates-edit .gb-input,
+.gb .gb-templates-edit .gb-textarea {
+  box-sizing: border-box;
+}
+.gb .gb-templates-nm {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

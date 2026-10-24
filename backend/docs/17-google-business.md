@@ -12,7 +12,7 @@ The owner signs in with Google (OAuth, offline access) and grants the `business.
 | Locations and info | Business Information v1 | Reads the name, description, phone, website, address, categories and hours, and edits the first five |
 | Reviews | My Business v4 `accounts.locations.reviews` | Syncs every 30 minutes, then replies, edits replies and deletes replies |
 | Posts | My Business v4 `localPosts` | Publishes updates, offers and events, now or on a schedule |
-| Photos | My Business v4 `accounts.locations.media` | Shows the owner's photos (logo and cover first) on the Photos tab and the logo in the location header. `GET /business/locations/:id/photos` reads them live from Google, cached for an hour; Sync clears the cache |
+| Media | My Business v4 `accounts.locations.media` and `media/customers` | The Media tab (and each location's Media tab) shows the owner's photos and videos plus customer photos, newest first, in a grid with a viewer (previous/next, arrow keys, swipe). `GET /business/media?locationId=` reads them live from Google, cached for an hour per location; Sync clears it. `POST /business/locations/:id/media` (multipart `file`, `category`) takes a JPEG or PNG of 10 KB–5 MB and at least 250 × 250, stores it under `/media/gbp-*` and hands Google that public URL (`sourceUrl`). `DELETE /business/locations/:id/media/:mediaId` removes the owner's own photos and videos; customer media can't be deleted |
 | Insights | Business Profile Performance v1 | Daily views (Search and Maps), calls, website clicks, direction requests, messages and bookings |
 
 | Categories, search and creation | Business Information v1 `categories.list`, `googleLocations.search`, `accounts.locations.create` | Finds a business already on Maps, looks up categories and creates new profiles |
@@ -68,6 +68,16 @@ Without credentials, `GBP_MOCK=true` serves two sample dental clinic locations, 
 A location that Google says no longer exists, or that the account can't manage, is archived with its data and restored when it comes back.
 
 ## MCP tools
+
+The owner controls what AI assistants may do on **Google Business → AI assistants** (`agentPermissions` in `PUT /automation/settings`, stored on `play_workspace_settings.agent_permissions`). Reading is always allowed. Sending replies follows the workspace-wide `agentsCanPost`. The rest default to on and each blocks its tools with `status: not_allowed` when turned off:
+
+| Permission | Tools |
+|---|---|
+| `gbpDrafts` | `save_business_review_drafts` |
+| `gbpPosts` | `create_business_post` |
+| `gbpInfo` | `update_business_info` |
+| `gbpReplySettings` | `update_business_reply_settings` |
+| `gbpProfiles` | `create_business_profile`, `start_business_verification`, `complete_business_verification` |
 
 | Tool | Kind |
 |---|---|

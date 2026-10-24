@@ -10,16 +10,20 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
 } from "@nestjs/common";
 import {
+  ApiBody,
+  ApiConsumes,
   ApiDefaultResponse,
   ApiExcludeEndpoint,
   ApiTags,
 } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { FastifyReply } from "fastify";
+import { FastifyReply, FastifyRequest } from "fastify";
 
+import { ValidationError } from "@shared/errors/domain-error";
 import { ErrorResponseDto } from "@shared/errors/error-response.dto";
 import { CurrentUser } from "@shared/security/current-user.decorator";
 import { Public } from "@shared/security/public.decorator";
@@ -28,6 +32,7 @@ import { TenantContext } from "@shared/tenant/tenant-context";
 import { BusinessActor } from "../application/business-engine.service";
 import { BusinessReviewsService } from "../application/business-reviews.service";
 import { BusinessService } from "../application/business.service";
+import { PHOTO_CATEGORIES, PhotoCategory } from "../domain/ports/business-api";
 import {
   BusinessApproveAllDto,
   BusinessApproveDto,
@@ -58,7 +63,8 @@ import {
   GbpConnectionListDto,
   GbpLocationDetailDto,
   GbpLocationListDto,
-  GbpPhotoListDto,
+  GbpMediaDto,
+  GbpMediaListDto,
   GbpPostDto,
   GbpPostListDto,
   GbpReviewDto,
@@ -226,12 +232,62 @@ export class BusinessController {
     return this.business.info(ctx.workspaceId, locationId);
   }
 
-  @Get("locations/:id/photos")
-  photos(
+  @Get("media")
+  media(
+    @CurrentUser() ctx: TenantContext,
+    @Query() query: PostQueryDto,
+  ): Promise<GbpMediaListDto> {
+    return this.business.media(ctx.workspaceId, query.locationId);
+  }
+
+  @Throttle({ default: { limit: 60, ttl: 3_600_000 } })
+  @Post("locations/:id/media")
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["file"],
+      properties: {
+        file: { type: "string", format: "binary" },
+        category: { type: "string", enum: [...PHOTO_CATEGORIES] },
+      },
+    },
+  })
+  async addPhoto(
     @CurrentUser() ctx: TenantContext,
     @Param("id", id) locationId: string,
-  ): Promise<GbpPhotoListDto> {
-    return this.business.photos(ctx.workspaceId, locationId);
+    @Req() req: FastifyRequest,
+  ): Promise<GbpMediaDto> {
+    if (!req.isMultipart())
+      throw new ValidationError("Send the photo as multipart/form-data.");
+    const file = await req.file({
+      limits: { fileSize: 5 * 1024 * 1024 + 1, files: 1 },
+    });
+    if (!file) throw new ValidationError("Choose a photo to upload.");
+    const buffer = await file.toBuffer().catch(() => {
+      throw new ValidationError("Google takes photos up to 5 MB.");
+    });
+    const field = file.fields.category as { value?: unknown } | undefined;
+    const category =
+      typeof field?.value === "string" ? field.value : "ADDITIONAL";
+    if (!PHOTO_CATEGORIES.includes(category as PhotoCategory))
+      throw new ValidationError("Choose a photo category.");
+    return this.business.addPhoto(
+      actor(ctx),
+      locationId,
+      { buffer, mime: file.mimetype },
+      category as PhotoCategory,
+    );
+  }
+
+  @Delete("locations/:id/media/:mediaId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteMedia(
+    @CurrentUser() ctx: TenantContext,
+    @Param("id", id) locationId: string,
+    @Param("mediaId") mediaId: string,
+  ): Promise<void> {
+    return this.business.deleteMedia(actor(ctx), locationId, mediaId);
   }
 
   @Post("locations/:id/info/preview")
@@ -313,7 +369,12 @@ export class BusinessController {
     @Param("id", id) reviewId: string,
     @Body() body: BusinessDraftDto,
   ): Promise<GbpReviewDto> {
-    return this.reviews.draft(actor(ctx), reviewId, Boolean(body.rewrite));
+    return this.reviews.draft(
+      actor(ctx),
+      reviewId,
+      Boolean(body.rewrite),
+      body.tone && body.tone !== "default" ? body.tone : null,
+    );
   }
 
   @Post("reviews/:id/skip")

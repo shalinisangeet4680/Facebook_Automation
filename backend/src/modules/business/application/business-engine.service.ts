@@ -19,6 +19,7 @@ import {
   REPLY_AI,
   ReplyAi,
   ReplyAiError,
+  ReplyStyle,
 } from "@modules/engine/domain/ports/reply-ai";
 import {
   Rendered,
@@ -219,12 +220,13 @@ export class BusinessEngine {
     template: GbpTemplateRow | null,
     key: string | null,
     avoid: string | null = null,
+    style: ReplyStyle | null = null,
   ): Promise<Drafted | null> {
     const settings = this.settingsOf(location);
     const rendered = template
       ? this.renderFor(template, location, review)
       : null;
-    const wantsAi = !template || settings.personalize;
+    const wantsAi = !template || settings.personalize || Boolean(style);
     if (key && wantsAi) {
       const values = this.values(location, review);
       try {
@@ -245,6 +247,7 @@ export class BusinessEngine {
           translate: settings.translate,
           personalize: settings.personalize,
           avoid,
+          style,
           maxLength: 1000,
         });
         const text = out.text.slice(0, BUSINESS_REPLY_MAX);

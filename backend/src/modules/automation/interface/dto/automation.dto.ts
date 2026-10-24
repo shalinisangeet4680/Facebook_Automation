@@ -1,13 +1,45 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsIn,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
 
 import { AI_MODES } from "@modules/engine/domain/engine.types";
+
+export class AgentPermissionsInputDto {
+  @IsOptional()
+  @IsBoolean()
+  gbpDrafts?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  gbpPosts?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  gbpInfo?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  gbpReplySettings?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  gbpProfiles?: boolean;
+}
+
+export class AgentPermissionsDto {
+  gbpDrafts: boolean;
+  gbpPosts: boolean;
+  gbpInfo: boolean;
+  gbpReplySettings: boolean;
+  gbpProfiles: boolean;
+}
 
 export class UpdateAutomationSettingsDto {
   @IsOptional()
@@ -35,6 +67,11 @@ export class UpdateAutomationSettingsDto {
   agentsCanPost?: boolean;
 
   @IsOptional()
+  @ValidateNested()
+  @Type(() => AgentPermissionsInputDto)
+  agentPermissions?: AgentPermissionsInputDto;
+
+  @IsOptional()
   @IsBoolean()
   notifyNewLeads?: boolean;
 }
@@ -51,5 +88,6 @@ export class AutomationSettingsDto {
   slackConnected: boolean;
   slackChannel: string | null;
   agentsCanPost: boolean;
+  agentPermissions: AgentPermissionsDto;
   notifyNewLeads: boolean;
 }

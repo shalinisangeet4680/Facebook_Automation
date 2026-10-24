@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { BusinessDashboardPage } from "@/features/business/dashboard-page";
+import { BusinessHomePage } from "@/features/business/home-page";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Home" };
 
 export default function Page() {
   return (
     <Suspense>
-      <BusinessDashboardPage />
+      <BusinessHomePage />
     </Suspense>
   );
 }

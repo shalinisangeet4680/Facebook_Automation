@@ -17,7 +17,7 @@ import {
   GbpDailyMetric,
   GbpGoogleMatch,
   GbpLocation,
-  GbpPhoto,
+  GbpMedia,
   GbpPost,
   GbpReview,
   GbpReviewPage,
@@ -44,6 +44,63 @@ const mockImage = (color: string, label: string) =>
   `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="${color}"/><text x="400" y="320" font-family="sans-serif" font-size="56" fill="#fff" text-anchor="middle">${label}</text></svg>`,
   )}`;
+const MOCK_VIDEO =
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+
+const MOCK_CUSTOMERS: [string, string, string][] = [
+  ["Priya Singh", "#7C5CD6", "Waiting room"],
+  ["Rahul Verma", "#0E7490", "Clinic entrance"],
+  ["Neha Gupta", "#C2410C", "Treatment room"],
+];
+
+const seededMedia = (location: string): GbpMedia[] => {
+  const base = `${ACCOUNT}/${location}/media`;
+  const owner = MOCK_PHOTOS.map(([category, color, label], i): GbpMedia => ({
+    name: `${base}/p${i + 1}`,
+    format: "PHOTO",
+    category,
+    url: mockImage(color, label),
+    thumbnailUrl: mockImage(color, label),
+    width: 800,
+    height: 600,
+    views: 120 * (i + 1),
+    createTime: new Date(Date.UTC(2025, i, 1)),
+    source: "owner",
+    author: null,
+    authorPhoto: null,
+  }));
+  const videos = [0, 1].map((i): GbpMedia => ({
+    name: `${base}/v${i + 1}`,
+    format: "VIDEO",
+    category: i ? "TEAMS" : "INTERIOR",
+    url: MOCK_VIDEO,
+    thumbnailUrl: mockImage(i ? "#1F2937" : "#334155", ""),
+    width: 1280,
+    height: 720,
+    views: 300 + i * 80,
+    createTime: new Date(Date.UTC(2025, 6 + i, 10)),
+    source: "owner",
+    author: null,
+    authorPhoto: null,
+  }));
+  const customers = MOCK_CUSTOMERS.map(
+    ([author, color, label], i): GbpMedia => ({
+      name: `${base}/customers/c${i + 1}`,
+      format: "PHOTO",
+      category: null,
+      url: mockImage(color, label),
+      thumbnailUrl: mockImage(color, label),
+      width: 800,
+      height: 600,
+      views: 40 + i * 15,
+      createTime: new Date(Date.UTC(2025, 8, 5 + i * 7)),
+      source: "customer",
+      author,
+      authorPhoto: null,
+    }),
+  );
+  return [...owner, ...videos, ...customers];
+};
 const DAY = 86_400_000;
 export const MOCK_VERIFICATION_PIN = "123456";
 
@@ -248,6 +305,13 @@ export class MockBusinessApi implements BusinessApi {
   readonly replies: { reviewName: string; text: string }[] = [];
   readonly deletedReplies: string[] = [];
   readonly createdPosts: { location: string; post: PostContent }[] = [];
+  readonly addedPhotos: {
+    location: string;
+    sourceUrl: string;
+    category: PhotoCategory;
+  }[] = [];
+  private readonly mediaItems = new Map<string, GbpMedia[]>();
+  private mediaSeq = 0;
   readonly updates: { location: string; patch: InfoPatch }[] = [];
   readonly created: { account: string; business: NewBusiness }[] = [];
   readonly verifyRequests: { location: string; request: GbpVerifyRequest }[] =
@@ -463,23 +527,64 @@ export class MockBusinessApi implements BusinessApi {
     return Promise.resolve();
   }
 
-  photos(
+  private mediaOf(refreshToken: string, location: string) {
+    this.mine(refreshToken, location);
+    const key = `${refreshToken}|${location}`;
+    let list = this.mediaItems.get(key);
+    if (!list) {
+      list = seededMedia(location);
+      this.mediaItems.set(key, list);
+    }
+    return list;
+  }
+
+  media(
     refreshToken: string,
     _account: string,
     location: string,
-  ): Promise<GbpPhoto[]> {
-    this.mine(refreshToken, location);
+  ): Promise<GbpMedia[]> {
     return Promise.resolve(
-      MOCK_PHOTOS.map(([category, color, label], i) => ({
-        name: `${location}/media/${i + 1}`,
-        category,
-        url: mockImage(color, label),
-        thumbnailUrl: mockImage(color, label),
-        width: 800,
-        height: 600,
-        views: 120 * (i + 1),
-        createTime: new Date(Date.UTC(2025, i, 1)),
-      })),
+      this.mediaOf(refreshToken, location).map((m) => ({ ...m })),
+    );
+  }
+
+  addPhoto(
+    refreshToken: string,
+    account: string,
+    location: string,
+    photo: { sourceUrl: string; category: PhotoCategory },
+  ): Promise<GbpMedia> {
+    const list = this.mediaOf(refreshToken, location);
+    this.addedPhotos.push({ location, ...photo });
+    const item: GbpMedia = {
+      name: `${account}/${location}/media/u${++this.mediaSeq}`,
+      format: "PHOTO",
+      category: photo.category,
+      url: photo.sourceUrl,
+      thumbnailUrl: photo.sourceUrl,
+      width: null,
+      height: null,
+      views: 0,
+      createTime: new Date(),
+      source: "owner",
+      author: null,
+      authorPhoto: null,
+    };
+    list.unshift(item);
+    return Promise.resolve({ ...item });
+  }
+
+  deleteMedia(refreshToken: string, name: string): Promise<void> {
+    for (const [key, list] of this.mediaItems) {
+      if (!key.startsWith(`${refreshToken}|`)) continue;
+      const i = list.findIndex((m) => m.name === name);
+      if (i >= 0) {
+        list.splice(i, 1);
+        return Promise.resolve();
+      }
+    }
+    return Promise.reject(
+      new BusinessApiError("not_found", "Google couldn't find this photo."),
     );
   }
 

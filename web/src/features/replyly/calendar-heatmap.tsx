@@ -149,26 +149,29 @@ export function CalendarHeatmap({
           ↩ replied
         </span>
       </div>
-      <table
+      <div
         style={{
           position: "absolute",
+          whiteSpace: "nowrap",
           width: 1,
           height: 1,
           overflow: "hidden",
           clip: "rect(0 0 0 0)",
         }}
       >
-        <caption>Reviews and replies per day, {title}</caption>
-        <tbody>
-          {(data.data?.series ?? []).map((p) => (
-            <tr key={p.day}>
-              <td>{p.day}</td>
-              <td>{p.reviews} reviews</td>
-              <td>{p.replied} replied</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <table>
+          <caption>Reviews and replies per day, {title}</caption>
+          <tbody>
+            {(data.data?.series ?? []).map((p) => (
+              <tr key={p.day}>
+                <td>{p.day}</td>
+                <td>{p.reviews} reviews</td>
+                <td>{p.replied} replied</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

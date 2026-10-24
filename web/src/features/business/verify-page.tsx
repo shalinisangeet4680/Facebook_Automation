@@ -5,31 +5,22 @@ import { useParams } from "next/navigation";
 
 import { errorMessage } from "@/lib/api/errors";
 import { useLocation } from "@/lib/api/business";
-import { Banner, PageHead } from "@/features/replyly/ui";
 
+import "./location.css";
+import { Notice } from "./ui";
 import { VerifyPanel } from "./verify-panel";
 
 export function VerifyPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation(id);
   return (
-    <div
-      className="rp-in"
-      style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 860 }}
-    >
-      <Link
-        href={`/business/${id}`}
-        className="rp-btn-quiet"
-        style={{ alignSelf: "flex-start", textDecoration: "none" }}
-      >
+    <div className="gb-lp gb-narrow">
+      <h1 className="sr-only">Verify on Google</h1>
+      <Link href={`/business/${id}`} className="gb-link gb-lp-back">
         ← {location.data?.title ?? "Location"}
       </Link>
-      <PageHead
-        title="Verify on Google"
-        sub="Google shows a profile, its replies and posts once you prove you run the business."
-      />
       {location.error ? (
-        <Banner tone="error">{errorMessage(location.error)}</Banner>
+        <Notice tone="error">{errorMessage(location.error)}</Notice>
       ) : (
         <VerifyPanel locationId={id} />
       )}

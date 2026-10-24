@@ -96,6 +96,7 @@ export type PlayInboxReview = Schemas["PlayInboxReviewDto"];
 export type PlayAnalytics = Schemas["PlayAnalyticsDto"];
 export type AutomationSettings = Schemas["AutomationSettingsDto"];
 export type AutomationSettingsUpdate = Schemas["UpdateAutomationSettingsDto"];
+export type AgentPermissions = Schemas["AgentPermissionsDto"];
 export type PlayWorkspace = Schemas["WorkspaceSettingsViewDto"];
 export type PlayWorkspaceUpdate = Schemas["WorkspaceSettingsDto"];
 export type PlayMcpClient = Schemas["McpClientDto"];

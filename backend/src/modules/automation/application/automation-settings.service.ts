@@ -2,7 +2,14 @@ import { Injectable } from "@nestjs/common";
 
 import { AuditService } from "@modules/audit/application/audit.service";
 import { WorkspaceAiService } from "@modules/engine/application/workspace-ai.service";
-import { AI_MODES, AiMode } from "@modules/engine/domain/engine.types";
+import {
+  AGENT_PERMISSIONS,
+  AI_MODES,
+  AgentPermission,
+  AgentPermissions,
+  AiMode,
+  agentPermissions,
+} from "@modules/engine/domain/engine.types";
 import { REPLY_MODEL } from "@modules/engine/infrastructure/anthropic-reply.ai";
 import { WorkspaceAutomationRow } from "@modules/engine/infrastructure/engine.tables";
 import { ValidationError } from "@shared/errors/domain-error";
@@ -20,6 +27,7 @@ export interface AutomationUpdate {
   slackWebhook?: string | null;
   slackChannel?: string | null;
   agentsCanPost?: boolean;
+  agentPermissions?: Partial<AgentPermissions>;
   notifyNewLeads?: boolean;
 }
 
@@ -34,6 +42,7 @@ export interface AutomationSettingsView {
   slackConnected: boolean;
   slackChannel: string | null;
   agentsCanPost: boolean;
+  agentPermissions: AgentPermissions;
   notifyNewLeads: boolean;
 }
 
@@ -60,6 +69,7 @@ export class AutomationSettingsService {
       slackConnected: Boolean(ws?.slackWebhookCiphertext),
       slackChannel: ws?.slackChannel ?? null,
       agentsCanPost: ws?.agentsCanPost ?? false,
+      agentPermissions: agentPermissions(ws?.agentPermissions),
       notifyNewLeads: ws?.notifyNewLeads ?? true,
     };
   }
@@ -118,6 +128,20 @@ export class AutomationSettingsService {
     }
     if (input.agentsCanPost !== undefined)
       values.agentsCanPost = input.agentsCanPost;
+    if (input.agentPermissions !== undefined) {
+      const changes = Object.entries(input.agentPermissions).filter(
+        (entry): entry is [string, boolean] => typeof entry[1] === "boolean",
+      );
+      if (
+        changes.some(([k]) => !AGENT_PERMISSIONS.includes(k as AgentPermission))
+      )
+        throw new ValidationError("Unknown AI permission.");
+      const current = await this.workspaceAi.settings(actor.workspaceId);
+      values.agentPermissions = {
+        ...agentPermissions(current?.agentPermissions),
+        ...Object.fromEntries(changes),
+      };
+    }
     if (input.notifyNewLeads !== undefined)
       values.notifyNewLeads = input.notifyNewLeads;
     const fields = (Object.keys(input) as (keyof AutomationUpdate)[]).filter(

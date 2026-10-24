@@ -1,0 +1,233 @@
+.gb-connect {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  background: #fff;
+}
+.gb-connect-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  overflow-y: auto;
+}
+.gb-connect-left {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 40px;
+}
+.gb-connect-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 28px;
+  padding: 24px 0;
+}
+.gb-connect-rail {
+  display: flex;
+  gap: 6px;
+}
+.gb-connect-rail span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gb-line);
+  transition: background 0.3s;
+}
+.gb-connect-rail span[data-on="true"] {
+  background: var(--gb-green);
+}
+.gb-connect-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: gb-pop 0.3s ease;
+}
+.gb-connect-h {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gb-connect-h h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.gb-connect-h p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--gb-muted);
+}
+.gb-connect-google {
+  height: 48px;
+  border-radius: 10px;
+  border: 1px solid var(--gb-line);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gb-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.gb .gb-connect-google:hover {
+  border-color: #d5d5ce;
+}
+.gb-connect-google:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.gb-connect-loc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gb-line);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+.gb-connect-loc[aria-checked="true"] {
+  border-color: var(--gb-green);
+}
+.gb-connect-box {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: #fff;
+  border: 1.5px solid #cfcfc8;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.gb-connect-loc[aria-checked="true"] .gb-connect-box {
+  background: var(--gb-green);
+  border-color: var(--gb-green);
+}
+.gb-connect-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.gb-connect-mode {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gb-line);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gb-connect-mode[aria-checked="true"] {
+  border-color: var(--gb-green);
+  background: var(--gb-green-wash);
+}
+.gb-connect-mode-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.gb-connect-actions {
+  display: flex;
+  gap: 8px;
+}
+.gb-connect-back {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gb-line);
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--gb-ink);
+}
+.gb-connect-next {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gb-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.gb-connect-next:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.gb-connect-finish {
+  background: var(--gb-green);
+}
+.gb .gb-connect-finish:hover:not(:disabled) {
+  background: var(--gb-green-dark);
+}
+.gb-connect-art {
+  background: var(--gb-bg);
+  background-image: radial-gradient(#e2e2dc 1px, transparent 1px);
+  background-size: 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border-left: 1px solid var(--gb-line);
+}
+.gb-connect-tile {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+}
+.gb-connect-wire {
+  position: relative;
+  width: 120px;
+  height: 2px;
+  background-image: linear-gradient(90deg, #c9c9c2 50%, transparent 0);
+  background-size: 8px 2px;
+}
+.gb-connect-wire span {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--gb-green);
+  animation: gb-flow 1.6s ease-in-out infinite;
+}
+.gb-connect-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--gb-seg);
+}
+
+@media (max-width: 759px) {
+  .gb-connect {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gb-connect-left {
+    padding: 20px;
+  }
+  .gb-connect-art {
+    display: none;
+  }
+}

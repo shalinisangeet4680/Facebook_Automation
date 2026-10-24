@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
@@ -14,8 +13,11 @@ import {
   useBusinessSkip,
   useBusinessTemplates,
 } from "@/lib/api/business";
-import { ago, stars, TOPIC_STYLE, until } from "@/features/replyly/tokens";
-import { Spinner, useToast } from "@/features/replyly/ui";
+import { ago, until } from "@/features/replyly/tokens";
+import { useToast } from "@/features/replyly/ui";
+
+import { Spin } from "./location-ui";
+import { Avatar, Skel, Stars } from "./ui";
 
 const PENDING = new Set(["waiting", "claude", "scheduled", "unreplied"]);
 const MAX = 4096;
@@ -58,7 +60,6 @@ export function BusinessReviewCard({
   const failed = r.state === "failed";
   const replied = (r.state === "replied" || r.state === "skipped") && !editing;
   const topic = r.topic && r.topic !== "Other" ? r.topic : null;
-  const [tagBg, tagFg] = (topic && TOPIC_STYLE[topic]) || ["#EFEDE8", "#55534E"];
   const tplName = templates.data?.data.find((t) => t.id === r.draft?.templateId)?.name;
   const label = editing
     ? "Edit your public reply"
@@ -97,100 +98,30 @@ export function BusinessReviewCard({
   }
 
   return (
-    <article
-      className="rp-card"
-      style={{
-        padding: 18,
-        borderColor: failed ? "#F0C8C2" : "#E6E4DF",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "flex-start",
-        }}
-      >
-        <div style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
-          {r.authorPhoto ? (
-            <Image
-              unoptimized
-              src={r.authorPhoto}
-              alt=""
-              width={34}
-              height={34}
-              style={{ borderRadius: "50%", flexShrink: 0 }}
-            />
-          ) : (
-            <span
-              style={{
-                width: 34,
-                height: 34,
-                flexShrink: 0,
-                borderRadius: "50%",
-                background: "#F4F2EE",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 600,
-                fontSize: 13,
-              }}
-            >
-              {(r.authorName.trim()[0] ?? "G").toUpperCase()}
-            </span>
-          )}
+    <article className="gb-card gb-lp-review" data-failed={failed}>
+      <div className="gb-lp-review-head">
+        <div className="gb-lp-review-who">
+          <Avatar name={r.authorName || "G"} photo={r.authorPhoto} size={34} />
           <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-            <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontWeight: 500 }}>{r.authorName || "A Google user"}</span>
-              <span
-                style={{ color: "#C9A227", fontSize: 12, letterSpacing: 1 }}
-                aria-label={`${r.stars} stars`}
-              >
-                {stars(r.stars)}
-              </span>
+            <span className="gb-lp-review-name">
+              <span>{r.authorName || "A Google user"}</span>
+              <Stars n={r.stars} size={12} />
             </span>
-            <span
-              style={{
-                display: "flex",
-                gap: 6,
-                alignItems: "center",
-                fontSize: 12,
-                color: "#6C6962",
-                flexWrap: "wrap",
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: 3, background: color }} />
+            <span className="gb-lp-review-sub">
+              <span className="gb-lp-review-dot" style={{ background: color }} />
               {locationName} · {ago(r.reviewedAt)}
             </span>
           </div>
         </div>
-        {topic ? (
-          <span
-            style={{
-              padding: "3px 9px",
-              borderRadius: 999,
-              background: tagBg,
-              color: tagFg,
-              fontSize: 11.5,
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {topic}
-          </span>
-        ) : null}
+        {topic ? <span className="gb-pill gb-pill-grey">{topic}</span> : null}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <p style={{ lineHeight: 1.55, textWrap: "pretty", overflowWrap: "anywhere" }}>
-          {r.text || <span style={{ color: "#6C6962" }}>Rating only, no text.</span>}
+        <p className="gb-lp-review-text">
+          {r.text || <span style={{ color: "var(--gb-faint)" }}>Rating only, no text.</span>}
         </p>
         {r.editedAfterReply && r.reply ? (
-          <span style={{ fontSize: 12.5, color: "#8A5A00" }}>
+          <span style={{ fontSize: 12, color: "var(--gb-amber)" }}>
             Edited after your reply{r.starsBeforeEdit ? ` (was ${r.starsBeforeEdit}★)` : ""}.
             Previous reply: “{r.reply.text}”
           </span>
@@ -198,40 +129,22 @@ export function BusinessReviewCard({
       </div>
 
       {pending ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            padding: 14,
-            borderRadius: 10,
-            background: "#F7F6F3",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              fontSize: 12,
-              color: "#55534E",
-            }}
-          >
-            <span style={{ fontWeight: 500, color: "#0F6B4A" }}>{label}</span>
-            <span className="rp-mono" style={{ color: len > MAX ? "#B42318" : "#6C6962" }}>
-              {len}
-            </span>
+        <div className="gb-lp-draft">
+          <div className="gb-lp-draft-head">
+            <span className="gb-lp-draft-label">{label}</span>
+            <span style={{ color: len > MAX ? "var(--gb-red)" : "var(--gb-faint)" }}>{len}</span>
           </div>
           {draft.isPending ? (
             <div
               style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 0 10px" }}
             >
-              <div className="rp-shimmer" />
-              <div className="rp-shimmer" style={{ width: "86%" }} />
-              <div className="rp-shimmer" style={{ width: "58%" }} />
+              <Skel h={14} />
+              <Skel h={14} w="86%" />
+              <Skel h={14} w="58%" />
             </div>
           ) : (
             <textarea
+              className="gb-textarea"
               aria-label={`Reply to ${r.authorName || "this reviewer"}`}
               value={text}
               rows={3}
@@ -247,35 +160,33 @@ export function BusinessReviewCard({
                 )
                   save.mutate({ reviewId: r.id, text }, { onError: fail });
               }}
-              style={{
-                width: "100%",
-                border: "none",
-                background: "transparent",
-                resize: "vertical",
-                fontSize: 14,
-                lineHeight: 1.55,
-                color: "#191917",
-                outline: "none",
-                padding: 0,
-              }}
             />
           )}
           {!editing && (r.draft?.note || r.state === "scheduled") ? (
-            <span style={{ fontSize: 12, color: r.state === "scheduled" ? "#0F6B4A" : "#8A5A00" }}>
+            <span
+              style={{
+                fontSize: 12,
+                color: r.state === "scheduled" ? "var(--gb-green)" : "var(--gb-amber)",
+              }}
+            >
               {r.state === "scheduled" && r.draft?.sendAt
                 ? `Posts automatically ${until(r.draft.sendAt)}. Approve to post now.`
                 : r.draft?.note}
             </span>
           ) : null}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <div className="gb-lp-actions">
             {editing ? (
-              <button type="button" className="rp-btn-text" onClick={() => setEditing(false)}>
+              <button
+                type="button"
+                className="gb-btn gb-btn-ghost"
+                onClick={() => setEditing(false)}
+              >
                 Cancel
               </button>
             ) : (
               <button
                 type="button"
-                className="rp-btn-text"
+                className="gb-btn"
                 disabled={busy}
                 onClick={() =>
                   skip.mutate(
@@ -289,8 +200,7 @@ export function BusinessReviewCard({
             )}
             <button
               type="button"
-              className="rp-btn-light"
-              style={{ padding: "7px 12px" }}
+              className="gb-btn"
               disabled={busy}
               onClick={() =>
                 draft.mutate({ reviewId: r.id, rewrite: Boolean(text.trim()) }, { onError: fail })
@@ -300,12 +210,11 @@ export function BusinessReviewCard({
             </button>
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "7px 14px" }}
+              className="gb-btn gb-btn-green"
               disabled={busy || len > MAX}
               onClick={post}
             >
-              {approve.isPending || replyNow.isPending ? <Spinner size={11} /> : null}
+              {approve.isPending || replyNow.isPending ? <Spin /> : null}
               {editing ? "Update reply" : "Approve & post"}
             </button>
           </div>
@@ -313,33 +222,21 @@ export function BusinessReviewCard({
       ) : null}
 
       {failed ? (
-        <div
-          style={{
-            display: "flex",
-            gap: 14,
-            alignItems: "center",
-            padding: "12px 14px",
-            borderRadius: 10,
-            background: "#FDF0EE",
-            border: "1px dashed #E4A69E",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="gb-lp-failed">
           <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ fontWeight: 500, color: "#7A1A12", fontSize: 13.5 }}>
+            <span style={{ fontWeight: 600, color: "#7a2a08", fontSize: 13 }}>
               Reply wasn’t posted
             </span>
             <span
-              className="rp-mono"
-              style={{ fontSize: 11.5, color: "#9A3B30", overflowWrap: "anywhere" }}
+              className="gb-lp-mono"
+              style={{ fontSize: 11, color: "var(--gb-red)", overflowWrap: "anywhere" }}
             >
               {r.draft?.error ?? "Google didn’t accept the reply."}
             </span>
           </div>
           <button
             type="button"
-            className="rp-btn"
-            style={{ padding: "7px 14px" }}
+            className="gb-btn gb-btn-dark"
             disabled={approve.isPending || !r.draft}
             onClick={() =>
               r.draft &&
@@ -349,43 +246,23 @@ export function BusinessReviewCard({
               )
             }
           >
-            {approve.isPending ? <Spinner size={11} /> : null}
+            {approve.isPending ? <Spin /> : null}
             Retry
           </button>
         </div>
       ) : null}
 
       {replied ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            padding: "12px 14px",
-            borderLeft: `2px solid ${r.state === "skipped" ? "#C9C5BC" : "#0F6B4A"}`,
-            background: r.state === "skipped" ? "#F7F6F3" : "#F4F8F5",
-            borderRadius: "0 10px 10px 0",
-          }}
-        >
-          <span
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              fontSize: 12,
-              color: r.state === "skipped" ? "#55534E" : "#0F6B4A",
-              fontWeight: 500,
-              flexWrap: "wrap",
-            }}
-          >
+        <div className="gb-lp-replied" data-skipped={r.state === "skipped"}>
+          <span className="gb-lp-replied-head">
             <span>
               {r.state === "skipped" ? "Skipped" : "Replied"} · {byLine(r)}
             </span>
-            <span style={{ display: "flex", gap: 10 }}>
+            <span style={{ display: "flex", gap: 12 }}>
               {r.state === "skipped" ? (
                 <button
                   type="button"
-                  className="rp-btn-text"
+                  className="gb-link gb-lp-mini"
                   disabled={skip.isPending}
                   onClick={() => skip.mutate({ reviewId: r.id, undo: true }, { onError: fail })}
                 >
@@ -395,7 +272,7 @@ export function BusinessReviewCard({
                 <>
                   <button
                     type="button"
-                    className="rp-btn-text"
+                    className="gb-link gb-lp-mini"
                     onClick={() => {
                       setText(r.reply?.text ?? "");
                       setEditing(true);
@@ -405,8 +282,8 @@ export function BusinessReviewCard({
                   </button>
                   <button
                     type="button"
-                    className="rp-btn-text"
-                    style={{ color: "#B42318" }}
+                    className="gb-link gb-lp-mini"
+                    style={{ color: "var(--gb-red)" }}
                     disabled={remove.isPending}
                     onClick={() => {
                       if (window.confirm("Delete this reply from Google? The review stays."))
@@ -422,11 +299,7 @@ export function BusinessReviewCard({
               )}
             </span>
           </span>
-          {r.reply ? (
-            <span style={{ lineHeight: 1.55, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>
-              {r.reply.text}
-            </span>
-          ) : null}
+          {r.reply ? <span className="gb-lp-replied-text">{r.reply.text}</span> : null}
         </div>
       ) : null}
     </article>

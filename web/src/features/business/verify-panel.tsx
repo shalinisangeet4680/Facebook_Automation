@@ -12,10 +12,10 @@ import {
   useVerificationStatus,
 } from "@/lib/api/business";
 import { ago } from "@/features/replyly/tokens";
-import { Banner, Skel, Spinner, cx, useToast } from "@/features/replyly/ui";
+import { useToast } from "@/features/replyly/ui";
 
-const A = "#0F6B4A";
-const MUTED = "#6C6962";
+import { Field, Spin } from "./location-ui";
+import { Notice, Skel } from "./ui";
 
 const ICON: Record<VerificationOption["method"], LucideIcon> = {
   SMS: MessageSquare,
@@ -50,36 +50,30 @@ export function VerifyPanel({ locationId }: { locationId: string }) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
 
-  if (status.error) return <Banner tone="error">{errorMessage(status.error)}</Banner>;
+  if (status.error) return <Notice tone="error">{errorMessage(status.error)}</Notice>;
   if (!s) return <Skel h={180} r={14} />;
 
   if (s.verified)
     return (
       <div
-        className="rp-card"
-        style={{ padding: 22, display: "flex", gap: 14, alignItems: "center" }}
+        className="gb-card gb-card-pad"
+        style={{ display: "flex", gap: 14, alignItems: "center" }}
       >
         <span
+          className="gb-check-big"
           aria-hidden
           style={{
             width: 40,
             height: 40,
-            borderRadius: "50%",
-            background: "#E7F1EC",
-            color: A,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
             fontSize: 18,
-            flexShrink: 0,
+            boxShadow: "0 0 0 6px var(--gb-green-soft)",
           }}
         >
           ✓
         </span>
-        <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span style={{ fontWeight: 600 }}>{s.title} is verified on Google</span>
-          <span style={{ fontSize: 13, color: MUTED }}>{s.note}</span>
+        <span style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: 6 }}>
+          <span className="gb-title">{s.title} is verified on Google</span>
+          <span className="gb-sub">{s.note}</span>
         </span>
       </div>
     );
@@ -102,54 +96,43 @@ export function VerifyPanel({ locationId }: { locationId: string }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Banner
-        tone={s.state === "failed" || s.ownershipConflict || s.guidelinesIssue ? "warn" : "info"}
-        title={
-          s.state === "pending"
-            ? `Waiting for your code${s.methodLabel ? ` · ${s.methodLabel}` : ""}`
-            : "Unverified — finish verification"
-        }
+    <div className="gb-lp-col">
+      <Notice
+        tone={s.state === "failed" || s.ownershipConflict || s.guidelinesIssue ? "warn" : "ok"}
         action={
-          <a
-            href={s.manageUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rp-btn-light"
-            style={{ padding: "7px 12px" }}
-          >
+          <a href={s.manageUrl} target="_blank" rel="noreferrer" className="gb-btn">
             Business Profile ↗
           </a>
         }
       >
+        <span className="gb-lp-notice-title">
+          {s.state === "pending"
+            ? `Waiting for your code${s.methodLabel ? ` · ${s.methodLabel}` : ""}`
+            : "Unverified — finish verification"}
+        </span>
         {s.note}
         {s.startedAt ? ` Requested ${ago(s.startedAt)}.` : ""}
-      </Banner>
-      {s.error ? <Banner tone="error">{s.error}</Banner> : null}
+      </Notice>
+      {s.error ? <Notice tone="error">{s.error}</Notice> : null}
 
       {s.needsCode && !choosing ? (
-        <div
-          className="rp-card"
-          style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}
-        >
-          <label className="rp-field" style={{ maxWidth: 260 }}>
-            <span className="rp-label">Verification code</span>
+        <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
+          <Field label="Verification code" style={{ maxWidth: 260 }}>
             <input
-              className="rp-input rp-mono"
+              className="gb-input gb-lp-mono"
               inputMode="numeric"
               autoComplete="one-time-code"
               value={code}
               maxLength={12}
               placeholder="123456"
-              style={{ fontSize: 18, letterSpacing: "0.2em" }}
+              style={{ height: 44, fontSize: 18, letterSpacing: "0.2em" }}
               onChange={(e) => setCode(e.target.value.replace(/[^\d\s-]/g, ""))}
             />
-          </label>
+          </Field>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "9px 16px" }}
+              className="gb-btn gb-btn-green"
               disabled={code.replace(/\D/g, "").length < 4 || complete.isPending}
               onClick={() =>
                 complete.mutate(code, {
@@ -158,25 +141,22 @@ export function VerifyPanel({ locationId }: { locationId: string }) {
                 })
               }
             >
-              {complete.isPending ? <Spinner size={11} /> : null}
+              {complete.isPending ? <Spin /> : null}
               Verify
             </button>
-            <button type="button" className="rp-btn-text" onClick={() => setChoosing(true)}>
+            <button type="button" className="gb-btn gb-btn-ghost" onClick={() => setChoosing(true)}>
               Didn’t get it? Use another way
             </button>
           </div>
-          {complete.error ? <Banner tone="error">{errorMessage(complete.error)}</Banner> : null}
+          {complete.error ? <Notice tone="error">{errorMessage(complete.error)}</Notice> : null}
         </div>
       ) : (
-        <div
-          className="rp-card"
-          style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}
-        >
-          <span style={{ fontWeight: 600 }}>How should Google send your code?</span>
+        <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
+          <span className="gb-title">How should Google send your code?</span>
           {options.isPending ? (
             <Skel h={120} />
           ) : options.error ? (
-            <Banner tone="error">{errorMessage(options.error)}</Banner>
+            <Notice tone="error">{errorMessage(options.error)}</Notice>
           ) : list.length ? (
             <div
               role="radiogroup"
@@ -192,76 +172,52 @@ export function VerifyPanel({ locationId }: { locationId: string }) {
                     type="button"
                     role="radio"
                     aria-checked={on}
-                    className={cx("rp-card", "rp-row")}
+                    className="gb-lp-method"
                     onClick={() => {
                       setMethod(o.method);
                       setEmail(o.email ?? "");
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 14px",
-                      textAlign: "left",
-                      borderColor: on ? A : undefined,
-                      boxShadow: on ? `0 0 0 1px ${A}` : undefined,
-                      color: "#191917",
-                      font: "inherit",
-                    }}
                   >
-                    <span
-                      aria-hidden
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        background: on ? "#E7F1EC" : "#F4F2EE",
-                        color: on ? A : MUTED,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="gb-lp-method-icon" aria-hidden>
                       <Icon size={16} />
                     </span>
                     <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-                      <span style={{ fontWeight: 500, fontSize: 13.5 }}>{o.label}</span>
-                      <span style={{ fontSize: 12.5, color: MUTED }}>{destination(o)}</span>
+                      <span style={{ fontWeight: 500, fontSize: 14 }}>{o.label}</span>
+                      <span className="gb-faint">{destination(o)}</span>
                     </span>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <Banner tone="warn" title="Google needs another way to verify">
+            <Notice tone="warn">
+              <span className="gb-lp-notice-title">Google needs another way to verify</span>
               Google doesn’t offer a code for this business here. It may ask for a short video or
               more documents. Finish in Business Profile, then come back and refresh.
-            </Banner>
+            </Notice>
           )}
           {chosen?.method === "EMAIL" && chosen.emailEditable ? (
-            <label className="rp-field" style={{ maxWidth: 360 }}>
-              <span className="rp-label">Send the code to</span>
+            <Field
+              label="Send the code to"
+              hint={`Use an address at ${chosen.email?.split("@")[1]}.`}
+              style={{ maxWidth: 360 }}
+            >
               <input
-                className="rp-input"
+                className="gb-input"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <span style={{ fontSize: 12, color: MUTED }}>
-                Use an address at {chosen.email?.split("@")[1]}.
-              </span>
-            </label>
+            </Field>
           ) : null}
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "9px 16px" }}
+              className="gb-btn gb-btn-green"
               disabled={!chosen || start.isPending}
               onClick={send}
             >
-              {start.isPending ? <Spinner size={11} /> : null}
+              {start.isPending ? <Spin /> : null}
               {chosen?.method === "ADDRESS"
                 ? "Mail the postcard"
                 : chosen?.method === "AUTO"
@@ -269,20 +225,24 @@ export function VerifyPanel({ locationId }: { locationId: string }) {
                   : "Send code"}
             </button>
             {s.needsCode ? (
-              <button type="button" className="rp-btn-text" onClick={() => setChoosing(false)}>
+              <button
+                type="button"
+                className="gb-btn gb-btn-ghost"
+                onClick={() => setChoosing(false)}
+              >
                 I have a code
               </button>
             ) : null}
             <button
               type="button"
-              className="rp-btn-quiet"
+              className="gb-btn gb-btn-ghost"
               disabled={status.isFetching}
               onClick={() => void status.refetch()}
             >
               {status.isFetching ? "Checking…" : "Refresh status"}
             </button>
           </div>
-          {start.error ? <Banner tone="error">{errorMessage(start.error)}</Banner> : null}
+          {start.error ? <Notice tone="error">{errorMessage(start.error)}</Notice> : null}
         </div>
       )}
     </div>

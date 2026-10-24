@@ -4,9 +4,10 @@ import { Popover } from "radix-ui";
 import { useEffect, useId, useState } from "react";
 
 import { type GbpCategory, useBusinessCategories } from "@/lib/api/business";
-import { Spinner } from "@/features/replyly/ui";
 
-const MUTED = "#6C6962";
+import { Spin } from "./location-ui";
+
+const MUTED = "#8C8C85";
 
 export function CategoryPicker({
   value,
@@ -48,7 +49,7 @@ export function CategoryPicker({
       <Popover.Anchor asChild>
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <input
-            className="rp-input"
+            className="gb-input"
             role="combobox"
             aria-label={label}
             aria-expanded={open}
@@ -84,9 +85,9 @@ export function CategoryPicker({
             style={{ position: "absolute", right: 10, display: "flex", color: MUTED }}
           >
             {categories.isFetching && open ? (
-              <Spinner size={11} dark />
+              <Spin light />
             ) : value ? (
-              <span style={{ color: "#0F6B4A", fontSize: 12, fontWeight: 700 }}>✓</span>
+              <span style={{ color: "#0F7A55", fontSize: 12, fontWeight: 700 }}>✓</span>
             ) : null}
           </span>
         </div>

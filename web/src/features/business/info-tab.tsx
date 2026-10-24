@@ -9,11 +9,11 @@ import {
   usePreviewInfo,
   useUpdateInfo,
 } from "@/lib/api/business";
-import { Banner, Section, Spinner, useToast } from "@/features/replyly/ui";
+import { useToast } from "@/features/replyly/ui";
 
 import { DAYS, HoursEditor, type HoursForm, hoursForm, hoursPeriods } from "./hours-editor";
-
-const MUTED = "#6C6962";
+import { Field, Section, Spin } from "./location-ui";
+import { Notice } from "./ui";
 
 interface Form {
   title: string;
@@ -76,77 +76,56 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 820 }}>
+    <div className="gb-lp-col gb-narrow" style={{ gap: 24 }}>
       <Section
         title="Business details"
         desc="Changes go to Google right away. Google may review some edits before they show."
       >
-        <div
-          className="rp-card"
-          style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}
-        >
-          <label className="rp-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span className="rp-label">Business name</span>
+        <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
+          <Field
+            label="Business name"
+            hint="Use the name customers see on your signage. Extra keywords can get a profile suspended."
+          >
             <input
-              className="rp-input"
+              className="gb-input"
               value={form.title}
               maxLength={100}
               onChange={(e) => set("title", e.target.value)}
             />
-            <span style={{ fontSize: 12, color: MUTED }}>
-              Use the name customers see on your signage. Extra keywords can get a profile
-              suspended.
-            </span>
-          </label>
-          <label className="rp-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span className="rp-label">Description</span>
+          </Field>
+          <Field
+            label="Description"
+            hint={`${form.description.length}/750 · No links, prices or promotions.`}
+          >
             <textarea
-              className="rp-textarea"
+              className="gb-textarea"
               rows={5}
               value={form.description}
               maxLength={750}
               onChange={(e) => set("description", e.target.value)}
-              style={{ resize: "vertical" }}
             />
-            <span style={{ fontSize: 12, color: MUTED }}>
-              {form.description.length}/750 · No links, prices or promotions.
-            </span>
-          </label>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-              gap: 12,
-            }}
-          >
-            <label
-              className="rp-field"
-              style={{ display: "flex", flexDirection: "column", gap: 6 }}
-            >
-              <span className="rp-label">Phone</span>
+          </Field>
+          <div className="gb-lp-grid">
+            <Field label="Phone">
               <input
-                className="rp-input"
+                className="gb-input"
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
                 placeholder="+91 …"
               />
-            </label>
-            <label
-              className="rp-field"
-              style={{ display: "flex", flexDirection: "column", gap: 6 }}
-            >
-              <span className="rp-label">Website</span>
+            </Field>
+            <Field label="Website">
               <input
-                className="rp-input"
+                className="gb-input"
                 value={form.website}
                 onChange={(e) => set("website", e.target.value)}
                 placeholder="https://"
               />
-            </label>
+            </Field>
           </div>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", fontSize: 12.5, color: MUTED }}>
+          <div className="gb-sub" style={{ display: "flex", gap: "6px 24px", flexWrap: "wrap" }}>
             <span>
-              <span style={{ color: "#191917", fontWeight: 500 }}>Category</span>{" "}
+              <span style={{ color: "var(--gb-ink)", fontWeight: 500 }}>Category</span>{" "}
               {location.info.primaryCategory ?? "—"}
               {location.info.additionalCategories.length
                 ? ` · ${location.info.additionalCategories.join(", ")}`
@@ -154,7 +133,7 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
             </span>
             {location.info.address ? (
               <span>
-                <span style={{ color: "#191917", fontWeight: 500 }}>Address</span>{" "}
+                <span style={{ color: "var(--gb-ink)", fontWeight: 500 }}>Address</span>{" "}
                 {[
                   ...location.info.address.lines,
                   location.info.address.locality,
@@ -165,7 +144,7 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
               </span>
             ) : null}
           </div>
-          <span style={{ fontSize: 12, color: MUTED }}>
+          <span className="gb-faint">
             Change the category or address in Business Profile; Google re-verifies those.
           </span>
         </div>
@@ -180,24 +159,26 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
 
       {review ? (
         review.problems.length ? (
-          <Banner tone="error" title="Fix these first">
+          <Notice tone="error">
+            <span className="gb-lp-notice-title">Fix these first</span>
             {review.problems.join(" ")}
-          </Banner>
+          </Notice>
         ) : (
-          <Banner tone="info" title="These changes will go to Google">
+          <Notice tone="ok">
+            <span className="gb-lp-notice-title">These changes will go to Google</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {review.changes.map((c) => (
                 <span key={c}>{c}</span>
               ))}
             </span>
-          </Banner>
+          </Notice>
         )
       ) : null}
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+      <div className="gb-lp-actions">
         <button
           type="button"
-          className="rp-btn-text"
+          className="gb-btn gb-btn-ghost"
           disabled={!dirty}
           onClick={() => {
             setForm(toForm(location));
@@ -209,8 +190,7 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
         {review && !review.problems.length ? (
           <button
             type="button"
-            className="rp-btn"
-            style={{ padding: "9px 16px" }}
+            className="gb-btn gb-btn-green"
             disabled={update.isPending}
             onClick={() =>
               update.mutate(patch, {
@@ -222,14 +202,13 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
               })
             }
           >
-            {update.isPending ? <Spinner size={11} /> : null}
+            {update.isPending ? <Spin /> : null}
             Save to Google
           </button>
         ) : (
           <button
             type="button"
-            className="rp-btn"
-            style={{ padding: "9px 16px" }}
+            className="gb-btn gb-btn-dark"
             disabled={!dirty || preview.isPending}
             onClick={() =>
               preview.mutate(patch, {
@@ -238,7 +217,7 @@ export function InfoTab({ location }: { location: GbpLocationDetail }) {
               })
             }
           >
-            {preview.isPending ? <Spinner size={11} /> : null}
+            {preview.isPending ? <Spin /> : null}
             Review changes
           </button>
         )}

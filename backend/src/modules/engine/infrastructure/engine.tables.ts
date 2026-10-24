@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -27,6 +28,10 @@ export const workspaceAutomationSettings = pgTable(
     slackWebhookCiphertext: text("slack_webhook_ciphertext"),
     slackChannel: text("slack_channel"),
     agentsCanPost: boolean("agents_can_post").notNull().default(false),
+    agentPermissions: jsonb("agent_permissions")
+      .$type<Partial<Record<string, boolean>>>()
+      .notNull()
+      .default({}),
     notifyNewLeads: boolean("notify_new_leads").notNull().default(true),
     tokenHash: text("token_hash"),
     tokenCiphertext: text("token_ciphertext"),

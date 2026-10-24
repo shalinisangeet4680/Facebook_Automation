@@ -81,15 +81,24 @@ export const PHOTO_CATEGORIES = [
 
 export type PhotoCategory = (typeof PHOTO_CATEGORIES)[number];
 
-export interface GbpPhoto {
+export const MEDIA_FORMATS = ["PHOTO", "VIDEO"] as const;
+export type MediaFormat = (typeof MEDIA_FORMATS)[number];
+export const MEDIA_SOURCES = ["owner", "customer"] as const;
+export type MediaSource = (typeof MEDIA_SOURCES)[number];
+
+export interface GbpMedia {
   name: string;
-  category: PhotoCategory;
+  format: MediaFormat;
+  category: PhotoCategory | null;
   url: string;
   thumbnailUrl: string;
   width: number | null;
   height: number | null;
   views: number | null;
   createTime: Date;
+  source: MediaSource;
+  author: string | null;
+  authorPhoto: string | null;
 }
 
 export interface GbpDailyMetric extends DailyMetrics {
@@ -182,11 +191,18 @@ export interface BusinessApi {
     post: PostContent,
   ): Promise<GbpPost>;
   deletePost(refreshToken: string, postName: string): Promise<void>;
-  photos(
+  media(
     refreshToken: string,
     account: string,
     location: string,
-  ): Promise<GbpPhoto[]>;
+  ): Promise<GbpMedia[]>;
+  addPhoto(
+    refreshToken: string,
+    account: string,
+    location: string,
+    photo: { sourceUrl: string; category: PhotoCategory },
+  ): Promise<GbpMedia>;
+  deleteMedia(refreshToken: string, name: string): Promise<void>;
   metrics(
     refreshToken: string,
     location: string,

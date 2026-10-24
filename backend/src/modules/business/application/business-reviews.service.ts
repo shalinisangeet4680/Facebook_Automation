@@ -9,6 +9,7 @@ import {
   zonedDayStart,
 } from "@modules/engine/domain/analytics";
 import { ACTIVE_REPLY_STATUSES } from "@modules/engine/domain/engine.types";
+import { ReplyStyle } from "@modules/engine/domain/ports/reply-ai";
 import {
   charCount,
   pickVariant,
@@ -405,7 +406,12 @@ export class BusinessReviewsService {
     return this.view(review.id);
   }
 
-  async draft(actor: BusinessActor, reviewId: string, rewrite: boolean) {
+  async draft(
+    actor: BusinessActor,
+    reviewId: string,
+    rewrite: boolean,
+    style: ReplyStyle | null = null,
+  ) {
     const { review, location } = await this.reviewOf(
       actor.workspaceId,
       reviewId,
@@ -426,16 +432,24 @@ export class BusinessReviewsService {
     const allowed =
       Boolean(key) &&
       (await this.engine.aiAllowance(actor.workspaceId, ws)) > 0;
-    const previous = rewrite
-      ? (active?.text ?? review.replyText ?? null)
-      : null;
+    if (style && !allowed)
+      throw new ValidationError(
+        "Changing the tone needs AI drafting. Turn it on in Settings.",
+      );
+    const previous =
+      rewrite && !style ? (active?.text ?? review.replyText ?? null) : null;
     let drafted = await this.engine.draft(
       location,
       review,
       template,
       allowed ? key : null,
       previous,
+      style,
     );
+    if (style && drafted?.source !== "ai")
+      throw new ValidationError(
+        "Claude couldn't change the tone right now. Try again or edit the reply yourself.",
+      );
     if (rewrite && drafted?.source === "template" && template) {
       const values = this.engine.values(location, review);
       const others = (template.bodies[0]?.variants ?? []).filter(

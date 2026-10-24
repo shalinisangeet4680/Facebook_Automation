@@ -1,4 +1,5 @@
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const APP_REDIRECTS = new Set(["cursor://anysphere.cursor-mcp/oauth/callback"]);
 
 function parse(uri: string): URL | null {
   try {
@@ -13,6 +14,7 @@ export function isLoopback(url: URL): boolean {
 }
 
 export function isRegistrableRedirect(uri: string): boolean {
+  if (APP_REDIRECTS.has(uri)) return true;
   const url = parse(uri);
   if (!url || url.hash) return false;
   if (url.protocol === "https:") return true;

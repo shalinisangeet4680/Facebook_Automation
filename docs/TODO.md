@@ -29,15 +29,15 @@ In order. **You** marks tasks only the owner can do (accounts, approvals, paymen
 
 - [ ] **You:** finish verification of the TreeVook AI Business Profile (treevookllp@gmail.com). The 60-day clock starts at verification.
 - [ ] **You:** add a logo, cover and a few product screenshots to the profile; confirm the phone number Google filled in.
-- [ ] **You:** create a Google Cloud project for TreeVook (not `clinic-management-e1892`) and note its project number.
+- [x] Google Cloud project for TreeVook: ID `treevook`, number 193356084875.
 - [x] Business Profile API access requested for Cloud project TreeVook (193356084875) via the verified profile S S ELECTRO HOMEOPATHIC HOSPITAL (managed by treevookllp@gmail.com). Case 7-1478000041737 was rejected on 19 Oct (website mismatch); resubmitted the same day with the profile's exact website `https://arogyasystem.com/book?clinic=HyozAGvlP7bKfjoEMMlz` as case **4-4430000042309**. **Approved** with a quota of 300 requests per minute per API (`GBP_REQUESTS_PER_MINUTE`).
-- [ ] After approval:
-  - enable the four Business Profile APIs;
-  - set up the OAuth consent screen with `business.manage`;
-  - record the demo video and submit for verification;
-  - set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GBP_MOCK=false`;
-  - test against real data.
-- [ ] Add each production origin's redirect URI (`/api/v1/business/oauth/callback`) to the OAuth client.
+- [x] All five Business Profile APIs enabled (Account Management, Business Information, Performance, My Business v4, Verifications).
+- [x] OAuth consent screen in production with `openid`, `email`, `profile` and `business.manage`. Google lists `business.manage` as non-sensitive for this project, so no app verification or demo video is needed.
+- [x] Redirect URIs `/api/v1/business/oauth/callback` added for treevook.com and every product subdomain.
+- [x] Production env set (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GBP_MOCK=false`); connecting a real Google account works.
+- [ ] Optional: verify branding in Google Auth Platform so the consent screen shows "TreeVook AI" and the logo.
+- [ ] After the next deploy, test on a real profile: add a photo from the Media tab, play a video, reply tones, insights.
+- [ ] Adding a second Google account re-runs "Pick locations", which removes unticked locations; limit that step to first setup.
 
 ## 3. Meta: approval track (start in parallel)
 

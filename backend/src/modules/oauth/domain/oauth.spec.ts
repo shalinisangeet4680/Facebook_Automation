@@ -34,6 +34,22 @@ describe("redirect URIs", () => {
     expect(isRegistrableRedirect("javascript:alert(1)")).toBe(false);
   });
 
+  it("allows Cursor's app callback and no other custom scheme", () => {
+    expect(
+      isRegistrableRedirect("cursor://anysphere.cursor-mcp/oauth/callback"),
+    ).toBe(true);
+    expect(
+      isRegistrableRedirect("cursor://anysphere.cursor-mcp/oauth/other"),
+    ).toBe(false);
+    expect(isRegistrableRedirect("vscode://callback")).toBe(false);
+    expect(
+      matchesRedirect(
+        ["cursor://anysphere.cursor-mcp/oauth/callback"],
+        "cursor://anysphere.cursor-mcp/oauth/callback",
+      ),
+    ).toBe(true);
+  });
+
   it("matches exactly, or loopback with any port", () => {
     const registered = [
       "https://claude.ai/api/mcp/auth_callback",

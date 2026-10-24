@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 
+import { AgentPermissionsDto } from "@modules/automation/interface/dto/automation.dto";
+
 import {
   AI_MODES,
   DELAYS,
@@ -308,6 +310,7 @@ export class WorkspaceSettingsViewDto {
   slackConnected: boolean;
   slackChannel: string | null;
   agentsCanPost: boolean;
+  agentPermissions: AgentPermissionsDto;
   mcpUrl: string;
   token: string | null;
   tokenCreatedAt: string | null;

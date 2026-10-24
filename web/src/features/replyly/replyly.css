@@ -1,3 +1,6 @@
+body:has(> .rp) {
+  background: #f7f6f3;
+}
 .rp {
   --rp-bg: #f7f6f3;
   --rp-ink: #191917;

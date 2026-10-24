@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { errorMessage } from "@/lib/api/errors";
 import {
@@ -34,26 +34,84 @@ const TOOLS: [string, string][] = [
   ["delete_review_template", "Delete one of your templates (asks you to confirm)"],
 ];
 
-type Client = "claude" | "cursor" | "cli";
+type Client = "chatgpt" | "claude" | "cli" | "cursor" | "vscode" | "other";
 
-function snippet(client: Client, url: string, token: string): [string, string] {
+const CLIENTS: { id: Client; label: string }[] = [
+  { id: "chatgpt", label: "ChatGPT" },
+  { id: "claude", label: "Claude" },
+  { id: "cli", label: "Claude Code" },
+  { id: "cursor", label: "Cursor" },
+  { id: "vscode", label: "VS Code" },
+  { id: "other", label: "Other" },
+];
+
+const USES_TOKEN: Record<Client, boolean> = {
+  chatgpt: false,
+  claude: false,
+  cli: false,
+  cursor: true,
+  vscode: true,
+  other: true,
+};
+
+function snippet(client: Client, name: string, url: string, token: string): [string, string] {
+  if (client === "chatgpt")
+    return [
+      "ChatGPT · Settings → Apps & Connectors",
+      `1. Advanced settings → turn on Developer mode\n2. Create a connector\n   Name:           TreeVook\n   MCP server URL: ${url}\n   Authentication: OAuth\n3. Sign in to TreeVook and choose Allow\n4. In a chat, pick TreeVook from the + menu`,
+    ];
   if (client === "claude")
     return [
-      "claude_desktop_config.json",
-      `{\n  "mcpServers": {\n    "replyly": {\n      "command": "npx",\n      "args": [\n        "-y", "mcp-remote", "${url}",\n        "--header", "Authorization: Bearer ${token}"\n      ]\n    }\n  }\n}`,
+      "claude.ai, Desktop or mobile · Settings → Connectors",
+      `1. Add custom connector\n   Name: TreeVook\n   URL:  ${url}\n2. Connect, sign in to TreeVook and choose Allow`,
+    ];
+  if (client === "cli")
+    return [
+      "terminal",
+      `claude mcp add --transport http ${name} ${url}\n\n# then run /mcp in Claude Code and sign in`,
     ];
   if (client === "cursor")
     return [
-      ".cursor/mcp.json",
-      `{\n  "mcpServers": {\n    "replyly": {\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" }\n    }\n  }\n}`,
+      "~/.cursor/mcp.json",
+      `{\n  "mcpServers": {\n    "${name}": {\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" }\n    }\n  }\n}`,
+    ];
+  if (client === "vscode")
+    return [
+      ".vscode/mcp.json",
+      `{\n  "servers": {\n    "${name}": {\n      "type": "http",\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" }\n    }\n  }\n}`,
     ];
   return [
-    "terminal",
-    `claude mcp add replyly \\\n  --transport http ${url} \\\n  --header "Authorization: Bearer ${token}"`,
+    "any MCP client · stdio through mcp-remote",
+    `{\n  "mcpServers": {\n    "${name}": {\n      "command": "npx",\n      "args": [\n        "-y", "mcp-remote", "${url}",\n        "--header", "Authorization: Bearer ${token}"\n      ]\n    }\n  }\n}`,
   ];
 }
 
 export function McpPage() {
+  return (
+    <McpSetup
+      name="replyly"
+      tools={TOOLS}
+      title={
+        <>
+          Reply from your <span style={{ fontStyle: "italic" }}>agent.</span>
+        </>
+      }
+      intro="Connect ChatGPT, Claude, Cursor or any MCP client. Ask “draft replies for today’s 1-star reviews” and approve in chat."
+    />
+  );
+}
+
+export function McpSetup({
+  name,
+  tools,
+  title,
+  intro,
+}: {
+  name: string;
+  tools: [string, string][];
+  title: ReactNode;
+  intro: string;
+}) {
   const toast = useToast();
   const ws = usePlayWorkspace();
   const clients = usePlayClients();
@@ -68,7 +126,7 @@ export function McpPage() {
   const url = w?.mcpUrl ?? "";
   const masked = token ? `${token.slice(0, 8)}••••••••••${token.slice(-3)}` : (w?.token ?? null);
   const tokenText = shown && token ? token : (masked ?? "rk_live_••••••••••••••");
-  const [file, code] = snippet(client, url, tokenText);
+  const [file, code] = snippet(client, name, url, tokenText);
 
   async function fullToken() {
     if (token) return token;
@@ -92,12 +150,9 @@ export function McpPage() {
           MODEL CONTEXT PROTOCOL
         </span>
         <h1 className="rp-serif" style={{ fontSize: 36, lineHeight: 1 }}>
-          Reply from your <span style={{ fontStyle: "italic" }}>agent.</span>
+          {title}
         </h1>
-        <span style={{ color: "#55534E", fontSize: 13.5, lineHeight: 1.55 }}>
-          Connect Claude, Cursor or any MCP client. Ask “draft replies for today’s 1-star reviews”
-          and approve in chat.
-        </span>
+        <span style={{ color: "#55534E", fontSize: 13.5, lineHeight: 1.55 }}>{intro}</span>
       </div>
       {ws.error ? <Banner tone="error">{errorMessage(ws.error)}</Banner> : null}
       <div className="rp-card">
@@ -211,18 +266,8 @@ export function McpPage() {
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ alignSelf: "flex-start" }}>
-          <Seg
-            label="MCP client"
-            pad={12}
-            value={client}
-            onChange={setClient}
-            options={[
-              { id: "claude", label: "Claude Desktop" },
-              { id: "cursor", label: "Cursor" },
-              { id: "cli", label: "Claude Code" },
-            ]}
-          />
+        <div style={{ alignSelf: "flex-start", maxWidth: "100%", overflowX: "auto" }}>
+          <Seg label="MCP client" pad={12} value={client} onChange={setClient} options={CLIENTS} />
         </div>
         <div
           style={{
@@ -241,9 +286,9 @@ export function McpPage() {
           <button
             type="button"
             onClick={() =>
-              fullToken()
-                .then((t) => copyText(snippet(client, url, t)[1]))
-                .then(() => toast("Config copied"))
+              (USES_TOKEN[client] ? fullToken() : Promise.resolve(tokenText))
+                .then((t) => copyText(snippet(client, name, url, t)[1]))
+                .then(() => toast(USES_TOKEN[client] ? "Config copied" : "Steps copied"))
                 .catch(fail)
             }
             style={{
@@ -285,7 +330,7 @@ export function McpPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ fontWeight: 600 }}>Tools exposed</span>
           <div className="rp-card" style={{ borderRadius: 12 }}>
-            {TOOLS.map(([n, d], i) => (
+            {tools.map(([n, d], i) => (
               <div
                 key={n}
                 style={{

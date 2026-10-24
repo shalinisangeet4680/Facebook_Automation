@@ -5,8 +5,9 @@ import { useState } from "react";
 import type { AnalyticsRange } from "@/lib/api/queries";
 import { type GbpInsights, type GbpMetrics, useBusinessInsights } from "@/lib/api/business";
 import { rangeTitle } from "@/features/replyly/range-picker";
-import { A } from "@/features/replyly/tokens";
-import { cx, Skel } from "@/features/replyly/ui";
+
+import "./location.css";
+import { Skel } from "./ui";
 
 type Key = "views" | keyof GbpMetrics;
 
@@ -52,7 +53,7 @@ function Bars({ data, metric }: { data: GbpInsights["series"]; metric: Key }) {
         onMouseLeave={() => setHover(null)}
       >
         {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={0} x2={W} y1={H * f} y2={H * f} stroke="#EFEDE8" strokeWidth={1} />
+          <line key={f} x1={0} x2={W} y1={H * f} y2={H * f} stroke="#F2F2EE" strokeWidth={1} />
         ))}
         {values.map((v, i) => {
           const h = Math.max(v ? 2 : 0, (v / max) * (H - 8));
@@ -64,7 +65,7 @@ function Bars({ data, metric }: { data: GbpInsights["series"]; metric: Key }) {
               width={bw}
               height={h}
               rx={Math.min(3, bw / 2)}
-              fill={hover === i ? "#191917" : A}
+              fill={hover === i ? "#111110" : "#0F7A55"}
               opacity={hover === null || hover === i ? 1 : 0.55}
               onMouseEnter={() => setHover(i)}
             />
@@ -73,12 +74,11 @@ function Bars({ data, metric }: { data: GbpInsights["series"]; metric: Key }) {
       </svg>
       {tip ? (
         <div
-          className="rp-mono"
           style={{
             position: "absolute",
             top: 0,
             right: 0,
-            background: "#191917",
+            background: "var(--gb-ink)",
             color: "#fff",
             padding: "4px 8px",
             borderRadius: 6,
@@ -93,8 +93,8 @@ function Bars({ data, metric }: { data: GbpInsights["series"]; metric: Key }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 11.5,
-          color: "#6C6962",
+          fontSize: 11,
+          color: "var(--gb-faint)",
           marginTop: 6,
         }}
       >
@@ -119,14 +119,12 @@ export function InsightsPanel({
   const d = insights.data;
   const tiles = compact ? TILES.slice(0, 4) : TILES;
   return (
-    <div className="rp-card" style={{ display: "flex", flexDirection: "column" }}>
+    <div className="gb-card" style={{ display: "flex", flexDirection: "column" }}>
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(auto-fit,minmax(${compact ? 130 : 140}px,1fr))`,
-        }}
+        className="gb-lp-tiles"
+        style={compact ? { gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))" } : undefined}
       >
-        {tiles.map((t, i) => {
+        {tiles.map((t) => {
           const now = d ? valueOf(d.current, t.key) : 0;
           const before = d ? valueOf(d.previous, t.key) : 0;
           const up = now >= before;
@@ -136,32 +134,23 @@ export function InsightsPanel({
               type="button"
               aria-pressed={metric === t.key}
               onClick={() => setMetric(t.key)}
-              className={cx("rp-row")}
-              style={{
-                textAlign: "left",
-                padding: "14px 16px",
-                border: "none",
-                borderLeft: i ? "1px solid #EFEDE8" : "none",
-                borderBottom: `2px solid ${metric === t.key ? "#191917" : "transparent"}`,
-                background: "transparent",
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                cursor: "pointer",
-              }}
+              className="gb-lp-tile"
             >
-              <span style={{ fontSize: 12, color: "#6C6962" }}>{t.label}</span>
+              <span className="gb-faint">{t.label}</span>
               <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                <span
-                  className="rp-mono"
-                  style={{ fontSize: 22, letterSpacing: "-.02em", color: "#191917" }}
-                >
-                  {d ? fmt(now) : "…"}
-                </span>
+                <span className="gb-lp-tile-value">{d ? fmt(now) : "…"}</span>
                 {d && range.kind !== "all" ? (
                   <span
-                    className="rp-mono"
-                    style={{ fontSize: 12, color: now === before ? "#6C6962" : up ? A : "#B42318" }}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color:
+                        now === before
+                          ? "var(--gb-faint)"
+                          : up
+                            ? "var(--gb-green)"
+                            : "var(--gb-red)",
+                    }}
                   >
                     {change(now, before)}
                   </span>
@@ -173,18 +162,18 @@ export function InsightsPanel({
       </div>
       <div
         style={{
-          padding: 18,
-          borderTop: "1px solid #EFEDE8",
+          padding: 20,
+          borderTop: "1px solid var(--gb-line-soft)",
           display: "flex",
           flexDirection: "column",
           gap: 10,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 500 }}>
+          <span className="gb-title">
             {TILES.find((t) => t.key === metric)?.label} · {rangeTitle(range)}
           </span>
-          <span style={{ fontSize: 12, color: "#6C6962" }}>{d?.note}</span>
+          <span className="gb-faint">{d?.note}</span>
         </div>
         {d ? <Bars data={d.series} metric={metric} /> : <Skel h={200} />}
       </div>

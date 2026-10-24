@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { imageSize } from "image-size";
 
 import {
   RatingRule,
@@ -12,8 +15,17 @@ import {
   suggestFromListing,
   suggestFromReplies,
 } from "@modules/engine/domain/variable-suggestions";
+import {
+  MEDIA_STORAGE,
+  MediaStorage,
+} from "@modules/creatives/domain/ports/media-storage";
 import { CacheService } from "@shared/cache/cache.service";
-import { AppConfig, appUrl, webOrigins } from "@shared/config/app-config";
+import {
+  AppConfig,
+  appUrl,
+  mediaUrl,
+  webOrigins,
+} from "@shared/config/app-config";
 import { NotFoundError, ValidationError } from "@shared/errors/domain-error";
 import { CryptoService } from "@shared/security/crypto.service";
 
@@ -29,6 +41,7 @@ import {
 import {
   BusinessApiError,
   GbpLocation,
+  GbpMedia,
   PhotoCategory,
 } from "../domain/ports/business-api";
 import { BUSINESS_PRESETS } from "../domain/presets";
@@ -50,11 +63,13 @@ import {
 
 const STATE_TTL_MS = 15 * 60_000;
 const DAY = 86_400_000;
-const PHOTOS_TTL = 60 * 60;
-const PHOTO_ORDER: PhotoCategory[] = ["LOGO", "COVER", "PROFILE"];
-const photoRank = (c: PhotoCategory) =>
-  PHOTO_ORDER.includes(c) ? PHOTO_ORDER.indexOf(c) : PHOTO_ORDER.length;
-const photosKey = (locationId: string) => `gbp:photos:${locationId}`;
+const MEDIA_TTL = 60 * 60;
+const mediaKey = (locationId: string) => `gbp:media:${locationId}`;
+const PHOTO_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+};
+const MEDIA_ID = /^[A-Za-z0-9_-]{1,200}$/;
 
 const KEY_MAP: Record<string, string> = {
   developer_name: "team_name",
@@ -91,6 +106,7 @@ export class BusinessService {
     private readonly reviews: BusinessReviewsService,
     private readonly crypto: CryptoService,
     private readonly cache: CacheService,
+    @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
     @Inject(ConfigService) private readonly config: AppConfig,
   ) {}
 
@@ -196,7 +212,7 @@ export class BusinessService {
         email: grant.email,
       });
       const result = await this.discover(actor, connection.id);
-      return `${origin}/business?connected=${result.added.length + result.restored.length}`;
+      return `${origin}/business/connect?connected=${result.added.length + result.restored.length}`;
     } catch (err) {
       const message =
         err instanceof BusinessApiError || err instanceof ValidationError
@@ -549,7 +565,7 @@ export class BusinessService {
 
   async sync(actor: BusinessActor, id: string) {
     const l = await this.locationRow(actor.workspaceId, id);
-    await this.cache.del(photosKey(l.id));
+    await this.cache.del(mediaKey(l.id));
     const result = await this.engine.sync(l);
     if (!result.archived) {
       try {
@@ -873,33 +889,129 @@ export class BusinessService {
     };
   }
 
-  async photos(workspaceId: string, id: string) {
-    const l = await this.locationRow(workspaceId, id);
+  private async locationMedia(l: GbpLocationRow) {
+    const items = await this.cache.wrap(mediaKey(l.id), MEDIA_TTL, async () =>
+      (
+        await this.engine.api.media(
+          await this.engine.tokenFor(l),
+          l.accountName,
+          l.locationName,
+        )
+      ).map((m) => ({
+        ...m,
+        id: m.name.split("/").at(-1)!,
+        createTime: m.createTime.toISOString(),
+      })),
+    );
+    return items.map((m) => ({ ...m, locationId: l.id }));
+  }
+
+  async media(workspaceId: string, locationId?: string) {
+    const rows = locationId
+      ? [await this.locationRow(workspaceId, locationId)]
+      : await this.repo.locations(workspaceId);
+    let error: string | null = null;
+    const lists = await Promise.all(
+      rows.map(async (l) => {
+        try {
+          return await this.locationMedia(l);
+        } catch (err) {
+          await this.engine.failConnection(l.connectionId, err);
+          if (!(err instanceof BusinessApiError)) throw err;
+          error ??=
+            rows.length > 1 ? `${l.title}: ${err.message}` : err.message;
+          return [];
+        }
+      }),
+    );
+    const items = lists
+      .flat()
+      .sort((a, b) => Date.parse(b.createTime) - Date.parse(a.createTime));
+    return { items, error };
+  }
+
+  async addPhoto(
+    actor: BusinessActor,
+    locationId: string,
+    file: { buffer: Buffer; mime: string },
+    category: PhotoCategory,
+  ) {
+    const l = await this.locationRow(actor.workspaceId, locationId);
+    const ext = PHOTO_MIME[file.mime];
+    if (!ext) throw new ValidationError("Upload a JPEG or PNG photo.");
+    if (file.buffer.length < 10_240)
+      throw new ValidationError("Google needs photos of at least 10 KB.");
+    if (file.buffer.length > 5 * 1024 * 1024)
+      throw new ValidationError("Google takes photos up to 5 MB.");
+    let size: { width?: number; height?: number; type?: string };
     try {
-      const photos = await this.cache.wrap(
-        photosKey(l.id),
-        PHOTOS_TTL,
-        async () =>
-          (
-            await this.engine.api.photos(
-              await this.engine.tokenFor(l),
-              l.accountName,
-              l.locationName,
-            )
-          )
-            .sort(
-              (a, b) =>
-                photoRank(a.category) - photoRank(b.category) ||
-                b.createTime.getTime() - a.createTime.getTime(),
-            )
-            .map((p) => ({ ...p, createTime: p.createTime.toISOString() })),
+      size = imageSize(file.buffer);
+    } catch {
+      throw new ValidationError("This file isn't a readable photo.");
+    }
+    if (
+      !size.width ||
+      !size.height ||
+      !["jpg", "png"].includes(size.type ?? "")
+    )
+      throw new ValidationError("This file isn't a readable photo.");
+    if (size.width < 250 || size.height < 250)
+      throw new ValidationError(
+        "Use a photo at least 250 × 250 pixels. 720 × 720 or larger looks best.",
       );
-      return { photos, error: null };
+    const key = `gbp-${randomUUID()}.${ext}`;
+    await this.storage.put(key, file.buffer, file.mime);
+    let item: GbpMedia;
+    try {
+      item = await this.engine.api.addPhoto(
+        await this.engine.tokenFor(l),
+        l.accountName,
+        l.locationName,
+        { sourceUrl: mediaUrl(this.config, key), category },
+      );
+    } catch (err) {
+      await this.storage.remove(key);
+      await this.engine.failConnection(l.connectionId, err);
+      throw err instanceof BusinessApiError
+        ? new ValidationError(err.message)
+        : err;
+    }
+    await this.cache.del(mediaKey(l.id));
+    await this.engine.record(actor, "media_added", l.id, { category });
+    return {
+      ...item,
+      id: item.name.split("/").at(-1)!,
+      createTime: item.createTime.toISOString(),
+      locationId: l.id,
+    };
+  }
+
+  async deleteMedia(actor: BusinessActor, locationId: string, mediaId: string) {
+    const l = await this.locationRow(actor.workspaceId, locationId);
+    if (!MEDIA_ID.test(mediaId))
+      throw new NotFoundError("This photo isn't on the profile anymore.");
+    const owned = (await this.locationMedia(l)).find(
+      (m) => m.id === mediaId && m.source === "owner",
+    );
+    if (!owned)
+      throw new NotFoundError(
+        "Only photos and videos you added can be deleted. Customer media is managed by Google.",
+      );
+    try {
+      await this.engine.api.deleteMedia(
+        await this.engine.tokenFor(l),
+        owned.name,
+      );
     } catch (err) {
       await this.engine.failConnection(l.connectionId, err);
-      if (!(err instanceof BusinessApiError)) throw err;
-      return { photos: [], error: err.message };
+      throw err instanceof BusinessApiError
+        ? new ValidationError(err.message)
+        : err;
     }
+    await this.cache.del(mediaKey(l.id));
+    await this.engine.record(actor, "media_deleted", l.id, {
+      format: owned.format,
+    });
   }
 
   async previewInfo(workspaceId: string, id: string, patch: InfoPatch) {

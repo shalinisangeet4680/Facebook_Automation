@@ -42,7 +42,7 @@ export class McpAuthGuard implements CanActivate {
     if (!owner)
       throw this.challenge(
         "invalid_token",
-        "This access token was rotated or revoked. Copy the current one from the Play Reviews MCP page.",
+        "This access token was rotated or revoked. Copy the current one from the MCP page in TreeVook (Google Business or Play Reviews).",
       );
     const body = request.body as
       { method?: string; params?: { name?: unknown } } | undefined;

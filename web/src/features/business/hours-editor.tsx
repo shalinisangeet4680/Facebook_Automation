@@ -2,7 +2,8 @@
 
 import type { GbpOpeningPeriod } from "@/lib/api/business";
 import { Select } from "@/features/replyly/select";
-import { Toggle } from "@/features/replyly/ui";
+
+import { Switch } from "./ui";
 
 export const DAYS = [
   "MONDAY",
@@ -16,7 +17,6 @@ export const DAYS = [
 export type Day = (typeof DAYS)[number];
 export type HoursForm = Record<Day, { open: boolean; from: string; to: string }>;
 
-const MUTED = "#6C6962";
 const TIMES = [
   ...Array.from(
     { length: 48 },
@@ -57,26 +57,16 @@ export function HoursEditor({
   const setDay = (d: Day, v: Partial<HoursForm[Day]>) =>
     onChange({ ...value, [d]: { ...value[d], ...v } });
   return (
-    <div className="rp-card" style={{ display: "flex", flexDirection: "column" }}>
-      {DAYS.map((d, i) => {
+    <div className="gb-card">
+      {DAYS.map((d) => {
         const h = value[d];
         return (
-          <div
-            key={d}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              padding: "10px 16px",
-              borderTop: i ? "1px solid #EFEDE8" : "none",
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ width: 96, fontWeight: 500, fontSize: 13.5 }}>
+          <div key={d} className="gb-lp-hours-row gb-row">
+            <span className="gb-lp-hours-day">
               {d[0]}
               {d.slice(1).toLowerCase()}
             </span>
-            <Toggle
+            <Switch
               on={h.open}
               label={`Open on ${d.toLowerCase()}`}
               onChange={() => setDay(d, { open: !h.open })}
@@ -91,7 +81,7 @@ export function HoursEditor({
                   align="start"
                   options={TIMES.slice(0, 48).map((t) => ({ value: t, label: label(t) }))}
                 />
-                <span style={{ color: MUTED }}>to</span>
+                <span className="gb-faint">to</span>
                 <Select
                   label="Closes"
                   value={h.to}
@@ -102,7 +92,9 @@ export function HoursEditor({
                 />
               </span>
             ) : (
-              <span style={{ fontSize: 13, color: MUTED }}>Closed</span>
+              <span className="gb-faint" style={{ fontSize: 13 }}>
+                Closed
+              </span>
             )}
           </div>
         );

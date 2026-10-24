@@ -16,6 +16,10 @@ import {
   WEEKDAYS,
 } from "../../domain/business.types";
 import {
+  MEDIA_FORMATS,
+  MEDIA_SOURCES,
+  MediaFormat,
+  MediaSource,
   PHOTO_CATEGORIES,
   PhotoCategory,
 } from "../../domain/ports/business-api";
@@ -380,20 +384,28 @@ export class LocationInfoDto {
   verified: boolean;
 }
 
-export class GbpPhotoDto {
+export class GbpMediaDto {
+  id: string;
   name: string;
-  @ApiProperty({ enum: PHOTO_CATEGORIES })
-  category: PhotoCategory;
+  locationId: string;
+  @ApiProperty({ enum: MEDIA_FORMATS })
+  format: MediaFormat;
+  @ApiProperty({ enum: PHOTO_CATEGORIES, nullable: true, type: String })
+  category: PhotoCategory | null;
   url: string;
   thumbnailUrl: string;
   width: number | null;
   height: number | null;
   views: number | null;
   createTime: string;
+  @ApiProperty({ enum: MEDIA_SOURCES })
+  source: MediaSource;
+  author: string | null;
+  authorPhoto: string | null;
 }
 
-export class GbpPhotoListDto {
-  photos: GbpPhotoDto[];
+export class GbpMediaListDto {
+  items: GbpMediaDto[];
   error: string | null;
 }
 

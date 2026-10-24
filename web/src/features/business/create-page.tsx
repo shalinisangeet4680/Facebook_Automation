@@ -17,15 +17,15 @@ import {
   useValidateProfile,
 } from "@/lib/api/business";
 import { Select } from "@/features/replyly/select";
-import { Banner, PageHead, Seg, Section, Skel, Spinner, useToast } from "@/features/replyly/ui";
+import { useToast } from "@/features/replyly/ui";
 
 import { CategoryPicker } from "./category-picker";
 import { HoursEditor, type HoursForm, hoursForm, hoursPeriods } from "./hours-editor";
+import { Field, Section, Spin } from "./location-ui";
 import { useGoogleConnected } from "./shell";
+import { Notice, Seg, Skel } from "./ui";
 import { VerifyPanel } from "./verify-panel";
 
-const A = "#0F6B4A";
-const MUTED = "#6C6962";
 const STEPS = ["Find", "Details", "Review", "Verify"] as const;
 const COUNTRIES = [
   ["IN", "India"],
@@ -116,17 +116,7 @@ function toInput(d: Draft): CreateProfileInput {
 
 function Steps({ step }: { step: number }) {
   return (
-    <ol
-      aria-label="Steps"
-      style={{
-        display: "flex",
-        gap: 6,
-        listStyle: "none",
-        padding: 0,
-        margin: 0,
-        flexWrap: "wrap",
-      }}
-    >
+    <ol aria-label="Steps" className="gb-lp-steps">
       {STEPS.map((label, i) => {
         const done = i < step;
         const on = i === step;
@@ -134,44 +124,16 @@ function Steps({ step }: { step: number }) {
           <li
             key={label}
             aria-current={on ? "step" : undefined}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
+            className="gb-lp-step"
+            data-state={on ? "on" : done ? "done" : undefined}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "5px 12px 5px 6px",
-                borderRadius: 999,
-                background: on ? "#191917" : done ? "#E7F1EC" : "#fff",
-                color: on ? "#fff" : done ? A : MUTED,
-                border: on || done ? "1px solid transparent" : "1px solid #E6E4DF",
-                fontSize: 12.5,
-                fontWeight: 500,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: on ? "#fff" : done ? A : "#F4F2EE",
-                  color: on ? "#191917" : done ? "#fff" : MUTED,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  fontFamily: "var(--rp-mono)",
-                }}
-              >
+            <span className="gb-lp-step-pill">
+              <span aria-hidden className="gb-lp-step-n">
                 {done ? "✓" : i + 1}
               </span>
               {label}
             </span>
-            {i < STEPS.length - 1 ? (
-              <span aria-hidden style={{ width: 14, height: 1, background: "#E6E4DF" }} />
-            ) : null}
+            {i < STEPS.length - 1 ? <span aria-hidden className="gb-lp-step-line" /> : null}
           </li>
         );
       })}
@@ -179,41 +141,14 @@ function Steps({ step }: { step: number }) {
   );
 }
 
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+function MatchRow({ m }: { m: GoogleMatch }) {
   return (
-    <label className="rp-field">
-      <span className="rp-label">{label}</span>
-      {children}
-      {hint ? <span style={{ fontSize: 12, color: MUTED }}>{hint}</span> : null}
-    </label>
-  );
-}
-
-function MatchRow({ m, first }: { m: GoogleMatch; first: boolean }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "14px 16px",
-        borderTop: first ? "none" : "1px solid #EFEDE8",
-        flexWrap: "wrap",
-      }}
-    >
+    <div className="gb-lp-match gb-row">
       <span
         style={{ display: "flex", flexDirection: "column", gap: 2, flex: "1 1 240px", minWidth: 0 }}
       >
         <span style={{ fontWeight: 500 }}>{m.title}</span>
-        <span style={{ fontSize: 12.5, color: MUTED }}>
+        <span className="gb-faint">
           {[m.category, m.address, m.phone].filter(Boolean).join(" · ")}
         </span>
       </span>
@@ -222,18 +157,13 @@ function MatchRow({ m, first }: { m: GoogleMatch; first: boolean }) {
           href={m.mapsUri}
           target="_blank"
           rel="noreferrer"
-          className="rp-store-link"
-          style={{ whiteSpace: "nowrap" }}
+          style={{ whiteSpace: "nowrap", fontSize: 13, fontWeight: 500 }}
         >
           Maps ↗
         </a>
       ) : null}
       {m.locationId ? (
-        <Link
-          href={`/business/${m.locationId}`}
-          className="rp-btn-light"
-          style={{ padding: "7px 12px" }}
-        >
+        <Link href={`/business/${m.locationId}`} className="gb-btn">
           Already in TreeVook
         </Link>
       ) : m.requestAdminRightsUri ? (
@@ -241,13 +171,12 @@ function MatchRow({ m, first }: { m: GoogleMatch; first: boolean }) {
           href={m.requestAdminRightsUri}
           target="_blank"
           rel="noreferrer"
-          className="rp-btn"
-          style={{ padding: "7px 12px" }}
+          className="gb-btn gb-btn-dark"
         >
           Claim this business ↗
         </a>
       ) : (
-        <span style={{ fontSize: 12.5, color: MUTED }}>Managed by this Google account</span>
+        <span className="gb-faint">Managed by this Google account</span>
       )}
     </div>
   );
@@ -337,25 +266,18 @@ export function CreateProfilePage() {
   }
 
   const header = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Link
-        href="/business/locations"
-        className="rp-btn-quiet"
-        style={{ alignSelf: "flex-start", textDecoration: "none" }}
-      >
-        ← All locations
+    <div className="gb-lp-col">
+      <Link href="/business/locations" className="gb-link gb-lp-back">
+        ← Locations
       </Link>
-      <PageHead
-        title="Create a Business Profile"
-        sub="Put a new business on Google Search and Maps. TreeVook checks Google first so you don’t create a duplicate."
-      />
+      <h1 className="sr-only">Create a Business Profile</h1>
       <Steps step={step} />
     </div>
   );
 
   if (loading)
     return (
-      <div className="rp-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      <div className="gb-lp gb-narrow">
         {header}
         <Skel h={200} r={14} />
       </div>
@@ -363,31 +285,25 @@ export function CreateProfilePage() {
 
   if (!connected)
     return (
-      <div
-        className="rp-in"
-        style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 860 }}
-      >
+      <div className="gb-lp gb-narrow">
         {header}
-        <Banner
-          tone="info"
-          title="Sign in with Google first"
+        <Notice
+          tone="ok"
           action={
-            <Link href="/business/connect" className="rp-btn" style={{ padding: "8px 14px" }}>
+            <Link href="/business/connect" className="gb-btn gb-btn-dark">
               Connect Google
             </Link>
           }
         >
+          <span className="gb-lp-notice-title">Sign in with Google first</span>
           The new profile belongs to the Google account you sign in with. Use the account that
           should own the business.
-        </Banner>
+        </Notice>
       </div>
     );
 
   return (
-    <div
-      className="rp-in"
-      style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 860 }}
-    >
+    <div className="gb-lp gb-narrow">
       {header}
 
       {step === 0 ? (
@@ -396,23 +312,20 @@ export function CreateProfilePage() {
           desc="Many businesses are already on Maps, added by customers or a previous owner. Claim it instead of creating a new one."
         >
           <form
-            className="rp-card"
-            style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}
+            className="gb-card gb-card-pad gb-lp-col"
+            style={{ gap: 14 }}
             onSubmit={(e) => {
               e.preventDefault();
               runSearch();
             }}
           >
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-                gap: 12,
-              }}
+              className="gb-lp-grid"
+              style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}
             >
               <Field label="Business name">
                 <input
-                  className="rp-input"
+                  className="gb-input"
                   value={find.name}
                   maxLength={100}
                   placeholder="Sharma Dental Clinic"
@@ -421,7 +334,7 @@ export function CreateProfilePage() {
               </Field>
               <Field label="City or address (optional)">
                 <input
-                  className="rp-input"
+                  className="gb-input"
                   value={find.where}
                   maxLength={200}
                   placeholder="Patna"
@@ -430,7 +343,7 @@ export function CreateProfilePage() {
               </Field>
               <Field label="Phone (optional)">
                 <input
-                  className="rp-input"
+                  className="gb-input"
                   value={find.phone}
                   maxLength={40}
                   placeholder="+91 …"
@@ -441,47 +354,35 @@ export function CreateProfilePage() {
             <div>
               <button
                 type="submit"
-                className="rp-btn"
-                style={{ padding: "9px 16px" }}
+                className="gb-btn gb-btn-dark"
                 disabled={find.name.trim().length < 2 || search.isPending}
               >
-                {search.isPending ? <Spinner size={11} /> : null}
+                {search.isPending ? <Spin /> : null}
                 Search Google
               </button>
             </div>
           </form>
           {matches ? (
             matches.length ? (
-              <div className="rp-card" style={{ display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    borderBottom: "1px solid #EFEDE8",
-                    fontSize: 13,
-                    color: MUTED,
-                  }}
-                >
+              <div className="gb-card">
+                <div className="gb-card-head gb-sub" style={{ display: "block" }}>
                   {matches.length} match{matches.length === 1 ? "" : "es"} on Google. If one is
                   yours, claim it: Google asks the current owner, or lets you verify it yourself.
                 </div>
-                {matches.map((m, i) => (
-                  <MatchRow key={m.name} m={m} first={i === 0} />
+                {matches.map((m) => (
+                  <MatchRow key={m.name} m={m} />
                 ))}
               </div>
             ) : (
-              <Banner tone="info" title="Not on Google yet">
+              <Notice tone="ok">
+                <span className="gb-lp-notice-title">Not on Google yet</span>
                 Nothing matched “{find.name}”. You can create it.
-              </Banner>
+              </Notice>
             )
           ) : null}
           {matches ? (
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button
-                type="button"
-                className="rp-btn"
-                style={{ padding: "9px 16px" }}
-                onClick={toDetails}
-              >
+            <div className="gb-lp-actions">
+              <button type="button" className="gb-btn gb-btn-dark" onClick={toDetails}>
                 {matches.length ? "None of these is mine, continue" : "Continue"}
               </button>
             </div>
@@ -492,10 +393,7 @@ export function CreateProfilePage() {
       {step === 1 ? (
         <>
           <Section title="Business details" desc="Use the real name customers see on your signage.">
-            <div
-              className="rp-card"
-              style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}
-            >
+            <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
               {ownerOptions.length > 1 || groupName !== null ? (
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                   <Field label="Owner on Google">
@@ -509,16 +407,25 @@ export function CreateProfilePage() {
                     />
                   </Field>
                   {groupName === null ? (
-                    <button type="button" className="rp-btn-text" onClick={() => setGroupName("")}>
+                    <button
+                      type="button"
+                      className="gb-btn gb-btn-ghost"
+                      onClick={() => setGroupName("")}
+                    >
                       New business group
                     </button>
                   ) : null}
                 </div>
               ) : (
-                <span style={{ fontSize: 12.5, color: MUTED }}>
+                <span className="gb-sub">
                   Owner on Google: {accountList[0]?.name ?? "…"}
                   {accountList[0] ? ` · ${accountList[0].email}` : ""}{" "}
-                  <button type="button" className="rp-btn-text" onClick={() => setGroupName("")}>
+                  <button
+                    type="button"
+                    className="gb-link"
+                    style={{ color: "var(--gb-green)", fontWeight: 500 }}
+                    onClick={() => setGroupName("")}
+                  >
                     Use a new business group
                   </button>
                 </span>
@@ -530,7 +437,7 @@ export function CreateProfilePage() {
                     hint="Groups keep each client’s profiles apart, for agencies and chains."
                   >
                     <input
-                      className="rp-input"
+                      className="gb-input"
                       value={groupName}
                       maxLength={80}
                       onChange={(e) => setGroupName(e.target.value)}
@@ -538,8 +445,7 @@ export function CreateProfilePage() {
                   </Field>
                   <button
                     type="button"
-                    className="rp-btn-light"
-                    style={{ padding: "8px 14px" }}
+                    className="gb-btn"
                     disabled={!groupName.trim() || group.isPending || !accountList[0]}
                     onClick={() => {
                       const connectionId = (owner || ownerOptions[0]?.value || "").split("|")[0]!;
@@ -556,28 +462,29 @@ export function CreateProfilePage() {
                       );
                     }}
                   >
-                    {group.isPending ? <Spinner size={11} dark /> : null}
+                    {group.isPending ? <Spin light /> : null}
                     Create group
                   </button>
-                  <button type="button" className="rp-btn-quiet" onClick={() => setGroupName(null)}>
+                  <button
+                    type="button"
+                    className="gb-btn gb-btn-ghost"
+                    onClick={() => setGroupName(null)}
+                  >
                     Cancel
                   </button>
                 </div>
               ) : null}
               <Field label="Business name">
                 <input
-                  className="rp-input"
+                  className="gb-input"
                   value={draft.title}
                   maxLength={100}
                   onChange={(e) => set("title", e.target.value)}
                 />
               </Field>
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
-                  gap: 12,
-                }}
+                className="gb-lp-grid"
+                style={{ gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))" }}
               >
                 <Field label="Main category" hint="Pick the closest match from Google’s list.">
                   <CategoryPicker
@@ -607,7 +514,7 @@ export function CreateProfilePage() {
                     <button
                       key={c.name}
                       type="button"
-                      className="rp-chip"
+                      className="gb-chip"
                       aria-label={`Remove ${c.displayName}`}
                       onClick={() =>
                         set(
@@ -625,25 +532,21 @@ export function CreateProfilePage() {
           </Section>
 
           <Section title="Where customers find you">
-            <div
-              className="rp-card"
-              style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}
-            >
-              <Seg
-                label="Location type"
-                value={draft.kind}
-                onChange={(k) => set("kind", k)}
-                options={[
-                  { id: "storefront", label: "Customers visit us" },
-                  { id: "area", label: "We go to customers" },
-                ]}
-              />
+            <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
+              <div className="gb-lp-scroll" style={{ alignSelf: "flex-start" }}>
+                <Seg
+                  label="Location type"
+                  value={draft.kind}
+                  onChange={(k) => set("kind", k)}
+                  options={[
+                    { id: "storefront", label: "Customers visit us" },
+                    { id: "area", label: "We go to customers" },
+                  ]}
+                />
+              </div>
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-                  gap: 12,
-                }}
+                className="gb-lp-grid"
+                style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}
               >
                 <Field label="Country">
                   <Select
@@ -660,7 +563,7 @@ export function CreateProfilePage() {
                 <>
                   <Field label="Street address">
                     <input
-                      className="rp-input"
+                      className="gb-input"
                       value={draft.line1}
                       maxLength={120}
                       onChange={(e) => set("line1", e.target.value)}
@@ -668,22 +571,19 @@ export function CreateProfilePage() {
                   </Field>
                   <Field label="Area, building or landmark (optional)">
                     <input
-                      className="rp-input"
+                      className="gb-input"
                       value={draft.line2}
                       maxLength={120}
                       onChange={(e) => set("line2", e.target.value)}
                     />
                   </Field>
                   <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
-                      gap: 12,
-                    }}
+                    className="gb-lp-grid"
+                    style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}
                   >
                     <Field label="City">
                       <input
-                        className="rp-input"
+                        className="gb-input"
                         value={draft.city}
                         maxLength={80}
                         onChange={(e) => set("city", e.target.value)}
@@ -691,7 +591,7 @@ export function CreateProfilePage() {
                     </Field>
                     <Field label="State">
                       <input
-                        className="rp-input"
+                        className="gb-input"
                         value={draft.state}
                         maxLength={80}
                         onChange={(e) => set("state", e.target.value)}
@@ -699,7 +599,7 @@ export function CreateProfilePage() {
                     </Field>
                     <Field label={draft.country === "IN" ? "PIN code" : "Postal code"}>
                       <input
-                        className="rp-input"
+                        className="gb-input"
                         value={draft.postalCode}
                         maxLength={20}
                         inputMode={draft.country === "IN" ? "numeric" : undefined}
@@ -707,7 +607,7 @@ export function CreateProfilePage() {
                       />
                     </Field>
                   </div>
-                  <span style={{ fontSize: 12, color: MUTED }}>
+                  <span className="gb-faint">
                     Google may mail a postcard with a code to this address.
                   </span>
                 </>
@@ -728,19 +628,14 @@ export function CreateProfilePage() {
                       hint="Your address stays hidden on Google."
                     >
                       <input
-                        className="rp-input"
+                        className="gb-input"
                         value={area}
                         maxLength={120}
                         placeholder="Kankarbagh, Patna"
                         onChange={(e) => setArea(e.target.value)}
                       />
                     </Field>
-                    <button
-                      type="submit"
-                      className="rp-btn-light"
-                      style={{ padding: "8px 14px" }}
-                      disabled={!area.trim()}
-                    >
+                    <button type="submit" className="gb-btn" disabled={!area.trim()}>
                       Add
                     </button>
                   </form>
@@ -750,7 +645,7 @@ export function CreateProfilePage() {
                         <button
                           key={a}
                           type="button"
-                          className="rp-chip"
+                          className="gb-chip"
                           aria-label={`Remove ${a}`}
                           onClick={() =>
                             set(
@@ -770,20 +665,14 @@ export function CreateProfilePage() {
           </Section>
 
           <Section title="Contact">
-            <div
-              className="rp-card"
-              style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}
-            >
+            <div className="gb-card gb-card-pad gb-lp-col" style={{ gap: 14 }}>
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-                  gap: 12,
-                }}
+                className="gb-lp-grid"
+                style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}
               >
                 <Field label="Phone" hint="Google may text or call this number with a code.">
                   <input
-                    className="rp-input"
+                    className="gb-input"
                     type="tel"
                     value={draft.phone}
                     maxLength={40}
@@ -793,7 +682,7 @@ export function CreateProfilePage() {
                 </Field>
                 <Field label="Website (optional)" hint="Must start with https://">
                   <input
-                    className="rp-input"
+                    className="gb-input"
                     type="url"
                     value={draft.website}
                     maxLength={500}
@@ -803,14 +692,13 @@ export function CreateProfilePage() {
               </div>
               <Field label="Description (optional)">
                 <textarea
-                  className="rp-textarea"
+                  className="gb-textarea"
                   rows={4}
                   value={draft.description}
                   maxLength={750}
                   onChange={(e) => set("description", e.target.value)}
-                  style={{ resize: "vertical" }}
                 />
-                <span style={{ fontSize: 12, color: MUTED }}>
+                <span className="gb-faint">
                   {draft.description.length}/750 · No links, prices or promotions.
                 </span>
               </Field>
@@ -824,20 +712,17 @@ export function CreateProfilePage() {
             <HoursEditor value={draft.hours} onChange={(hours) => set("hours", hours)} />
           </Section>
 
-          <div
-            style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap" }}
-          >
-            <button type="button" className="rp-btn-quiet" onClick={() => setStep(0)}>
+          <div className="gb-lp-actions gb-lp-actions-split">
+            <button type="button" className="gb-btn gb-btn-ghost" onClick={() => setStep(0)}>
               ← Back to search
             </button>
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "9px 16px" }}
+              className="gb-btn gb-btn-dark"
               disabled={!draft.title.trim() || validate.isPending}
               onClick={toReview}
             >
-              {validate.isPending ? <Spinner size={11} /> : null}
+              {validate.isPending ? <Spin /> : null}
               Review
             </button>
           </div>
@@ -850,57 +735,42 @@ export function CreateProfilePage() {
           desc="Google checked these details without creating anything yet."
         >
           {review.problems.length ? (
-            <Banner tone="error" title="Fix these first">
+            <Notice tone="error">
+              <span className="gb-lp-notice-title">Fix these first</span>
               <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {review.problems.map((p) => (
                   <span key={p}>{p}</span>
                 ))}
               </span>
-            </Banner>
+            </Notice>
           ) : (
-            <Banner tone="info" title="Google accepted these details">
+            <Notice tone="ok">
+              <span className="gb-lp-notice-title">Google accepted these details</span>
               The profile stays hidden on Google until you verify it in the next step.
-            </Banner>
+            </Notice>
           )}
-          <div className="rp-card" style={{ display: "flex", flexDirection: "column" }}>
-            {review.summary.map((line, i) => {
+          <div className="gb-card">
+            {review.summary.map((line) => {
               const at = line.indexOf(": ");
               return (
-                <div
-                  key={line}
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    padding: "11px 16px",
-                    borderTop: i ? "1px solid #EFEDE8" : "none",
-                    fontSize: 13.5,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span style={{ width: 110, color: MUTED, flexShrink: 0 }}>
-                    {line.slice(0, at)}
-                  </span>
-                  <span style={{ flex: "1 1 240px", minWidth: 0, overflowWrap: "anywhere" }}>
-                    {line.slice(at + 2)}
-                  </span>
+                <div key={line} className="gb-lp-kv gb-row">
+                  <span className="gb-lp-kv-key">{line.slice(0, at)}</span>
+                  <span className="gb-lp-kv-val">{line.slice(at + 2)}</span>
                 </div>
               );
             })}
           </div>
-          <div
-            style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap" }}
-          >
-            <button type="button" className="rp-btn-quiet" onClick={() => setStep(1)}>
+          <div className="gb-lp-actions gb-lp-actions-split">
+            <button type="button" className="gb-btn gb-btn-ghost" onClick={() => setStep(1)}>
               ← Edit details
             </button>
             <button
               type="button"
-              className="rp-btn"
-              style={{ padding: "9px 16px" }}
+              className="gb-btn gb-btn-dark"
               disabled={!review.valid || create.isPending}
               onClick={submit}
             >
-              {create.isPending ? <Spinner size={11} /> : null}
+              {create.isPending ? <Spin /> : null}
               Create on Google
             </button>
           </div>
@@ -914,8 +784,7 @@ export function CreateProfilePage() {
           action={
             <button
               type="button"
-              className="rp-btn-light"
-              style={{ padding: "7px 12px" }}
+              className="gb-btn"
               onClick={() => router.push(`/business/${created.id}`)}
             >
               Open location

@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 
+import { CreativesModule } from "@modules/creatives/creatives.module";
 import { EngineModule } from "@modules/engine/engine.module";
 import { RateLimiter } from "@shared/cache/rate-limiter";
 import { REDIS } from "@shared/cache/redis";
@@ -19,7 +20,7 @@ import { BusinessProfilesController } from "./interface/business-profiles.contro
 import { BusinessController } from "./interface/business.controller";
 
 @Module({
-  imports: [EngineModule],
+  imports: [EngineModule, CreativesModule],
   controllers: [BusinessController, BusinessProfilesController],
   providers: [
     BusinessRepository,

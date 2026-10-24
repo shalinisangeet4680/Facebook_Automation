@@ -28,7 +28,7 @@ import {
   GbpDailyMetric,
   GbpGoogleMatch,
   GbpLocation,
-  GbpPhoto,
+  GbpMedia,
   GbpPost,
   GbpReview,
   GbpReviewPage,
@@ -129,22 +129,33 @@ interface GoogleMediaItem {
   locationAssociation?: { category?: string };
   dimensions?: { widthPixels?: number; heightPixels?: number };
   insights?: { viewCount?: string };
+  attribution?: { profileName?: string; profilePhotoUrl?: string };
 }
 
-const toPhoto = (m: GoogleMediaItem): GbpPhoto | null => {
-  if (m.mediaFormat !== "PHOTO" || !m.googleUrl) return null;
+const toMedia = (
+  m: GoogleMediaItem,
+  source: GbpMedia["source"],
+): GbpMedia | null => {
+  const format = m.mediaFormat === "VIDEO" ? "VIDEO" : "PHOTO";
+  if (m.mediaFormat !== format || !(m.googleUrl ?? m.thumbnailUrl)) return null;
   const category = m.locationAssociation?.category;
   return {
     name: m.name,
+    format,
     category: PHOTO_CATEGORIES.includes(category as PhotoCategory)
       ? (category as PhotoCategory)
-      : "ADDITIONAL",
-    url: m.googleUrl,
-    thumbnailUrl: m.thumbnailUrl ?? m.googleUrl,
+      : source === "owner"
+        ? "ADDITIONAL"
+        : null,
+    url: m.googleUrl ?? m.thumbnailUrl!,
+    thumbnailUrl: m.thumbnailUrl ?? m.googleUrl!,
     width: m.dimensions?.widthPixels ?? null,
     height: m.dimensions?.heightPixels ?? null,
     views: m.insights?.viewCount ? Number(m.insights.viewCount) : null,
     createTime: m.createTime ? new Date(m.createTime) : new Date(0),
+    source,
+    author: m.attribution?.profileName ?? null,
+    authorPhoto: m.attribution?.profilePhotoUrl ?? null,
   };
 };
 
@@ -712,12 +723,13 @@ export class GoogleBusinessClient implements BusinessApi {
     await this.call(refreshToken, `${V4}/${postName}`, { method: "DELETE" });
   }
 
-  async photos(
+  private async mediaPages(
     refreshToken: string,
-    account: string,
-    location: string,
-  ): Promise<GbpPhoto[]> {
-    const photos: GbpPhoto[] = [];
+    path: string,
+    source: GbpMedia["source"],
+    maxPages: number,
+  ) {
+    const items: GbpMedia[] = [];
     let pageToken = "";
     let pages = 0;
     do {
@@ -726,16 +738,76 @@ export class GoogleBusinessClient implements BusinessApi {
         nextPageToken?: string;
       }>(
         refreshToken,
-        `${V4}/${account}/${location}/media?pageSize=100${pageToken ? `&pageToken=${pageToken}` : ""}`,
+        `${V4}/${path}?pageSize=100${pageToken ? `&pageToken=${pageToken}` : ""}`,
       );
       for (const m of data.mediaItems ?? []) {
-        const photo = toPhoto(m);
-        if (photo) photos.push(photo);
+        const item = toMedia(m, source);
+        if (item) items.push(item);
       }
       pageToken = data.nextPageToken ?? "";
       pages++;
-    } while (pageToken && pages < 5);
-    return photos;
+    } while (pageToken && pages < maxPages);
+    return items;
+  }
+
+  async media(
+    refreshToken: string,
+    account: string,
+    location: string,
+  ): Promise<GbpMedia[]> {
+    const [owner, customers] = await Promise.all([
+      this.mediaPages(refreshToken, `${account}/${location}/media`, "owner", 5),
+      this.mediaPages(
+        refreshToken,
+        `${account}/${location}/media/customers`,
+        "customer",
+        3,
+      ).catch((err: unknown) => {
+        if (err instanceof BusinessApiError && err.kind === "auth") throw err;
+        return [];
+      }),
+    ]);
+    return [...owner, ...customers];
+  }
+
+  async addPhoto(
+    refreshToken: string,
+    account: string,
+    location: string,
+    photo: { sourceUrl: string; category: PhotoCategory },
+  ): Promise<GbpMedia> {
+    const data = await this.call<GoogleMediaItem>(
+      refreshToken,
+      `${V4}/${account}/${location}/media`,
+      {
+        method: "POST",
+        body: {
+          mediaFormat: "PHOTO",
+          locationAssociation: { category: photo.category },
+          sourceUrl: photo.sourceUrl,
+        },
+      },
+    );
+    return (
+      toMedia(data, "owner") ?? {
+        name: data.name,
+        format: "PHOTO",
+        category: photo.category,
+        url: photo.sourceUrl,
+        thumbnailUrl: photo.sourceUrl,
+        width: null,
+        height: null,
+        views: null,
+        createTime: new Date(),
+        source: "owner",
+        author: null,
+        authorPhoto: null,
+      }
+    );
+  }
+
+  async deleteMedia(refreshToken: string, name: string) {
+    await this.call(refreshToken, `${V4}/${name}`, { method: "DELETE" });
   }
 
   async metrics(

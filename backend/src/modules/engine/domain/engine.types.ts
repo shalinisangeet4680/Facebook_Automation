@@ -29,6 +29,23 @@ export const REPLY_SOURCES = ["template", "claude", "manual", "ai"] as const;
 
 export const AI_MODES = ["platform", "own", "off"] as const;
 export type AiMode = (typeof AI_MODES)[number];
+
+export const AGENT_PERMISSIONS = [
+  "gbpDrafts",
+  "gbpPosts",
+  "gbpInfo",
+  "gbpReplySettings",
+  "gbpProfiles",
+] as const;
+export type AgentPermission = (typeof AGENT_PERMISSIONS)[number];
+export type AgentPermissions = Record<AgentPermission, boolean>;
+
+export const agentPermissions = (
+  stored: Partial<Record<string, boolean>> | null | undefined,
+): AgentPermissions =>
+  Object.fromEntries(
+    AGENT_PERMISSIONS.map((k) => [k, stored?.[k] ?? true]),
+  ) as AgentPermissions;
 export type ReplySource = (typeof REPLY_SOURCES)[number];
 
 export const RULE_MODES = ["approval", "auto"] as const;

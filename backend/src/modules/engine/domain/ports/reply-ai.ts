@@ -2,6 +2,9 @@ import { Channel, Tone, Topic } from "../engine.types";
 
 export const REPLY_AI = Symbol("REPLY_AI");
 
+export const REPLY_STYLES = ["warmer", "shorter", "formal"] as const;
+export type ReplyStyle = (typeof REPLY_STYLES)[number];
+
 export interface ReplyAiInput {
   channel: Channel;
   subjectName: string;
@@ -19,6 +22,7 @@ export interface ReplyAiInput {
   translate: boolean;
   personalize: boolean;
   avoid: string | null;
+  style?: ReplyStyle | null;
   maxLength: number;
 }
 
