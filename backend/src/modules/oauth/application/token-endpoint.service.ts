@@ -23,6 +23,24 @@ const field = (form: Form, name: string): string | undefined => {
   return typeof value === "string" && value ? value : undefined;
 };
 
+const JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+
+function assertionIssuer(form: Form): string | null {
+  const assertion = field(form, "client_assertion");
+  if (field(form, "client_assertion_type") !== JWT_BEARER || !assertion)
+    return null;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(assertion.split(".")[1] ?? "", "base64url").toString("utf8"),
+    ) as { iss?: unknown; sub?: unknown };
+    return typeof payload.iss === "string" && payload.iss === payload.sub
+      ? payload.iss
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class TokenEndpointService {
   constructor(
@@ -145,10 +163,14 @@ export class TokenEndpointService {
       );
       clientId = decodeURIComponent(decoded.split(":")[0] ?? "");
     }
+    const fromAssertion = !clientId ? assertionIssuer(form) : null;
+    clientId ??= fromAssertion ?? undefined;
     if (!clientId)
       throw oauthError("invalid_client", "client_id is required.", 401);
     const client = await this.registry.resolve(clientId);
     if (!client) throw oauthError("invalid_client", "Unknown client.", 401);
+    if (fromAssertion && client.authMethod !== "none")
+      throw oauthError("invalid_client", "Client authentication failed.", 401);
     this.registry.authenticate(client, {
       clientId: field(form, "client_id") ?? clientId,
       clientSecret: field(form, "client_secret"),

@@ -146,7 +146,7 @@ export class AuthorizationService {
     const client = await this.registry.resolve(params.client_id);
     if (!client) {
       throw invalid(
-        "This app isn't registered with us. Try connecting again from Claude.",
+        "This app isn't registered with us. Start the connection again from your AI app.",
       );
     }
     if (!matchesRedirect(client.redirectUris, params.redirect_uri)) {

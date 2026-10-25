@@ -1590,6 +1590,89 @@ describe("Claude connector (OAuth + MCP)", () => {
     vi.unstubAllGlobals();
   });
 
+  it("accepts ChatGPT's metadata document, which prefers private_key_jwt but supports none", async () => {
+    const url = "https://203.0.113.11/oauth/client.json";
+    const only = "https://203.0.113.12/oauth/client.json";
+    const realFetch = globalThis.fetch;
+    const docs: Record<string, unknown> = {
+      [url]: {
+        client_id: url,
+        client_name: "ChatGPT",
+        redirect_uris: [CALLBACK],
+        token_endpoint_auth_method: "private_key_jwt",
+        token_endpoint_auth_methods_supported: ["none", "private_key_jwt"],
+        token_endpoint_auth_signing_alg: "RS256",
+        jwks_uri: "https://203.0.113.11/oauth/jwks.json",
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+      },
+      [only]: {
+        client_id: only,
+        redirect_uris: [CALLBACK],
+        token_endpoint_auth_method: "private_key_jwt",
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      (input: string | URL | Request, init?: RequestInit) => {
+        const target = input instanceof Request ? input.url : String(input);
+        const doc = docs[target];
+        if (!doc) return realFetch(input, init);
+        return Promise.resolve(
+          new Response(JSON.stringify(doc), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      },
+    );
+    clientIds.push(url, only);
+    const { code, verifier } = await authorize(url, true);
+    const res = await exchange(url, code, verifier);
+    expect(res.statusCode).toBe(200);
+    const row = await db.query.oauthClients.findFirst({
+      where: eq(oauthClients.clientId, url),
+    });
+    expect(row).toMatchObject({
+      kind: "cimd",
+      name: "ChatGPT",
+      authMethod: "none",
+    });
+
+    const jwt = (claims: Record<string, unknown>) =>
+      [{ alg: "RS256", kid: "k1" }, claims]
+        .map((part) => Buffer.from(JSON.stringify(part)).toString("base64url"))
+        .concat("signature")
+        .join(".");
+    const second = await authorize(url, true);
+    const viaAssertion = await form("/oauth/token", {
+      grant_type: "authorization_code",
+      code: second.code,
+      code_verifier: second.verifier,
+      redirect_uri: CALLBACK,
+      client_assertion_type:
+        "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+      client_assertion: jwt({ iss: url, sub: url, aud: "token" }),
+    });
+    expect(viaAssertion.statusCode).toBe(200);
+
+    const rejected = await call(
+      app,
+      "GET",
+      `/api/v1/oauth/authorization?${new URLSearchParams({
+        response_type: "code",
+        client_id: only,
+        redirect_uri: CALLBACK,
+        code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+        code_challenge_method: "S256",
+        state: "s",
+      }).toString()}`,
+      { headers: session },
+    );
+    expect(rejected.statusCode).toBe(400);
+    vi.unstubAllGlobals();
+  });
+
   it("rotates refresh tokens and revokes the connection when an old one is replayed", async () => {
     const rotated = await form("/oauth/token", {
       grant_type: "refresh_token",

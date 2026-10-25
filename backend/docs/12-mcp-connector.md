@@ -45,7 +45,7 @@ Locally `APP_URL` is a Cloudflare quick tunnel to the web dev server on port 320
 `oauth_clients` stores every client Claude uses.
 
 - DCR: `POST /oauth/register` with `redirect_uris`, `client_name`, `token_endpoint_auth_method`. Public clients (`none`) get no secret; `client_secret_post` and `client_secret_basic` get a secret stored as a SHA-256 hash. Redirect URIs must be `https`, or `http` on `localhost` / `127.0.0.1`. The one custom scheme allowed is Cursor's exact `cursor://anysphere.cursor-mcp/oauth/callback`.
-- CIMD: when `client_id` is an `https` URL we fetch the document (5 s timeout, 64 KB limit, no redirects, public hosts only), require its `client_id` to equal the URL, and cache it in the table for 24 hours.
+- CIMD: when `client_id` is an `https` URL we fetch the document (5 s timeout, 64 KB limit, no redirects, public hosts only), require its `client_id` to equal the URL, and cache it in the table for 24 hours. The document must support `none`: ChatGPT's (`https://chatgpt.com/oauth/client.json`) prefers `private_key_jwt` but also lists `none` in `token_endpoint_auth_methods_supported`, so it is stored as a public client and secured by PKCE. A token request that carries only a `client_assertion` (jwt-bearer) is matched to its client by the assertion's `iss`, for public clients only.
 
 ### Authorization
 

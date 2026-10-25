@@ -168,8 +168,11 @@ export class ClientRegistryService {
     if (!doc || typeof doc !== "object") throw new Error("Not a JSON object");
     if (doc.client_id !== url)
       throw new Error("client_id does not match the document URL");
-    const method = (doc.token_endpoint_auth_method ?? "none") as string;
-    if (method !== "none") throw new Error(`Unsupported auth method ${method}`);
+    const methods = Array.isArray(doc.token_endpoint_auth_methods_supported)
+      ? (doc.token_endpoint_auth_methods_supported as unknown[])
+      : [doc.token_endpoint_auth_method ?? "none"];
+    if (!methods.includes("none"))
+      throw new Error(`Unsupported auth methods ${methods.join(", ")}`);
     const redirectUris = this.redirectUris(
       doc.redirect_uris,
       "invalid_client_metadata",
